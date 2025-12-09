@@ -1,14 +1,9 @@
 import { CampaignState, CampaignStep } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
-import { ScriptSelectionPanel } from './panels/ScriptSelectionPanel';
-import { AvatarSelectionPanel } from './panels/AvatarSelectionPanel';
 import { CreativeGenerationPanel } from './panels/CreativeGenerationPanel';
-import { CreativeReviewPanel } from './panels/CreativeReviewPanel';
-import { CampaignSetupPanel } from './panels/CampaignSetupPanel';
-import { FacebookIntegrationPanel } from './panels/FacebookIntegrationPanel';
-import { AdAccountSelectionPanel } from './panels/AdAccountSelectionPanel';
-import { CampaignPreviewPanel } from './panels/CampaignPreviewPanel';
+import { CreativePreviewPanel } from './panels/CreativePreviewPanel';
+import { CampaignSummaryPanel } from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
 import { ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount } from '@/types/campaign';
@@ -29,13 +24,6 @@ interface RightPanelProps {
 
 export const RightPanel = ({
   state,
-  onSelectScript,
-  onSelectAvatar,
-  onSelectCreative,
-  onCampaignSetup,
-  onConnectFacebook,
-  onSelectAdAccount,
-  onPublish,
   onReset,
   onStepClick,
 }: RightPanelProps) => {
@@ -46,38 +34,27 @@ export const RightPanel = ({
         return <WelcomePanel />;
       
       case 'product-analysis':
-        return <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={!state.productData} />;
-      
       case 'script-selection':
-        return (
-          <>
-            <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
-            <div className="border-t border-border/50">
-              <ScriptSelectionPanel selectedScript={state.selectedScript} onSelect={onSelectScript} />
-            </div>
-          </>
-        );
-      
       case 'avatar-selection':
-        return <AvatarSelectionPanel selectedAvatar={state.selectedAvatar} onSelect={onSelectAvatar} />;
+        return <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={!state.productData} />;
       
       case 'creative-generation':
         return <CreativeGenerationPanel />;
       
       case 'creative-review':
-        return <CreativeReviewPanel creatives={state.creatives} selectedCreative={state.selectedCreative} onSelect={onSelectCreative} />;
-      
       case 'campaign-setup':
-        return <CampaignSetupPanel onSubmit={onCampaignSetup} />;
-      
       case 'facebook-integration':
-        return <FacebookIntegrationPanel isConnected={state.facebookConnected} onConnect={onConnectFacebook} />;
-      
       case 'ad-account-selection':
-        return <AdAccountSelectionPanel selectedAccount={state.selectedAdAccount} onSelect={onSelectAdAccount} />;
+        return (
+          <CreativePreviewPanel 
+            creatives={state.creatives} 
+            selectedCreative={state.selectedCreative}
+            campaignConfig={state.campaignConfig}
+          />
+        );
       
       case 'campaign-preview':
-        return <CampaignPreviewPanel state={state} onPublish={onPublish} />;
+        return <CampaignSummaryPanel state={state} />;
       
       case 'publishing':
       case 'published':
