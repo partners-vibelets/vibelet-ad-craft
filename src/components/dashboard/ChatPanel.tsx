@@ -35,9 +35,9 @@ export const ChatPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-border flex-shrink-0">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header with subtle border */}
+      <div className="flex items-center gap-3 p-4 border-b border-border/50 flex-shrink-0 bg-background/30">
         <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
         <div className="min-w-0">
           <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
@@ -45,7 +45,7 @@ export const ChatPanel = ({
         </div>
       </div>
 
-      {/* Messages - Using standard scrollable div for proper width constraint */}
+      {/* Messages */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto overflow-x-hidden"
@@ -63,8 +63,8 @@ export const ChatPanel = ({
         </div>
       </div>
 
-      {/* Input */}
-      <div className="flex-shrink-0">
+      {/* Input with glass effect */}
+      <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
         <ChatInput onSend={onSendMessage} disabled={disabled || isTyping} />
       </div>
     </div>

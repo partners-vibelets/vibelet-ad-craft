@@ -36,7 +36,10 @@ const features = [
 const Features = () => {
   return (
     <section id="features" className="py-24 relative">
-      <div className="container mx-auto px-4">
+      {/* Background subtle gradient */}
+      <div className="absolute inset-0 opacity-30" style={{ background: 'var(--gradient-glow)' }} />
+      
+      <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4">
@@ -52,21 +55,21 @@ const Features = () => {
           </p>
         </div>
 
-        {/* Features grid */}
+        {/* Features grid with glass cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <div 
               key={feature.title}
-              className="group relative p-8 rounded-2xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+              className="group relative p-8 rounded-2xl glass-card hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Icon */}
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
                 <feature.icon className="w-7 h-7 text-primary" />
               </div>
               
               {/* Content */}
-              <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+              <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
               <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               
               {/* Hover glow effect */}

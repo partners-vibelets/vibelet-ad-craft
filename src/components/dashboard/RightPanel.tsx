@@ -52,7 +52,7 @@ export const RightPanel = ({
         return (
           <>
             <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
-            <div className="border-t border-border">
+            <div className="border-t border-border/50">
               <ScriptSelectionPanel selectedScript={state.selectedScript} onSelect={onSelectScript} />
             </div>
           </>
@@ -91,9 +91,11 @@ export const RightPanel = ({
   const showStepIndicator = state.step !== 'welcome' && state.step !== 'product-url';
 
   return (
-    <div className="h-full bg-background flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {showStepIndicator && (
-        <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
+        <div className="flex-shrink-0 bg-background/30 border-b border-border/50">
+          <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
+        </div>
       )}
       <ScrollArea className="flex-1">
         {renderPanel()}

@@ -29,8 +29,11 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-24 bg-muted/30 relative">
-      <div className="container mx-auto px-4">
+    <section id="how-it-works" className="py-24 relative overflow-hidden">
+      {/* Glass background panel */}
+      <div className="absolute inset-0 glass opacity-50" />
+      
+      <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
@@ -51,19 +54,30 @@ const HowItWorks = () => {
               )}
               
               <div className="flex gap-6 md:gap-10 mb-12 group">
-                {/* Step number */}
+                {/* Step number with glass effect */}
                 <div 
-                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-transform group-hover:scale-110 ${
+                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${
                     step.color === 'primary' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-secondary text-secondary-foreground'
+                      ? 'bg-primary text-primary-foreground glow-primary' 
+                      : 'bg-secondary text-secondary-foreground glow-secondary'
                   }`}
                 >
                   {step.number}
                 </div>
                 
-                {/* Content */}
-                <div className="flex-1 pt-2">
+                {/* Content with glass card */}
+                <div className="flex-1 pt-2 p-6 -ml-4 -mt-2 rounded-2xl glass-card opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3">
+                    {step.title}
+                    <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed text-lg">
+                    {step.description}
+                  </p>
+                </div>
+                
+                {/* Default content (visible when not hovered) */}
+                <div className="flex-1 pt-2 group-hover:hidden">
                   <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3">
                     {step.title}
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
