@@ -16,7 +16,7 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
     return content.split('\n').map((line, i) => {
       const parts = line.split(/(\*\*[^*]+\*\*)/g);
       return (
-        <p key={i} className={i > 0 ? "mt-2" : ""}>
+        <p key={i} className={cn("break-words", i > 0 && "mt-2")} style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {parts.map((part, j) => {
             if (part.startsWith('**') && part.endsWith('**')) {
               return <strong key={j} className="font-semibold">{part.slice(2, -2)}</strong>;
@@ -33,7 +33,7 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
   
   return (
     <div className={cn(
-      "flex gap-3 p-4 animate-fade-in w-full",
+      "flex gap-3 p-4 animate-fade-in",
       isAssistant ? "bg-muted/30" : "bg-transparent"
     )}>
       <div className={cn(
@@ -42,14 +42,11 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
       )}>
         {isAssistant ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <p className="text-xs font-medium text-muted-foreground mb-1">
           {isAssistant ? 'Vibelets AI' : 'You'}
         </p>
-        <div 
-          className="text-sm text-foreground leading-relaxed"
-          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
-        >
+        <div className="text-sm text-foreground leading-relaxed">
           {renderContent(message.content)}
         </div>
         {message.inlineQuestion && onQuestionAnswer && (

@@ -3,7 +3,6 @@ import { Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import vibeletsLogo from '@/assets/vibelets-logo.png';
 
 interface ChatPanelProps {
@@ -39,16 +38,19 @@ export const ChatPanel = ({
     <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-3 border-b border-border flex-shrink-0">
-        <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto" />
+        <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
         <div className="min-w-0">
           <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
           <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
         </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 w-full" ref={scrollRef}>
-        <div className="flex flex-col w-full">
+      {/* Messages - Using standard scrollable div for proper width constraint */}
+      <div 
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden"
+      >
+        <div className="flex flex-col">
           {messages.map((message) => (
             <ChatMessage 
               key={message.id} 
@@ -59,7 +61,7 @@ export const ChatPanel = ({
           ))}
           {isTyping && <TypingIndicator />}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       <div className="flex-shrink-0">

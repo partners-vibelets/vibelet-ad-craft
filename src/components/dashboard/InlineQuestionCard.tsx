@@ -10,8 +10,8 @@ interface InlineQuestionCardProps {
 
 export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: InlineQuestionCardProps) => {
   return (
-    <div className="mt-3 space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">{question.question}</p>
+    <div className="mt-3 space-y-2 overflow-hidden">
+      <p className="text-xs font-medium text-muted-foreground break-words">{question.question}</p>
       <div className="flex flex-col gap-1.5">
         {question.options.map((option) => {
           const isSelected = selectedAnswer === option.id;
@@ -20,7 +20,7 @@ export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: Inlin
               key={option.id}
               onClick={() => onAnswer(question.id, option.id)}
               className={cn(
-                "group relative flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all w-full",
+                "group relative flex items-center gap-2.5 p-2 rounded-lg border text-left transition-all w-full overflow-hidden",
                 isSelected 
                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                   : "border-border bg-card hover:border-primary/50 hover:bg-muted/50"
@@ -34,7 +34,7 @@ export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: Inlin
               )}>
                 {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <span className={cn(
                   "text-sm font-medium block truncate",
                   isSelected ? "text-primary" : "text-foreground"
