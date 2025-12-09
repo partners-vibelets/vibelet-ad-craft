@@ -19,34 +19,32 @@ interface StepIndicatorProps {
 }
 
 export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) => {
-  const currentIndex = STEP_CONFIG.findIndex(s => s.id === currentStep);
-
   // Handle special step mappings
   const getDisplayIndex = () => {
     if (currentStep === 'creative-generation') return STEP_CONFIG.findIndex(s => s.id === 'creative-review');
     if (currentStep === 'publishing' || currentStep === 'published') return STEP_CONFIG.findIndex(s => s.id === 'campaign-preview');
-    return currentIndex;
+    return STEP_CONFIG.findIndex(s => s.id === currentStep);
   };
 
   const displayIndex = getDisplayIndex();
 
   return (
-    <div className="px-6 py-4 border-b border-border bg-muted/30">
-      {/* Progress bar */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-medium text-muted-foreground">
+    <div className="px-6 py-3 border-b border-border bg-muted/20">
+      {/* Progress indicator */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-xs font-medium text-foreground whitespace-nowrap">
           Step {Math.max(1, displayIndex + 1)} of {STEP_CONFIG.length}
         </span>
-        <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
+        <div className="flex-1 h-1 bg-border rounded-full overflow-hidden">
           <div 
-            className="h-full bg-primary rounded-full transition-all duration-300"
+            className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
             style={{ width: `${((displayIndex + 1) / STEP_CONFIG.length) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Step pills */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Horizontal step navigation */}
+      <div className="flex items-center gap-1 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {STEP_CONFIG.map((step, index) => {
           const isCompleted = index < displayIndex;
           const isCurrent = index === displayIndex;
@@ -58,19 +56,20 @@ export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) 
               key={step.id}
               onClick={() => isClickable && onStepClick(step.id)}
               disabled={!isClickable}
+              title={step.label}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                isCurrent && "bg-primary text-primary-foreground",
-                isCompleted && "bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer",
-                !isCompleted && !isCurrent && "bg-muted text-muted-foreground"
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap",
+                isCurrent && "bg-primary text-primary-foreground shadow-sm",
+                isCompleted && "bg-accent/50 text-accent-foreground hover:bg-accent cursor-pointer",
+                !isCompleted && !isCurrent && "text-muted-foreground"
               )}
             >
               {isCompleted ? (
-                <Check className="w-3 h-3" />
+                <Check className="w-3.5 h-3.5" />
               ) : (
-                <Icon className="w-3 h-3" />
+                <Icon className="w-3.5 h-3.5" />
               )}
-              <span>{step.label}</span>
+              <span className="hidden sm:inline">{step.label}</span>
             </button>
           );
         })}
