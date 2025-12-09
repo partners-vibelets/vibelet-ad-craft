@@ -35,14 +35,11 @@ const features = [
 
 const Features = () => {
   return (
-    <section id="features" className="py-24 relative">
-      {/* Background subtle gradient */}
-      <div className="absolute inset-0 opacity-30" style={{ background: 'var(--gradient-glow)' }} />
-      
+    <section id="features" className="py-24 relative bg-background">
       <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 text-secondary border border-secondary/20 text-sm font-medium mb-4">
             <Zap className="w-4 h-4" />
             <span>Powerful Features</span>
           </div>
@@ -55,25 +52,22 @@ const Features = () => {
           </p>
         </div>
 
-        {/* Features grid with glass cards */}
+        {/* Features grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <div 
               key={feature.title}
-              className="group relative p-8 rounded-2xl glass-card hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              className="group relative p-8 rounded-2xl bg-card border border-border hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Icon */}
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all">
                 <feature.icon className="w-7 h-7 text-primary" />
               </div>
               
               {/* Content */}
               <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
               <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-              
-              {/* Hover glow effect */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity -z-10" />
             </div>
           ))}
         </div>

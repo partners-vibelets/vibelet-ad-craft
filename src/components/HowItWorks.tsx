@@ -29,10 +29,7 @@ const steps = [
 
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="py-24 relative overflow-hidden">
-      {/* Glass background panel */}
-      <div className="absolute inset-0 glass opacity-50" />
-      
+    <section id="how-it-works" className="py-24 relative overflow-hidden bg-muted/30">
       <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
@@ -50,34 +47,23 @@ const HowItWorks = () => {
             <div key={step.number} className="relative">
               {/* Connection line */}
               {index < steps.length - 1 && (
-                <div className="absolute left-8 top-20 w-0.5 h-24 bg-gradient-to-b from-border to-transparent hidden md:block" />
+                <div className="absolute left-8 top-20 w-0.5 h-24 bg-border hidden md:block" />
               )}
               
               <div className="flex gap-6 md:gap-10 mb-12 group">
-                {/* Step number with glass effect */}
+                {/* Step number */}
                 <div 
-                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${
+                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-300 group-hover:scale-105 shadow-md ${
                     step.color === 'primary' 
-                      ? 'bg-primary text-primary-foreground glow-primary' 
-                      : 'bg-secondary text-secondary-foreground glow-secondary'
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-secondary text-secondary-foreground'
                   }`}
                 >
                   {step.number}
                 </div>
                 
-                {/* Content with glass card */}
-                <div className="flex-1 pt-2 p-6 -ml-4 -mt-2 rounded-2xl glass-card opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3">
-                    {step.title}
-                    <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    {step.description}
-                  </p>
-                </div>
-                
-                {/* Default content (visible when not hovered) */}
-                <div className="flex-1 pt-2 group-hover:hidden">
+                {/* Content */}
+                <div className="flex-1 pt-2">
                   <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3">
                     {step.title}
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
