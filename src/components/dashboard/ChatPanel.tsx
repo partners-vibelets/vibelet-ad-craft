@@ -1,29 +1,24 @@
 import { useRef, useEffect, useState } from 'react';
-import { CampaignStep, Message } from '@/types/campaign';
+import { Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
-import { StepIndicator } from './StepIndicator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import vibeletsLogo from '@/assets/vibelets-logo.png';
 
 interface ChatPanelProps {
   messages: Message[];
   isTyping: boolean;
-  currentStep: CampaignStep;
   onSendMessage: (message: string) => void;
   onQuestionAnswer: (questionId: string, answerId: string) => void;
-  onStepClick: (step: CampaignStep) => void;
   disabled?: boolean;
 }
 
 export const ChatPanel = ({ 
   messages, 
   isTyping, 
-  currentStep,
   onSendMessage, 
   onQuestionAnswer,
-  onStepClick,
   disabled 
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -50,9 +45,6 @@ export const ChatPanel = ({
           <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
         </div>
       </div>
-
-      {/* Step Indicator */}
-      <StepIndicator currentStep={currentStep} onStepClick={onStepClick} />
 
       {/* Messages */}
       <ScrollArea className="flex-1" ref={scrollRef}>

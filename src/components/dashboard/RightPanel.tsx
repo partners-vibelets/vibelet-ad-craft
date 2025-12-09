@@ -1,4 +1,4 @@
-import { CampaignState } from '@/types/campaign';
+import { CampaignState, CampaignStep } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
 import { ScriptSelectionPanel } from './panels/ScriptSelectionPanel';
@@ -10,6 +10,7 @@ import { FacebookIntegrationPanel } from './panels/FacebookIntegrationPanel';
 import { AdAccountSelectionPanel } from './panels/AdAccountSelectionPanel';
 import { CampaignPreviewPanel } from './panels/CampaignPreviewPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
+import { StepIndicator } from './StepIndicator';
 import { ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount } from '@/types/campaign';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -23,6 +24,7 @@ interface RightPanelProps {
   onSelectAdAccount: (account: AdAccount) => void;
   onPublish: () => void;
   onReset: () => void;
+  onStepClick: (step: CampaignStep) => void;
 }
 
 export const RightPanel = ({
@@ -35,6 +37,7 @@ export const RightPanel = ({
   onSelectAdAccount,
   onPublish,
   onReset,
+  onStepClick,
 }: RightPanelProps) => {
   const renderPanel = () => {
     switch (state.step) {
@@ -85,9 +88,14 @@ export const RightPanel = ({
     }
   };
 
+  const showStepIndicator = state.step !== 'welcome' && state.step !== 'product-url';
+
   return (
-    <div className="h-full bg-background">
-      <ScrollArea className="h-full">
+    <div className="h-full bg-background flex flex-col">
+      {showStepIndicator && (
+        <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
+      )}
+      <ScrollArea className="flex-1">
         {renderPanel()}
       </ScrollArea>
     </div>

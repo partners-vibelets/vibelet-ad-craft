@@ -27,10 +27,8 @@ const Dashboard = () => {
         <ChatPanel
           messages={messages}
           isTyping={isTyping}
-          currentStep={state.step}
           onSendMessage={handleUserMessage}
           onQuestionAnswer={handleQuestionAnswer}
-          onStepClick={goToStep}
         />
       </div>
 
@@ -46,6 +44,7 @@ const Dashboard = () => {
           onSelectAdAccount={selectAdAccount}
           onPublish={publishCampaign}
           onReset={resetFlow}
+          onStepClick={goToStep}
         />
       </div>
     </div>

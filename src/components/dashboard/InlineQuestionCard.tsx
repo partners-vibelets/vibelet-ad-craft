@@ -1,4 +1,4 @@
-import { InlineQuestion, QuestionOption } from '@/types/campaign';
+import { InlineQuestion } from '@/types/campaign';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 
@@ -12,7 +12,7 @@ export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: Inlin
   return (
     <div className="mt-3 space-y-2">
       <p className="text-xs font-medium text-muted-foreground">{question.question}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
         {question.options.map((option) => {
           const isSelected = selectedAnswer === option.id;
           return (
@@ -20,28 +20,33 @@ export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: Inlin
               key={option.id}
               onClick={() => onAnswer(question.id, option.id)}
               className={cn(
-                "group relative flex flex-col items-start p-3 rounded-lg border text-left transition-all min-w-[140px] max-w-[200px]",
+                "group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-all w-full",
                 isSelected 
                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                   : "border-border bg-card hover:border-primary/50 hover:bg-muted/50"
               )}
             >
-              <div className="flex items-center justify-between w-full">
+              <div className={cn(
+                "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                isSelected 
+                  ? "border-primary bg-primary"
+                  : "border-muted-foreground"
+              )}>
+                {isSelected && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+              </div>
+              <div className="flex-1 min-w-0">
                 <span className={cn(
-                  "text-sm font-medium",
+                  "text-sm font-medium block",
                   isSelected ? "text-primary" : "text-foreground"
                 )}>
                   {option.label}
                 </span>
-                {isSelected && (
-                  <Check className="w-4 h-4 text-primary" />
+                {option.description && (
+                  <span className="text-xs text-muted-foreground line-clamp-1">
+                    {option.description}
+                  </span>
                 )}
               </div>
-              {option.description && (
-                <span className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {option.description}
-                </span>
-              )}
             </button>
           );
         })}
