@@ -13,12 +13,28 @@ export type CampaignStep =
   | 'publishing'
   | 'published';
 
+export interface QuestionOption {
+  id: string;
+  label: string;
+  description?: string;
+  icon?: string;
+}
+
+export interface InlineQuestion {
+  id: string;
+  question: string;
+  options: QuestionOption[];
+  multiSelect?: boolean;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   isTyping?: boolean;
+  inlineQuestion?: InlineQuestion;
+  stepId?: CampaignStep;
 }
 
 export interface ProductData {
@@ -28,6 +44,14 @@ export interface ProductData {
   images: string[];
   sku: string;
   category: string;
+  pageScreenshot?: string;
+  insights?: ProductInsight[];
+}
+
+export interface ProductInsight {
+  label: string;
+  value: string;
+  icon: string;
 }
 
 export interface ScriptOption {
@@ -65,8 +89,17 @@ export interface AdAccount {
   status: string;
 }
 
+export interface StepInfo {
+  id: CampaignStep;
+  label: string;
+  shortLabel: string;
+  completed: boolean;
+  current: boolean;
+}
+
 export interface CampaignState {
   step: CampaignStep;
+  stepHistory: CampaignStep[];
   productUrl: string | null;
   productData: ProductData | null;
   selectedScript: ScriptOption | null;

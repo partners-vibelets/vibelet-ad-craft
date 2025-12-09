@@ -10,7 +10,15 @@ export const mockProductData: ProductData = {
     "https://images.unsplash.com/photo-1598331668826-20cecc596b86?w=400"
   ],
   sku: "EAR-PRO-001",
-  category: "Electronics / Audio"
+  category: "Electronics / Audio",
+  pageScreenshot: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800",
+  insights: [
+    { label: "Market Fit", value: "High Demand", icon: "trending-up" },
+    { label: "Ad Potential", value: "Excellent", icon: "star" },
+    { label: "Target Audience", value: "Tech Enthusiasts", icon: "users" },
+    { label: "Best Format", value: "Video Ads", icon: "video" },
+    { label: "Suggested Budget", value: "$50-100/day", icon: "dollar-sign" }
+  ]
 };
 
 export const scriptOptions: ScriptOption[] = [

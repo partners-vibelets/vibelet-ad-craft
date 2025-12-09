@@ -1,26 +1,69 @@
 import { ProductData } from '@/types/campaign';
-import { Loader2, Package, DollarSign, Tag, FileText, Image } from 'lucide-react';
+import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, ExternalLink, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ProductAnalysisPanelProps {
   productData: ProductData | null;
+  productUrl: string | null;
   isAnalyzing: boolean;
 }
 
-export const ProductAnalysisPanel = ({ productData, isAnalyzing }: ProductAnalysisPanelProps) => {
+const insightIcons: Record<string, React.ElementType> = {
+  'trending-up': TrendingUp,
+  'star': Star,
+  'users': Users,
+  'video': Video,
+  'dollar-sign': CircleDollarSign,
+};
+
+export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: ProductAnalysisPanelProps) => {
   if (isAnalyzing) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-        <h2 className="text-xl font-semibold text-foreground mb-2">Analyzing Your Product</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          Extracting product details, images, and specifications from your URL...
-        </p>
-        <div className="mt-6 space-y-2 w-full max-w-sm">
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+      <div className="flex flex-col h-full p-6">
+        {/* Simulated Page Screenshot */}
+        <div className="relative rounded-xl overflow-hidden border border-border bg-muted mb-6">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/90 z-10" />
+          <div className="aspect-video bg-gradient-to-br from-muted to-muted-foreground/10 animate-pulse">
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">Capturing page screenshot...</p>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground text-center">Product Agent working...</p>
+          <div className="absolute bottom-4 left-4 right-4 z-20">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2">
+              <ExternalLink className="w-3 h-3" />
+              <span className="truncate">{productUrl}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Analysis Progress */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Analyzing Your Product</h2>
+          <div className="space-y-3">
+            {[
+              { label: 'Extracting product details', done: true },
+              { label: 'Analyzing images', done: true },
+              { label: 'Generating insights', done: false },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-3">
+                {item.done ? (
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Sparkles className="w-3 h-3 text-primary" />
+                  </div>
+                ) : (
+                  <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                )}
+                <span className={cn("text-sm", item.done ? "text-foreground" : "text-muted-foreground")}>
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -30,52 +73,65 @@ export const ProductAnalysisPanel = ({ productData, isAnalyzing }: ProductAnalys
 
   return (
     <div className="p-6 space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-xl font-bold text-foreground mb-1">Product Analysis Complete</h2>
-        <p className="text-sm text-muted-foreground">Here's what I found from your product page</p>
+      {/* Page Screenshot Preview */}
+      <div className="relative rounded-xl overflow-hidden border border-border">
+        <img 
+          src={productData.pageScreenshot || productData.images[0]} 
+          alt="Product page preview" 
+          className="w-full h-48 object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
+            <Sparkles className="w-3 h-3 mr-1" />
+            AI Analyzed
+          </Badge>
+        </div>
       </div>
 
-      <Card>
+      {/* Product Info */}
+      <Card className="border-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Package className="w-5 h-5 text-primary" />
             {productData.title}
           </CardTitle>
+          <Badge variant="outline" className="w-fit">{productData.category}</Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Price</p>
-                <p className="font-semibold text-foreground">{productData.price}</p>
+            <div className="p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <DollarSign className="w-4 h-4" />
+                <span className="text-xs">Price</span>
               </div>
+              <p className="font-bold text-lg text-foreground">{productData.price}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">SKU</p>
-                <p className="font-semibold text-foreground">{productData.sku}</p>
+            <div className="p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Tag className="w-4 h-4" />
+                <span className="text-xs">SKU</span>
               </div>
+              <p className="font-bold text-lg text-foreground">{productData.sku}</p>
             </div>
           </div>
 
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Description</p>
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs">Description</span>
             </div>
             <p className="text-sm text-foreground">{productData.description}</p>
           </div>
 
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Image className="w-4 h-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Product Images ({productData.images.length})</p>
+            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+              <Image className="w-4 h-4" />
+              <span className="text-xs">Product Images ({productData.images.length})</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {productData.images.map((img, i) => (
-                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted">
+                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all cursor-pointer">
                   <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -84,11 +140,31 @@ export const ProductAnalysisPanel = ({ productData, isAnalyzing }: ProductAnalys
         </CardContent>
       </Card>
 
-      <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
-        <p className="text-sm text-foreground">
-          <span className="font-medium">✨ AI Insight:</span> This product is perfect for video ads! The visual features will translate well to short-form content.
-        </p>
-      </div>
+      {/* AI Insights */}
+      {productData.insights && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            AI Insights
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {productData.insights.map((insight, i) => {
+              const Icon = insightIcons[insight.icon] || Star;
+              return (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">{insight.label}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{insight.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

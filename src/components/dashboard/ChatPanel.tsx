@@ -1,20 +1,33 @@
-import { useRef, useEffect } from 'react';
-import { Message } from '@/types/campaign';
+import { useRef, useEffect, useState } from 'react';
+import { CampaignStep, Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
+import { StepIndicator } from './StepIndicator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import vibeletsLogo from '@/assets/vibelets-logo.png';
 
 interface ChatPanelProps {
   messages: Message[];
   isTyping: boolean;
+  currentStep: CampaignStep;
   onSendMessage: (message: string) => void;
+  onQuestionAnswer: (questionId: string, answerId: string) => void;
+  onStepClick: (step: CampaignStep) => void;
   disabled?: boolean;
 }
 
-export const ChatPanel = ({ messages, isTyping, onSendMessage, disabled }: ChatPanelProps) => {
+export const ChatPanel = ({ 
+  messages, 
+  isTyping, 
+  currentStep,
+  onSendMessage, 
+  onQuestionAnswer,
+  onStepClick,
+  disabled 
+}: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -22,22 +35,35 @@ export const ChatPanel = ({ messages, isTyping, onSendMessage, disabled }: ChatP
     }
   }, [messages, isTyping]);
 
+  const handleQuestionAnswer = (questionId: string, answerId: string) => {
+    setSelectedAnswers(prev => ({ ...prev, [questionId]: answerId }));
+    onQuestionAnswer(questionId, answerId);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-background border-r border-border">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border">
-        <img src={vibeletsLogo} alt="Vibelets" className="h-8 w-auto" />
+      <div className="flex items-center gap-3 p-3 border-b border-border">
+        <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto" />
         <div>
-          <h2 className="font-semibold text-foreground">Campaign Builder</h2>
+          <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
           <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
         </div>
       </div>
+
+      {/* Step Indicator */}
+      <StepIndicator currentStep={currentStep} onStepClick={onStepClick} />
 
       {/* Messages */}
       <ScrollArea className="flex-1" ref={scrollRef}>
         <div className="flex flex-col">
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage 
+              key={message.id} 
+              message={message} 
+              onQuestionAnswer={handleQuestionAnswer}
+              selectedAnswers={selectedAnswers}
+            />
           ))}
           {isTyping && <TypingIndicator />}
         </div>
