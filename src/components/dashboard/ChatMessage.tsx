@@ -43,11 +43,11 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
       )}>
         {isAssistant ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <p className="text-xs font-medium text-muted-foreground mb-1">
           {isAssistant ? 'Vibelets AI' : 'You'}
         </p>
-        <div className="text-sm text-foreground leading-relaxed">
+        <div className="text-sm text-foreground leading-relaxed break-words [overflow-wrap:anywhere]">
           {renderContent(message.content)}
         </div>
         {message.inlineQuestion && onQuestionAnswer && (
