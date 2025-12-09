@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import vibeLogo from "@/assets/vibelets-logo.png";
 
 const Header = () => {
@@ -25,8 +26,8 @@ const Header = () => {
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
             Sign In
           </Button>
-          <Button size="sm">
-            Get Started
+          <Button size="sm" asChild>
+            <Link to="/dashboard">Get Started</Link>
           </Button>
         </div>
       </div>

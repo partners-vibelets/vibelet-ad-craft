@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 const Hero = () => {
@@ -49,9 +50,11 @@ const Hero = () => {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up"
             style={{ animationDelay: '0.3s' }}
           >
-            <Button variant="hero" size="xl">
-              Start Free Trial
-              <ArrowRight className="w-5 h-5" />
+            <Button variant="hero" size="xl" asChild>
+              <Link to="/dashboard">
+                Start Free Trial
+                <ArrowRight className="w-5 h-5" />
+              </Link>
             </Button>
             <Button variant="heroOutline" size="xl">
               Watch Demo
