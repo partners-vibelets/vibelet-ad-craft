@@ -30,7 +30,10 @@ const platforms = [
 const Platforms = () => {
   return (
     <section id="platforms" className="py-24 relative">
-      <div className="container mx-auto px-4">
+      {/* Background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-secondary/10 rounded-full blur-3xl" />
+      
+      <div className="container mx-auto px-4 relative z-10">
         {/* Section header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
@@ -42,23 +45,23 @@ const Platforms = () => {
           </p>
         </div>
 
-        {/* Platforms grid */}
+        {/* Platforms grid with glass cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {platforms.map((platform) => (
             <div 
               key={platform.name}
-              className={`relative p-6 rounded-2xl border transition-all duration-300 ${
+              className={`relative p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 ${
                 platform.status === 'available'
-                  ? 'bg-card border-primary/30 shadow-lg'
-                  : 'bg-muted/30 border-border/50'
+                  ? 'glass-card border-primary/20 shadow-lg hover:shadow-xl hover:border-primary/40'
+                  : 'glass border-border/30'
               }`}
             >
               {/* Status badge */}
               <div 
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-4 ${
                   platform.status === 'available'
-                    ? 'bg-secondary/10 text-secondary'
-                    : 'bg-muted text-muted-foreground'
+                    ? 'bg-secondary/15 text-secondary'
+                    : 'bg-muted/50 text-muted-foreground'
                 }`}
               >
                 {platform.status === 'available' ? (
@@ -91,6 +94,11 @@ const Platforms = () => {
                   </li>
                 ))}
               </ul>
+              
+              {/* Available glow effect */}
+              {platform.status === 'available' && (
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 -z-10" />
+              )}
             </div>
           ))}
         </div>
