@@ -50,6 +50,7 @@ export const useCampaignFlow = () => {
     createMessage('assistant', "Hey! 👋 I'm your Vibelets AI assistant. I'll help you create a high-converting ad campaign in minutes.\n\nJust paste your product URL below to get started.", { stepId: 'welcome' })
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [pendingConfig, setPendingConfig] = useState<Partial<CampaignConfig>>({});
 
   const addMessage = useCallback((role: 'user' | 'assistant', content: string, options?: { inlineQuestion?: InlineQuestion; stepId?: CampaignStep }) => {
     setMessages(prev => [...prev, createMessage(role, content, options)]);
@@ -67,11 +68,9 @@ export const useCampaignFlow = () => {
     const currentIndex = STEP_ORDER.indexOf(state.step);
     
     if (targetIndex < currentIndex) {
-      // Going back - reset state from that step forward
       setState(prev => {
         const newState = { ...prev, step: targetStep };
         
-        // Reset subsequent data based on step
         if (targetIndex <= STEP_ORDER.indexOf('product-analysis')) {
           newState.productData = null;
           newState.selectedScript = null;
@@ -161,135 +160,255 @@ export const useCampaignFlow = () => {
     if (questionId === 'script-selection') {
       const script = scriptOptions.find(s => s.id === answerId);
       if (script) {
-        await selectScript(script);
+        setState(prev => ({ ...prev, selectedScript: script }));
+        addMessage('user', `I'll use the "${script.name}" script.`);
+        
+        const avatarQuestion: InlineQuestion = {
+          id: 'avatar-selection',
+          question: 'Select an AI presenter for your video:',
+          options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
+        };
+        
+        await simulateTyping(
+          `Great choice! The ${script.name} style is proven to drive conversions. 🎬\n\nNow let's pick an AI avatar to present your product:`,
+          { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
+          1200
+        );
+        setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'] }));
       }
     } else if (questionId === 'avatar-selection') {
       const avatar = avatarOptions.find(a => a.id === answerId);
       if (avatar) {
-        await selectAvatar(avatar);
+        setState(prev => ({ ...prev, selectedAvatar: avatar }));
+        addMessage('user', `${avatar.name} will be the presenter.`);
+        
+        await simulateTyping(
+          `${avatar.name} is perfect! 🎥 Now generating your ad creatives...\n\nThis usually takes about 30 seconds.`,
+          { stepId: 'creative-generation' },
+          1000
+        );
+        setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'] }));
+        
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        setState(prev => ({ ...prev, creatives: mockCreatives }));
+        
+        const creativeQuestion: InlineQuestion = {
+          id: 'creative-selection',
+          question: 'Select your preferred creative:',
+          options: mockCreatives.map(c => ({ 
+            id: c.id, 
+            label: c.name, 
+            description: c.type === 'video' ? 'Video format' : 'Image format'
+          }))
+        };
+        
+        await simulateTyping(
+          `Done! I've generated ${mockCreatives.length} creative variations:\n• 2 Video ads (15s and 30s)\n• 2 Image ads (Static and Carousel)\n\nWhich one would you like to use?`,
+          { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
+          1500
+        );
+        setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
+      }
+    } else if (questionId === 'creative-selection') {
+      const creative = mockCreatives.find(c => c.id === answerId);
+      if (creative) {
+        setState(prev => ({ ...prev, selectedCreative: creative }));
+        addMessage('user', `I'll use the "${creative.name}" creative.`);
+        
+        const objectiveQuestion: InlineQuestion = {
+          id: 'objective-selection',
+          question: "What's your main campaign goal?",
+          options: campaignObjectives.map(o => ({ id: o.id, label: o.name, description: o.description }))
+        };
+        
+        await simulateTyping(
+          `Excellent choice! Your ${creative.name} is ready. ⏳\n\nLet's configure your campaign. First, what's your main goal?`,
+          { inlineQuestion: objectiveQuestion, stepId: 'campaign-setup' },
+          1200
+        );
+        setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'] }));
       }
     } else if (questionId === 'objective-selection') {
-      // Handle in campaign setup
+      const objective = campaignObjectives.find(o => o.id === answerId);
+      if (objective) {
+        setPendingConfig(prev => ({ ...prev, objective: objective.name }));
+        addMessage('user', `Goal: ${objective.name}`);
+        
+        const ctaQuestion: InlineQuestion = {
+          id: 'cta-selection',
+          question: 'Choose your call-to-action button:',
+          options: ctaOptions.map(cta => ({ id: cta, label: cta, description: '' }))
+        };
+        
+        await simulateTyping(
+          `${objective.name} - great choice! Now, what action do you want people to take?`,
+          { inlineQuestion: ctaQuestion },
+          1000
+        );
+      }
+    } else if (questionId === 'cta-selection') {
+      setPendingConfig(prev => ({ ...prev, cta: answerId }));
+      addMessage('user', `CTA: "${answerId}"`);
+      
+      const budgetQuestion: InlineQuestion = {
+        id: 'budget-selection',
+        question: 'Set your daily budget:',
+        options: [
+          { id: '25', label: '$25/day', description: 'Starter - Good for testing' },
+          { id: '50', label: '$50/day', description: 'Recommended - Balanced reach' },
+          { id: '100', label: '$100/day', description: 'Growth - Maximum exposure' },
+          { id: '200', label: '$200/day', description: 'Scale - Aggressive growth' }
+        ]
+      };
+      
+      await simulateTyping(
+        `"${answerId}" button it is! How much would you like to spend daily?`,
+        { inlineQuestion: budgetQuestion },
+        1000
+      );
+    } else if (questionId === 'budget-selection') {
+      setPendingConfig(prev => ({ ...prev, budget: answerId }));
+      addMessage('user', `Budget: $${answerId}/day`);
+      
+      const durationQuestion: InlineQuestion = {
+        id: 'duration-selection',
+        question: 'How long should this campaign run?',
+        options: [
+          { id: '7', label: '7 days', description: 'Quick test run' },
+          { id: '14', label: '14 days', description: 'Standard campaign' },
+          { id: '30', label: '30 days', description: 'Extended reach' },
+          { id: 'ongoing', label: 'Ongoing', description: 'Run until paused' }
+        ]
+      };
+      
+      await simulateTyping(
+        `$${answerId}/day - got it! How long should we run this campaign?`,
+        { inlineQuestion: durationQuestion },
+        1000
+      );
+    } else if (questionId === 'duration-selection') {
+      const duration = answerId === 'ongoing' ? 'Ongoing' : `${answerId} days`;
+      const finalConfig: CampaignConfig = {
+        objective: pendingConfig.objective || 'Sales',
+        budget: pendingConfig.budget || '50',
+        cta: pendingConfig.cta || 'Shop Now',
+        duration: duration
+      };
+      
+      setState(prev => ({ ...prev, campaignConfig: finalConfig }));
+      setPendingConfig({});
+      addMessage('user', `Duration: ${duration}`);
+      
+      const facebookQuestion: InlineQuestion = {
+        id: 'facebook-connect',
+        question: 'Connect your Facebook Ads account to publish:',
+        options: [
+          { id: 'connect', label: 'Connect Facebook', description: 'Authorize access to your ad accounts' }
+        ]
+      };
+      
+      await simulateTyping(
+        `Perfect! Your campaign is configured:\n• **Objective:** ${finalConfig.objective}\n• **Budget:** $${finalConfig.budget}/day\n• **CTA:** ${finalConfig.cta}\n• **Duration:** ${duration}\n\nNow let's connect your Facebook Ads account:`,
+        { inlineQuestion: facebookQuestion, stepId: 'facebook-integration' },
+        1500
+      );
+      setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'] }));
+    } else if (questionId === 'facebook-connect') {
+      addMessage('user', "Facebook account connected.");
+      setState(prev => ({ ...prev, facebookConnected: true }));
+      
+      const accountQuestion: InlineQuestion = {
+        id: 'ad-account-selection',
+        question: 'Which ad account should we use?',
+        options: mockAdAccounts.map(a => ({ id: a.id, label: a.name, description: `Status: ${a.status}` }))
+      };
+      
+      await simulateTyping(
+        `Facebook connected! 🔗\n\nI found ${mockAdAccounts.length} ad accounts. Select one to continue:`,
+        { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
+        1200
+      );
+      setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'] }));
+    } else if (questionId === 'ad-account-selection') {
+      const account = mockAdAccounts.find(a => a.id === answerId);
+      if (account) {
+        setState(prev => ({ ...prev, selectedAdAccount: account }));
+        addMessage('user', `Using "${account.name}" account.`);
+        
+        const publishQuestion: InlineQuestion = {
+          id: 'publish-confirm',
+          question: 'Ready to launch your campaign?',
+          options: [
+            { id: 'publish', label: 'Publish Campaign', description: 'Submit for Facebook review' },
+            { id: 'preview', label: 'Review Details', description: 'Check campaign summary first' }
+          ]
+        };
+        
+        await simulateTyping(
+          `Great! I've selected **${account.name}** and auto-fetched:\n✅ Facebook Pixel\n✅ Business Page\n\nYour campaign is ready! What would you like to do?`,
+          { inlineQuestion: publishQuestion, stepId: 'campaign-preview' },
+          1500
+        );
+        setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'] }));
+      }
+    } else if (questionId === 'publish-confirm') {
+      if (answerId === 'publish') {
+        addMessage('user', "Publish the campaign!");
+        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'] }));
+        
+        await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
+        
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        await simulateTyping(
+          `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
+          { stepId: 'published' },
+          2000
+        );
+        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'] }));
+      } else {
+        await simulateTyping(
+          `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
+          {},
+          1000
+        );
+      }
     }
-  }, []);
+  }, [addMessage, simulateTyping, pendingConfig]);
 
+  // Legacy functions for backward compatibility (now handled via inline questions)
   const selectScript = useCallback(async (script: ScriptOption) => {
-    setState(prev => ({ ...prev, selectedScript: script }));
-    addMessage('user', `I'll use the "${script.name}" script.`);
-    
-    const avatarQuestion: InlineQuestion = {
-      id: 'avatar-selection',
-      question: 'Select an AI presenter for your video:',
-      options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
-    };
-    
-    await simulateTyping(
-      `Great choice! The ${script.name} style is proven to drive conversions. 🎬\n\nNow let's pick an AI avatar to present your product:`,
-      { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
-      1200
-    );
-    setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('script-selection', script.id);
+  }, [handleQuestionAnswer]);
 
   const selectAvatar = useCallback(async (avatar: AvatarOption) => {
-    setState(prev => ({ ...prev, selectedAvatar: avatar }));
-    addMessage('user', `${avatar.name} will be the presenter.`);
-    
-    await simulateTyping(
-      `${avatar.name} is perfect! 🎥 Now generating your ad creatives...\n\nThis usually takes about 30 seconds.`,
-      { stepId: 'creative-generation' },
-      1000
-    );
-    setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'] }));
-    
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setState(prev => ({ ...prev, creatives: mockCreatives }));
-    await simulateTyping(
-      `Done! I've generated ${mockCreatives.length} creative variations:\n• 2 Video ads (15s and 30s)\n• 2 Image ads (Static and Carousel)\n\nReview them in the panel and select your favorite →`,
-      { stepId: 'creative-review' },
-      1500
-    );
-    setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('avatar-selection', avatar.id);
+  }, [handleQuestionAnswer]);
 
   const selectCreative = useCallback(async (creative: CreativeOption) => {
-    setState(prev => ({ ...prev, selectedCreative: creative }));
-    addMessage('user', `I'll use the "${creative.name}" creative.`);
-    
-    const objectiveQuestion: InlineQuestion = {
-      id: 'campaign-setup',
-      question: "What's your main campaign goal?",
-      options: campaignObjectives.map(o => ({ id: o.id, label: o.name, description: o.description }))
-    };
-    
-    await simulateTyping(
-      `Excellent choice! Your creative is now rendering in the background. ⏳\n\nLet's set up your campaign while it processes:`,
-      { inlineQuestion: objectiveQuestion, stepId: 'campaign-setup' },
-      1200
-    );
-    setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('creative-selection', creative.id);
+  }, [handleQuestionAnswer]);
 
   const setCampaignConfig = useCallback(async (config: CampaignConfig) => {
-    setState(prev => ({ ...prev, campaignConfig: config }));
-    addMessage('user', `Campaign: ${config.objective}, $${config.budget}/day, "${config.cta}" CTA`);
-    
-    await simulateTyping(
-      `Perfect! Your creative is ready. 🎉\n\nNow let's connect your Facebook Ads account to publish this campaign. Click the button in the panel to authorize →`,
-      { stepId: 'facebook-integration' },
-      1500
-    );
-    setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'] }));
-  }, [addMessage, simulateTyping]);
+    // Config is now set via inline questions step by step
+  }, []);
 
   const connectFacebook = useCallback(async () => {
-    addMessage('user', "Facebook account connected.");
-    
-    const accountQuestion: InlineQuestion = {
-      id: 'ad-account-selection',
-      question: 'Which ad account should we use?',
-      options: mockAdAccounts.map(a => ({ id: a.id, label: a.name, description: `Status: ${a.status}` }))
-    };
-    
-    await simulateTyping(
-      `Facebook connected! 🔗\n\nI found ${mockAdAccounts.length} ad accounts. Select one to continue:`,
-      { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
-      1200
-    );
-    setState(prev => ({ ...prev, facebookConnected: true, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('facebook-connect', 'connect');
+  }, [handleQuestionAnswer]);
 
   const selectAdAccount = useCallback(async (account: AdAccount) => {
-    setState(prev => ({ ...prev, selectedAdAccount: account }));
-    addMessage('user', `Using "${account.name}" account.`);
-    
-    await simulateTyping(
-      `Great! I've selected **${account.name}** and auto-fetched:\n✅ Facebook Pixel\n✅ Business Page\n\nReview your campaign summary and click Publish when ready →`,
-      { stepId: 'campaign-preview' },
-      1500
-    );
-    setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('ad-account-selection', account.id);
+  }, [handleQuestionAnswer]);
 
   const publishCampaign = useCallback(async () => {
-    addMessage('user', "Publish the campaign!");
-    setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'] }));
-    
-    await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
-    
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    await simulateTyping(
-      `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
-      { stepId: 'published' },
-      2000
-    );
-    setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'] }));
-  }, [addMessage, simulateTyping]);
+    await handleQuestionAnswer('publish-confirm', 'publish');
+  }, [handleQuestionAnswer]);
 
   const resetFlow = useCallback(() => {
     setState(initialState);
+    setPendingConfig({});
     setMessages([
       createMessage('assistant', "Ready for your next campaign! 🚀 Paste a product URL to get started.", { stepId: 'welcome' })
     ]);
