@@ -21,9 +21,9 @@ const Dashboard = () => {
   } = useCampaignFlow();
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-background overflow-hidden">
       {/* Left Panel - Chat (reduced width) */}
-      <div className="w-[380px] min-w-[320px] flex-shrink-0 border-r border-border">
+      <div className="w-[380px] max-w-[380px] min-w-[320px] flex-shrink-0 border-r border-border overflow-hidden">
         <ChatPanel
           messages={messages}
           isTyping={isTyping}

@@ -21,7 +21,6 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
             if (part.startsWith('**') && part.endsWith('**')) {
               return <strong key={j} className="font-semibold">{part.slice(2, -2)}</strong>;
             }
-            // Handle bullet points
             if (part.startsWith('•') || part.startsWith('✅')) {
               return <span key={j} className="text-primary">{part}</span>;
             }
@@ -34,7 +33,7 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
   
   return (
     <div className={cn(
-      "flex gap-3 p-4 animate-fade-in",
+      "flex gap-3 p-4 animate-fade-in w-full",
       isAssistant ? "bg-muted/30" : "bg-transparent"
     )}>
       <div className={cn(
@@ -43,11 +42,14 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
       )}>
         {isAssistant ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
       </div>
-      <div className="flex-1 min-w-0 overflow-hidden">
+      <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-muted-foreground mb-1">
           {isAssistant ? 'Vibelets AI' : 'You'}
         </p>
-        <div className="text-sm text-foreground leading-relaxed break-words [overflow-wrap:anywhere]">
+        <div 
+          className="text-sm text-foreground leading-relaxed"
+          style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+        >
           {renderContent(message.content)}
         </div>
         {message.inlineQuestion && onQuestionAnswer && (

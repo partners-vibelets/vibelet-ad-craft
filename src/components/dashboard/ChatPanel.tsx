@@ -36,19 +36,19 @@ export const ChatPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 p-3 border-b border-border">
+      <div className="flex items-center gap-3 p-3 border-b border-border flex-shrink-0">
         <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto" />
-        <div>
+        <div className="min-w-0">
           <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
           <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="flex flex-col">
+      <ScrollArea className="flex-1 w-full" ref={scrollRef}>
+        <div className="flex flex-col w-full">
           {messages.map((message) => (
             <ChatMessage 
               key={message.id} 
@@ -62,7 +62,9 @@ export const ChatPanel = ({
       </ScrollArea>
 
       {/* Input */}
-      <ChatInput onSend={onSendMessage} disabled={disabled || isTyping} />
+      <div className="flex-shrink-0">
+        <ChatInput onSend={onSendMessage} disabled={disabled || isTyping} />
+      </div>
     </div>
   );
 };
