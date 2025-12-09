@@ -43,10 +43,17 @@ export const RightPanel = ({
         return <WelcomePanel />;
       
       case 'product-analysis':
-        return <ProductAnalysisPanel productData={state.productData} isAnalyzing={!state.productData} />;
+        return <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={!state.productData} />;
       
       case 'script-selection':
-        return <ScriptSelectionPanel selectedScript={state.selectedScript} onSelect={onSelectScript} />;
+        return (
+          <>
+            <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
+            <div className="border-t border-border">
+              <ScriptSelectionPanel selectedScript={state.selectedScript} onSelect={onSelectScript} />
+            </div>
+          </>
+        );
       
       case 'avatar-selection':
         return <AvatarSelectionPanel selectedAvatar={state.selectedAvatar} onSelect={onSelectAvatar} />;
