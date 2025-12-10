@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, Target, MousePointer, DollarSign, Calendar, Check, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Target, MousePointer, DollarSign, Calendar, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -19,6 +19,14 @@ interface SliderQuestion {
   extraOptions?: { id: string; label: string }[];
 }
 
+// Mapping of objectives to recommended CTAs
+const objectiveCtaRecommendations: Record<string, string[]> = {
+  'Sales': ['Shop Now', 'Get Offer'],
+  'Lead Generation': ['Sign Up', 'Contact Us'],
+  'Website Traffic': ['Learn More', 'Download'],
+  'Brand Awareness': ['Learn More', 'Subscribe'],
+};
+
 const questions: SliderQuestion[] = [
   {
     id: 'objective',
@@ -36,10 +44,10 @@ const questions: SliderQuestion[] = [
     label: 'Call-to-Action',
     icon: MousePointer,
     options: [
-      { id: 'Shop Now', label: 'Shop Now', description: 'Best for sales' },
-      { id: 'Learn More', label: 'Learn More', description: 'For awareness' },
-      { id: 'Sign Up', label: 'Sign Up', description: 'For leads' },
-      { id: 'Get Offer', label: 'Get Offer', description: 'For promos' },
+      { id: 'Shop Now', label: 'Shop Now' },
+      { id: 'Learn More', label: 'Learn More' },
+      { id: 'Sign Up', label: 'Sign Up' },
+      { id: 'Get Offer', label: 'Get Offer' },
     ],
     allowCustom: true,
     extraOptions: [
@@ -89,6 +97,14 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
 
   const currentQuestion = questions[currentIndex];
   const progress = ((Object.keys(answers).length) / questions.length) * 100;
+  
+  // Get recommended CTAs based on selected objective
+  const selectedObjective = answers['objective'];
+  const recommendedCtas = selectedObjective ? objectiveCtaRecommendations[selectedObjective] || [] : [];
+  
+  const isRecommendedCta = (ctaId: string) => {
+    return currentQuestion.id === 'cta' && recommendedCtas.includes(ctaId);
+  };
 
   const handleSelect = (optionId: string) => {
     if (disabled || isComplete) return;
@@ -192,6 +208,7 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
         )}>
           {currentQuestion.options.map((option) => {
             const isSelected = answers[currentQuestion.id] === option.id;
+            const isRecommended = isRecommendedCta(option.id);
             
             return (
               <button
@@ -199,13 +216,21 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
                 onClick={() => handleSelect(option.id)}
                 disabled={disabled}
                 className={cn(
-                  "p-2.5 rounded-lg border text-left transition-all duration-200",
+                  "p-2.5 rounded-lg border text-left transition-all duration-200 relative",
                   currentQuestion.options.length > 4 ? "text-center" : "",
                   isSelected
                     ? "border-primary bg-primary/10"
+                    : isRecommended
+                    ? "border-primary/50 bg-primary/5"
                     : "border-border hover:border-primary/50 hover:bg-muted/50"
                 )}
               >
+                {isRecommended && (
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary text-[8px] font-medium text-primary-foreground">
+                    <Sparkles className="w-2 h-2" />
+                    Best
+                  </span>
+                )}
                 <p className="text-xs font-medium text-foreground whitespace-nowrap">{option.label}</p>
                 {option.description && currentQuestion.options.length <= 4 && (
                   <p className="text-[10px] text-muted-foreground mt-0.5">{option.description}</p>
