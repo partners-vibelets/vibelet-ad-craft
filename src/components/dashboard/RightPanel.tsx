@@ -11,6 +11,7 @@ import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { scriptOptions, avatarOptions } from '@/data/mockData';
+import { useEffect, useRef } from 'react';
 
 interface RightPanelProps {
   state: CampaignState;
@@ -23,6 +24,18 @@ export const RightPanel = ({
   onReset,
   onStepClick,
 }: RightPanelProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to top when step changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [state.step]);
+
   const renderPanel = () => {
     switch (state.step) {
       case 'welcome':
@@ -87,7 +100,7 @@ export const RightPanel = ({
           <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
         </div>
       )}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1" ref={scrollRef}>
         <div key={state.step} className="animate-fade-in">
           {renderPanel()}
         </div>
