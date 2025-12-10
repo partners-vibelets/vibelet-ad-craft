@@ -196,7 +196,7 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
                     : "border-border hover:border-primary/50 hover:bg-muted/50"
                 )}
               >
-                <p className="text-xs font-medium text-foreground">{option.label}</p>
+                <p className="text-xs font-medium text-foreground whitespace-nowrap">{option.label}</p>
                 {option.description && currentQuestion.options.length <= 4 && (
                   <p className="text-[10px] text-muted-foreground mt-0.5">{option.description}</p>
                 )}
