@@ -35,6 +35,8 @@ export interface Message {
   isTyping?: boolean;
   inlineQuestion?: InlineQuestion;
   stepId?: CampaignStep;
+  showCampaignSlider?: boolean;
+  showFacebookConnect?: boolean;
 }
 
 export interface ProductData {

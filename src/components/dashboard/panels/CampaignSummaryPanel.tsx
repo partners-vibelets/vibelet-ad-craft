@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { CampaignState } from '@/types/campaign';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { 
   CheckCircle2, 
   Target, 
@@ -10,8 +10,13 @@ import {
   Facebook,
   Play,
   Image,
-  User,
-  FileText
+  Smartphone,
+  Monitor,
+  ThumbsUp,
+  MessageCircle,
+  Share2,
+  Heart,
+  MoreHorizontal
 } from 'lucide-react';
 
 interface CampaignSummaryPanelProps {
@@ -19,174 +24,262 @@ interface CampaignSummaryPanelProps {
 }
 
 export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
-  const { productData, selectedScript, selectedAvatar, selectedCreative, campaignConfig, selectedAdAccount } = state;
+  const [device, setDevice] = useState<'mobile' | 'desktop'>('mobile');
+  const { productData, selectedCreative, campaignConfig, selectedAdAccount } = state;
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      {/* Header with Device Toggle */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Campaign Summary</h2>
-          <p className="text-sm text-muted-foreground mt-1">Review before publishing</p>
+          <h2 className="text-lg font-semibold text-foreground">Campaign Preview</h2>
+          <p className="text-xs text-muted-foreground">See how your ad will appear</p>
         </div>
-        <Badge className="bg-primary/10 text-primary border-primary/20">
-          <CheckCircle2 className="w-3 h-3 mr-1" /> Ready to Publish
-        </Badge>
-      </div>
-
-      {/* Product Info */}
-      {productData && (
-        <Card className="p-4 border-border/50">
-          <h3 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckCircle2 className="w-3 h-3 text-primary" />
-            </div>
-            Product
-          </h3>
-          <div className="flex gap-3">
-            <img 
-              src={productData.images[0]} 
-              alt={productData.title}
-              className="w-16 h-16 rounded-lg object-cover"
-            />
-            <div className="flex-1">
-              <p className="font-medium text-foreground text-sm">{productData.title}</p>
-              <p className="text-lg font-bold text-primary">{productData.price}</p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Creative Preview */}
-      {selectedCreative && (
-        <Card className="overflow-hidden border-border/50">
-          <div className="relative aspect-video">
-            <img 
-              src={selectedCreative.thumbnail} 
-              alt={selectedCreative.name}
-              className="w-full h-full object-cover"
-            />
-            {selectedCreative.type === 'video' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className="w-12 h-12 rounded-full bg-primary/90 flex items-center justify-center">
-                  <Play className="w-6 h-6 text-primary-foreground ml-0.5" />
-                </div>
-              </div>
+        <div className="flex bg-muted rounded-lg p-1">
+          <button
+            onClick={() => setDevice('mobile')}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+              device === 'mobile' 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
             )}
-            <Badge className="absolute top-2 left-2 bg-background/90 text-foreground text-xs">
-              {selectedCreative.type === 'video' ? (
-                <><Play className="w-3 h-3 mr-1" /> Video</>
-              ) : (
-                <><Image className="w-3 h-3 mr-1" /> Image</>
-              )}
-            </Badge>
-          </div>
-          <div className="p-3 bg-muted/30">
-            <p className="text-sm font-medium">{selectedCreative.name}</p>
-          </div>
-        </Card>
-      )}
+          >
+            <Smartphone className="w-3 h-3" />
+            Mobile
+          </button>
+          <button
+            onClick={() => setDevice('desktop')}
+            className={cn(
+              "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+              device === 'desktop' 
+                ? "bg-background text-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Monitor className="w-3 h-3" />
+            Desktop
+          </button>
+        </div>
+      </div>
 
-      {/* Script & Avatar */}
-      <div className="grid grid-cols-2 gap-3">
-        {selectedScript && (
-          <Card className="p-3 border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Script</span>
-            </div>
-            <p className="text-sm font-medium">{selectedScript.name}</p>
-          </Card>
-        )}
-        {selectedAvatar && (
-          <Card className="p-3 border-border/50">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="w-4 h-4 text-primary" />
-              <span className="text-xs text-muted-foreground">Avatar</span>
-            </div>
-            <p className="text-sm font-medium">{selectedAvatar.name}</p>
-          </Card>
+      {/* Ad Preview */}
+      <div className="flex justify-center">
+        {device === 'mobile' ? (
+          <MobilePreview 
+            creative={selectedCreative}
+            productData={productData}
+            cta={campaignConfig?.cta || 'Shop Now'}
+          />
+        ) : (
+          <DesktopPreview 
+            creative={selectedCreative}
+            productData={productData}
+            cta={campaignConfig?.cta || 'Shop Now'}
+          />
         )}
       </div>
 
-      {/* Campaign Settings */}
-      {campaignConfig && (
-        <Card className="p-4 border-border/50">
-          <h3 className="text-sm font-medium text-foreground mb-3">Campaign Settings</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Objective</p>
-                <p className="text-sm font-medium">{campaignConfig.objective}</p>
+      {/* Campaign Details Summary */}
+      <div className="grid grid-cols-2 gap-3">
+        {campaignConfig && (
+          <>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Target className="w-3 h-3" />
+                <span className="text-[10px] uppercase tracking-wide">Objective</span>
               </div>
+              <p className="text-sm font-medium text-foreground">{campaignConfig.objective}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Daily Budget</p>
-                <p className="text-sm font-medium">${campaignConfig.budget}</p>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <DollarSign className="w-3 h-3" />
+                <span className="text-[10px] uppercase tracking-wide">Budget</span>
               </div>
+              <p className="text-sm font-medium text-foreground">${campaignConfig.budget}/day</p>
             </div>
-            <div className="flex items-center gap-2">
-              <MousePointer className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">CTA Button</p>
-                <p className="text-sm font-medium">{campaignConfig.cta}</p>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <MousePointer className="w-3 h-3" />
+                <span className="text-[10px] uppercase tracking-wide">CTA</span>
               </div>
+              <p className="text-sm font-medium text-foreground">{campaignConfig.cta}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Duration</p>
-                <p className="text-sm font-medium">{campaignConfig.duration}</p>
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Clock className="w-3 h-3" />
+                <span className="text-[10px] uppercase tracking-wide">Duration</span>
               </div>
+              <p className="text-sm font-medium text-foreground">{campaignConfig.duration}</p>
             </div>
-          </div>
-        </Card>
-      )}
+          </>
+        )}
+      </div>
 
-      {/* Facebook Integration */}
+      {/* Facebook Account */}
       {selectedAdAccount && (
-        <Card className="p-4 border-border/50 bg-[#1877F2]/5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center">
-              <Facebook className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{selectedAdAccount.name}</p>
-              <p className="text-xs text-muted-foreground">Facebook Ads Account • {selectedAdAccount.status}</p>
-            </div>
-            <CheckCircle2 className="w-5 h-5 text-primary" />
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-[#1877F2]/5 border border-[#1877F2]/20">
+          <div className="w-8 h-8 rounded-full bg-[#1877F2] flex items-center justify-center flex-shrink-0">
+            <Facebook className="w-4 h-4 text-white" />
           </div>
-        </Card>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{selectedAdAccount.name}</p>
+            <p className="text-xs text-muted-foreground">{selectedAdAccount.status}</p>
+          </div>
+          <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+        </div>
       )}
 
-      {/* Total Budget */}
+      {/* Total Estimate */}
       {campaignConfig && (
-        <Card className="p-4 bg-primary/5 border-primary/20">
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Estimated Total</span>
-            <span className="text-xl font-bold text-primary">
+            <span className="text-lg font-bold text-primary">
               ${campaignConfig.duration === 'Ongoing' 
                 ? `${campaignConfig.budget}/day` 
                 : (parseInt(campaignConfig.budget) * parseInt(campaignConfig.duration)).toLocaleString()
               }
             </span>
           </div>
-          {campaignConfig.duration !== 'Ongoing' && (
-            <p className="text-xs text-muted-foreground mt-1">
-              ${campaignConfig.budget}/day × {campaignConfig.duration}
-            </p>
-          )}
-        </Card>
+        </div>
       )}
+    </div>
+  );
+};
 
-      {/* Instructions */}
-      <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-        <p className="text-xs text-muted-foreground text-center">
-          Select <span className="font-medium text-primary">"Publish Campaign"</span> in the chat to submit for Facebook review
+interface PreviewProps {
+  creative: { thumbnail: string; type: string; name: string } | null;
+  productData: { title: string; description: string } | null;
+  cta: string;
+}
+
+const MobilePreview = ({ creative, productData, cta }: PreviewProps) => {
+  if (!creative) return null;
+  
+  return (
+    <div className="w-[260px] bg-background border border-border rounded-2xl overflow-hidden shadow-lg">
+      {/* Header */}
+      <div className="p-2.5 flex items-center gap-2 border-b border-border/50">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/70" />
+        <div className="flex-1">
+          <p className="text-[11px] font-semibold text-foreground">Your Business</p>
+          <p className="text-[9px] text-muted-foreground">Sponsored</p>
+        </div>
+        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+      </div>
+
+      {/* Text */}
+      <div className="px-2.5 py-2">
+        <p className="text-[11px] text-foreground line-clamp-2">
+          {productData?.description?.slice(0, 80) || 'Check out our amazing product!'}...
         </p>
+      </div>
+
+      {/* Creative */}
+      <div className="relative aspect-square">
+        <img src={creative.thumbnail} alt="Ad" className="w-full h-full object-cover" />
+        {creative.type === 'video' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+              <Play className="w-4 h-4 text-foreground ml-0.5" fill="currentColor" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CTA */}
+      <div className="p-2.5 bg-muted/30 border-t border-border/50">
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0 mr-2">
+            <p className="text-[9px] text-muted-foreground uppercase">yourstore.com</p>
+            <p className="text-[11px] font-semibold text-foreground truncate">
+              {productData?.title || 'Product'}
+            </p>
+          </div>
+          <button className="px-3 py-1 bg-primary text-primary-foreground text-[10px] font-semibold rounded flex-shrink-0">
+            {cta}
+          </button>
+        </div>
+      </div>
+
+      {/* Engagement */}
+      <div className="px-2.5 py-1.5 flex items-center justify-between border-t border-border/50">
+        <div className="flex items-center gap-1">
+          <ThumbsUp className="w-2.5 h-2.5 text-[#1877F2]" fill="#1877F2" />
+          <span className="text-[9px] text-muted-foreground">142</span>
+        </div>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <ThumbsUp className="w-3.5 h-3.5" />
+          <MessageCircle className="w-3.5 h-3.5" />
+          <Share2 className="w-3.5 h-3.5" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DesktopPreview = ({ creative, productData, cta }: PreviewProps) => {
+  if (!creative) return null;
+  
+  return (
+    <div className="w-full max-w-[340px] bg-background border border-border rounded-lg overflow-hidden shadow-lg">
+      {/* Header */}
+      <div className="p-3 flex items-center gap-2.5 border-b border-border/50">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/70" />
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-foreground">Your Business</p>
+          <p className="text-[10px] text-muted-foreground">Sponsored · 🌐</p>
+        </div>
+        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+      </div>
+
+      {/* Text */}
+      <div className="px-3 py-2">
+        <p className="text-xs text-foreground line-clamp-2">
+          {productData?.description || 'Check out our amazing product!'}
+        </p>
+      </div>
+
+      {/* Creative */}
+      <div className="relative aspect-video">
+        <img src={creative.thumbnail} alt="Ad" className="w-full h-full object-cover" />
+        {creative.type === 'video' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+              <Play className="w-5 h-5 text-foreground ml-0.5" fill="currentColor" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* CTA */}
+      <div className="p-3 bg-muted/30 border-t border-border/50">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase">yourstore.com</p>
+            <p className="text-xs font-semibold text-foreground truncate">{productData?.title || 'Product'}</p>
+          </div>
+          <button className="px-4 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded flex-shrink-0">
+            {cta}
+          </button>
+        </div>
+      </div>
+
+      {/* Engagement */}
+      <div className="px-3 py-2 flex items-center justify-between border-t border-border/50">
+        <div className="flex items-center gap-1.5">
+          <div className="flex -space-x-1">
+            <div className="w-4 h-4 rounded-full bg-[#1877F2] flex items-center justify-center">
+              <ThumbsUp className="w-2 h-2 text-white" fill="white" />
+            </div>
+            <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+              <Heart className="w-2 h-2 text-white" fill="white" />
+            </div>
+          </div>
+          <span className="text-[10px] text-muted-foreground">142</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground">12 comments</span>
       </div>
     </div>
   );
