@@ -25,13 +25,13 @@ export const RightPanel = ({
   onReset,
   onStepClick,
 }: RightPanelProps) => {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to top when step changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      if (viewportRef.current) {
+        viewportRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
     }, 100);
     return () => clearTimeout(timer);
@@ -106,7 +106,7 @@ export const RightPanel = ({
           <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
         </div>
       )}
-      <ScrollArea className="flex-1" ref={scrollRef}>
+      <ScrollArea className="flex-1" viewportRef={viewportRef}>
         <div key={state.step} className="animate-fade-in">
           {renderPanel()}
         </div>
