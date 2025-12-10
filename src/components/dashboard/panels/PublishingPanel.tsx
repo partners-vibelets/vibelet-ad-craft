@@ -45,8 +45,11 @@ export const PublishingPanel = ({ isPublished, onCreateAnother }: PublishingPane
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 animate-fade-in">
       <div className="relative mb-6">
-        <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center">
-          <PartyPopper className="w-10 h-10 text-accent" />
+        <div className="w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center shadow-lg shadow-secondary/20">
+          <PartyPopper className="w-12 h-12 text-secondary" />
+        </div>
+        <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+          <Check className="w-4 h-4 text-primary-foreground" />
         </div>
       </div>
 
