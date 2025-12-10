@@ -13,6 +13,9 @@ const Dashboard = () => {
     handleFacebookConnect,
     resetFlow,
     goToStep,
+    regenerateProductAnalysis,
+    regenerateScripts,
+    regenerateCreatives,
   } = useCampaignFlow();
 
   return (
@@ -39,6 +42,9 @@ const Dashboard = () => {
             state={state}
             onReset={resetFlow}
             onStepClick={goToStep}
+            onRegenerateProduct={regenerateProductAnalysis}
+            onRegenerateScripts={regenerateScripts}
+            onRegenerateCreatives={regenerateCreatives}
           />
         </div>
       </div>

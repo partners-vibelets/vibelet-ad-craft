@@ -18,12 +18,18 @@ interface RightPanelProps {
   state: CampaignState;
   onReset: () => void;
   onStepClick: (step: CampaignStep) => void;
+  onRegenerateProduct?: () => void;
+  onRegenerateScripts?: () => void;
+  onRegenerateCreatives?: () => void;
 }
 
 export const RightPanel = ({
   state,
   onReset,
   onStepClick,
+  onRegenerateProduct,
+  onRegenerateScripts,
+  onRegenerateCreatives,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -59,14 +65,27 @@ export const RightPanel = ({
         return <WelcomePanel />;
       
       case 'product-analysis':
-        return <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={!state.productData} />;
+        return (
+          <ProductAnalysisPanel 
+            productData={state.productData} 
+            productUrl={state.productUrl} 
+            isAnalyzing={!state.productData}
+            isRegenerating={state.isRegenerating === 'product'}
+            onRegenerate={onRegenerateProduct}
+          />
+        );
       
       case 'script-selection':
         return (
           <>
             <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
             <div ref={scriptSectionRef}>
-              <ScriptPreviewPanel scripts={scriptOptions} selectedScript={state.selectedScript} />
+              <ScriptPreviewPanel 
+                scripts={scriptOptions} 
+                selectedScript={state.selectedScript}
+                isRegenerating={state.isRegenerating === 'scripts'}
+                onRegenerate={onRegenerateScripts}
+              />
             </div>
           </>
         );
@@ -86,7 +105,14 @@ export const RightPanel = ({
         return <CreativeGenerationPanel />;
       
       case 'creative-review':
-        return <CreativeGalleryPanel creatives={state.creatives} selectedCreative={state.selectedCreative} />;
+        return (
+          <CreativeGalleryPanel 
+            creatives={state.creatives} 
+            selectedCreative={state.selectedCreative}
+            isRegenerating={state.isRegenerating === 'creatives'}
+            onRegenerate={onRegenerateCreatives}
+          />
+        );
       
       case 'campaign-setup':
       case 'facebook-integration':

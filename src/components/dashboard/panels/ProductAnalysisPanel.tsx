@@ -1,13 +1,16 @@
 import { ProductData } from '@/types/campaign';
-import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, ExternalLink, Sparkles } from 'lucide-react';
+import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface ProductAnalysisPanelProps {
   productData: ProductData | null;
   productUrl: string | null;
   isAnalyzing: boolean;
+  isRegenerating?: boolean;
+  onRegenerate?: () => void;
 }
 
 const insightIcons: Record<string, React.ElementType> = {
@@ -18,7 +21,7 @@ const insightIcons: Record<string, React.ElementType> = {
   'dollar-sign': CircleDollarSign,
 };
 
-export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: ProductAnalysisPanelProps) => {
+export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isRegenerating, onRegenerate }: ProductAnalysisPanelProps) => {
   if (isAnalyzing) {
     return (
       <div className="flex flex-col h-full p-6 animate-fade-in">
@@ -180,15 +183,32 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: P
       {/* AI Insights */}
       {productData.insights && (
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            AI Insights
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              AI Insights
+            </h3>
+            {onRegenerate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRegenerate}
+                disabled={isRegenerating}
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className={cn("w-3 h-3 mr-1", isRegenerating && "animate-spin")} />
+                {isRegenerating ? 'Regenerating...' : 'Refresh insights'}
+              </Button>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {productData.insights.map((insight, i) => {
               const Icon = insightIcons[insight.icon] || Star;
               return (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10">
+                <div key={i} className={cn(
+                  "flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10",
+                  isRegenerating && "opacity-50"
+                )}>
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Icon className="w-4 h-4 text-primary" />
                   </div>

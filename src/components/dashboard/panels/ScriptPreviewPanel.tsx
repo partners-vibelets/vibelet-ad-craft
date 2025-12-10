@@ -1,13 +1,16 @@
 import { ScriptOption } from '@/types/campaign';
-import { FileText, Clock, Sparkles, Check } from 'lucide-react';
+import { FileText, Clock, Sparkles, Check, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface ScriptPreviewPanelProps {
   scripts: ScriptOption[];
   selectedScript: ScriptOption | null;
+  isRegenerating?: boolean;
+  onRegenerate?: () => void;
 }
 
-export const ScriptPreviewPanel = ({ scripts, selectedScript }: ScriptPreviewPanelProps) => {
+export const ScriptPreviewPanel = ({ scripts, selectedScript, isRegenerating, onRegenerate }: ScriptPreviewPanelProps) => {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center space-y-2">
@@ -20,7 +23,7 @@ export const ScriptPreviewPanel = ({ scripts, selectedScript }: ScriptPreviewPan
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className={cn("space-y-4", isRegenerating && "opacity-50 pointer-events-none")}>
         {scripts.map((script) => {
           const isSelected = selectedScript?.id === script.id;
           return (
@@ -65,6 +68,22 @@ export const ScriptPreviewPanel = ({ scripts, selectedScript }: ScriptPreviewPan
           );
         })}
       </div>
+
+      {/* Regenerate option - subtle placement below scripts */}
+      {onRegenerate && !selectedScript && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRegenerate}
+            disabled={isRegenerating}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className={cn("w-3 h-3 mr-1.5", isRegenerating && "animate-spin")} />
+            {isRegenerating ? 'Generating new scripts...' : 'Generate different scripts'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
