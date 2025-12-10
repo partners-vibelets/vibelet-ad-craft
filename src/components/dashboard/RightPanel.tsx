@@ -26,14 +26,24 @@ export const RightPanel = ({
   onStepClick,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
+  const scriptSectionRef = useRef<HTMLDivElement>(null);
+  const avatarSectionRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to top when step changes
+  // Auto-scroll to the relevant section when step changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (viewportRef.current) {
+      if (!viewportRef.current) return;
+
+      // Scroll to specific section based on current step
+      if (state.step === 'script-selection' && scriptSectionRef.current) {
+        scriptSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (state.step === 'avatar-selection' && avatarSectionRef.current) {
+        avatarSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        // For other steps, scroll to top
         viewportRef.current.scrollTo({ top: 0, behavior: 'smooth' });
       }
-    }, 100);
+    }, 150);
     return () => clearTimeout(timer);
   }, [state.step]);
 
@@ -55,7 +65,9 @@ export const RightPanel = ({
         return (
           <>
             <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
-            <ScriptPreviewPanel scripts={scriptOptions} selectedScript={state.selectedScript} />
+            <div ref={scriptSectionRef}>
+              <ScriptPreviewPanel scripts={scriptOptions} selectedScript={state.selectedScript} />
+            </div>
           </>
         );
       
@@ -63,7 +75,10 @@ export const RightPanel = ({
         return (
           <>
             <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
-            <AvatarPreviewPanel avatars={avatarOptions} selectedAvatar={state.selectedAvatar} />
+            <ScriptPreviewPanel scripts={scriptOptions} selectedScript={state.selectedScript} />
+            <div ref={avatarSectionRef}>
+              <AvatarPreviewPanel avatars={avatarOptions} selectedAvatar={state.selectedAvatar} />
+            </div>
           </>
         );
       
