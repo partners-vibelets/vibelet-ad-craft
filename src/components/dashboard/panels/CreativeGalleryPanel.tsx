@@ -1,13 +1,16 @@
 import { CreativeOption } from '@/types/campaign';
-import { Image, Video, Check, Play } from 'lucide-react';
+import { Image, Video, Check, Play, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface CreativeGalleryPanelProps {
   creatives: CreativeOption[];
   selectedCreative: CreativeOption | null;
+  isRegenerating?: boolean;
+  onRegenerate?: () => void;
 }
 
-export const CreativeGalleryPanel = ({ creatives, selectedCreative }: CreativeGalleryPanelProps) => {
+export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerating, onRegenerate }: CreativeGalleryPanelProps) => {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center space-y-2">
@@ -20,7 +23,7 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative }: CreativeGa
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className={cn("grid grid-cols-2 gap-4", isRegenerating && "opacity-50 pointer-events-none")}>
         {creatives.map((creative) => {
           const isSelected = selectedCreative?.id === creative.id;
           const isVideo = creative.type === 'video';
@@ -75,6 +78,22 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative }: CreativeGa
           );
         })}
       </div>
+
+      {/* Regenerate option - subtle placement below creatives */}
+      {onRegenerate && !selectedCreative && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onRegenerate}
+            disabled={isRegenerating}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className={cn("w-3 h-3 mr-1.5", isRegenerating && "animate-spin")} />
+            {isRegenerating ? 'Generating new creatives...' : 'Generate different creatives'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

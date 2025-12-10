@@ -31,6 +31,7 @@ const initialState: CampaignState = {
   facebookConnected: false,
   selectedAdAccount: null,
   isStepLoading: false,
+  isRegenerating: null,
 };
 
 const createMessage = (
@@ -378,6 +379,77 @@ export const useCampaignFlow = () => {
     return STEP_ORDER.slice(0, currentIndex);
   }, [state.step]);
 
+  // Regenerate handlers for AI-generated content
+  const regenerateProductAnalysis = useCallback(async () => {
+    if (!state.productUrl) return;
+    
+    setState(prev => ({ ...prev, isRegenerating: 'product' }));
+    addMessage('assistant', "Regenerating product analysis with fresh AI insights... ✨");
+    
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    // In real implementation, this would call the AI API
+    // For now, we simulate with slightly modified mock data
+    const refreshedData = {
+      ...mockProductData,
+      insights: mockProductData.insights?.map(insight => ({
+        ...insight,
+        value: insight.value // In real app, AI would generate new insights
+      }))
+    };
+    
+    setState(prev => ({ ...prev, productData: refreshedData, isRegenerating: null }));
+    addMessage('assistant', "Product analysis refreshed! I've generated new insights based on the latest AI models.");
+  }, [state.productUrl, addMessage]);
+
+  const regenerateScripts = useCallback(async () => {
+    setState(prev => ({ ...prev, isRegenerating: 'scripts', selectedScript: null }));
+    addMessage('assistant', "Generating new script variations... 🎬");
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // In real implementation, this would call the AI API for new scripts
+    setState(prev => ({ ...prev, isRegenerating: null }));
+    
+    const scriptQuestion: InlineQuestion = {
+      id: 'script-selection',
+      question: 'Here are fresh script options:',
+      options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
+    };
+    
+    await simulateTyping(
+      "I've generated new script variations! Choose the one that best fits your brand:",
+      { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+      500
+    );
+  }, [addMessage, simulateTyping]);
+
+  const regenerateCreatives = useCallback(async () => {
+    setState(prev => ({ ...prev, isRegenerating: 'creatives', selectedCreative: null, step: 'creative-generation' }));
+    addMessage('assistant', "Regenerating ad creatives with new AI variations... 🎨");
+    
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    setState(prev => ({ ...prev, creatives: mockCreatives, isRegenerating: null }));
+    
+    const creativeQuestion: InlineQuestion = {
+      id: 'creative-selection',
+      question: 'Here are your new creative options:',
+      options: mockCreatives.map(c => ({ 
+        id: c.id, 
+        label: c.name, 
+        description: c.type === 'video' ? 'Video format' : 'Image format'
+      }))
+    };
+    
+    await simulateTyping(
+      "Fresh creatives ready! I've generated new variations based on your product and script:",
+      { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
+      1500
+    );
+    setState(prev => ({ ...prev, step: 'creative-review' }));
+  }, [addMessage, simulateTyping]);
+
   return {
     state,
     messages,
@@ -389,5 +461,8 @@ export const useCampaignFlow = () => {
     resetFlow,
     goToStep,
     getCompletedSteps,
+    regenerateProductAnalysis,
+    regenerateScripts,
+    regenerateCreatives,
   };
 };

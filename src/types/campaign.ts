@@ -113,4 +113,5 @@ export interface CampaignState {
   facebookConnected: boolean;
   selectedAdAccount: AdAccount | null;
   isStepLoading: boolean;
+  isRegenerating: 'product' | 'scripts' | 'creatives' | null;
 }
