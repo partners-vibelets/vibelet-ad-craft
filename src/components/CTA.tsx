@@ -5,10 +5,13 @@ import { ArrowRight, Sparkles } from "lucide-react";
 const CTA = () => {
   return (
     <section className="py-24 relative overflow-hidden bg-primary">
+      {/* Glass overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary to-primary-dark opacity-90" />
+      
       <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
+        <div className="max-w-3xl mx-auto text-center glass-panel p-12 rounded-3xl">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 border border-secondary/30 text-secondary-foreground text-sm font-medium mb-6">
+            <Sparkles className="w-4 h-4 text-secondary" />
             <span>Start your free trial today</span>
           </div>
           
