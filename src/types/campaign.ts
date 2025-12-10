@@ -112,4 +112,5 @@ export interface CampaignState {
   campaignConfig: CampaignConfig | null;
   facebookConnected: boolean;
   selectedAdAccount: AdAccount | null;
+  isStepLoading: boolean;
 }

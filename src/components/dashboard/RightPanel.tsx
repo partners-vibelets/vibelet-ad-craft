@@ -9,6 +9,7 @@ import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import { CampaignSummaryPanel } from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
+import { StepLoadingAnimation } from './StepLoadingAnimation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { scriptOptions, avatarOptions } from '@/data/mockData';
 import { useEffect, useRef } from 'react';
@@ -37,6 +38,11 @@ export const RightPanel = ({
   }, [state.step]);
 
   const renderPanel = () => {
+    // Show loading animation when transitioning between steps
+    if (state.isStepLoading) {
+      return <StepLoadingAnimation step={state.step} />;
+    }
+
     switch (state.step) {
       case 'welcome':
       case 'product-url':
