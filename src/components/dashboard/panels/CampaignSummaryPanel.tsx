@@ -74,14 +74,14 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
     value: string; 
     multiline?: boolean;
   }) => (
-    <div className="group">
+    <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] text-muted-foreground">{label}</span>
         <button 
           onClick={() => setEditingField(editingField === field ? null : field)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          className="transition-colors"
         >
-          <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+          <Pencil className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
         </button>
       </div>
       {editingField === field ? (
@@ -226,14 +226,14 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                 value={editableFields.adSetName} 
               />
               <div className="grid grid-cols-2 gap-2">
-                <div className="group p-2 rounded-md bg-muted/30">
+                <div className="p-2 rounded-md bg-muted/30">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="text-[9px] text-muted-foreground">Daily Budget</p>
                     <button 
                       onClick={() => setEditingField(editingField === 'budgetAmount' ? null : 'budgetAmount')}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="transition-colors"
                     >
-                      <Pencil className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                      <Pencil className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-foreground" />
                     </button>
                   </div>
                   {editingField === 'budgetAmount' ? (
