@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import vibeLogo from "@/assets/vibelets-logo.png";
 
 const Header = () => {
@@ -23,6 +24,7 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
             Sign In
           </Button>
