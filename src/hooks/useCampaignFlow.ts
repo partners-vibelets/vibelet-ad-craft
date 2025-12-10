@@ -137,18 +137,21 @@ export const useCampaignFlow = () => {
         
         setState(prev => ({ ...prev, productData: mockProductData }));
         
-        const scriptQuestion: InlineQuestion = {
-          id: 'script-selection',
-          question: 'Choose a script style that matches your brand voice:',
-          options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
+        // Show product analysis first, then ask about continuing
+        const continueQuestion: InlineQuestion = {
+          id: 'product-continue',
+          question: 'Ready to create your ad?',
+          options: [
+            { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
+            { id: 'change', label: 'Change URL', description: 'Use a different product' }
+          ]
         };
         
         await simulateTyping(
-          `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nNow, let's choose how to tell your product's story:`,
-          { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+          `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
+          { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
           1500
         );
-        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
       } else {
         await simulateTyping("Please share your product URL (e.g., https://yourstore.com/product) and I'll analyze it for you.");
       }
@@ -198,7 +201,28 @@ export const useCampaignFlow = () => {
   }, [addMessage, simulateTyping]);
 
   const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
-    if (questionId === 'script-selection') {
+    if (questionId === 'product-continue') {
+      if (answerId === 'continue') {
+        addMessage('user', "Let's continue!");
+        
+        const scriptQuestion: InlineQuestion = {
+          id: 'script-selection',
+          question: 'Choose a script style that matches your brand voice:',
+          options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
+        };
+        
+        await simulateTyping(
+          `Great! Now let's choose how to tell your product's story:`,
+          { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+          800
+        );
+        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
+      } else {
+        addMessage('user', "I want to change the product URL.");
+        setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
+        await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
+      }
+    } else if (questionId === 'script-selection') {
       const script = scriptOptions.find(s => s.id === answerId);
       if (script) {
         setState(prev => ({ ...prev, selectedScript: script }));

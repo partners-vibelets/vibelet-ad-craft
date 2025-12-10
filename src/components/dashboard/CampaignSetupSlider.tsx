@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Target, MousePointer, DollarSign, Calendar, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronLeft, Target, MousePointer, DollarSign, Calendar, Check, Type } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface SliderQuestion {
   id: string;
   label: string;
   icon: React.ElementType;
   options: { id: string; label: string; description?: string }[];
+  allowCustom?: boolean;
+  customPlaceholder?: string;
 }
 
 const questions: SliderQuestion[] = [
@@ -31,6 +33,10 @@ const questions: SliderQuestion[] = [
       { id: 'Learn More', label: 'Learn More' },
       { id: 'Sign Up', label: 'Sign Up' },
       { id: 'Get Offer', label: 'Get Offer' },
+      { id: 'Book Now', label: 'Book Now' },
+      { id: 'Contact Us', label: 'Contact Us' },
+      { id: 'Download', label: 'Download' },
+      { id: 'Subscribe', label: 'Subscribe' },
     ]
   },
   {
@@ -42,7 +48,9 @@ const questions: SliderQuestion[] = [
       { id: '50', label: '$50/day', description: 'Recommended' },
       { id: '100', label: '$100/day', description: 'Growth' },
       { id: '200', label: '$200/day', description: 'Scale' },
-    ]
+    ],
+    allowCustom: true,
+    customPlaceholder: 'Enter custom amount'
   },
   {
     id: 'duration',
@@ -66,6 +74,8 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isComplete, setIsComplete] = useState(false);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customValue, setCustomValue] = useState('');
 
   const currentQuestion = questions[currentIndex];
   const progress = ((Object.keys(answers).length) / questions.length) * 100;
@@ -75,6 +85,8 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
     
     const newAnswers = { ...answers, [currentQuestion.id]: optionId };
     setAnswers(newAnswers);
+    setShowCustomInput(false);
+    setCustomValue('');
 
     // Auto-advance after a brief delay
     setTimeout(() => {
@@ -87,9 +99,16 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
     }, 300);
   };
 
+  const handleCustomSubmit = () => {
+    if (!customValue || disabled || isComplete) return;
+    handleSelect(customValue);
+  };
+
   const goBack = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
+      setShowCustomInput(false);
+      setCustomValue('');
     }
   };
 
@@ -157,7 +176,10 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
         </div>
 
         {/* Options grid */}
-        <div className="p-3 grid grid-cols-2 gap-2">
+        <div className={cn(
+          "p-3 grid gap-2",
+          currentQuestion.options.length > 4 ? "grid-cols-4" : "grid-cols-2"
+        )}>
           {currentQuestion.options.map((option) => {
             const isSelected = answers[currentQuestion.id] === option.id;
             
@@ -167,20 +189,62 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
                 onClick={() => handleSelect(option.id)}
                 disabled={disabled}
                 className={cn(
-                  "p-3 rounded-lg border text-left transition-all duration-200",
+                  "p-2.5 rounded-lg border text-left transition-all duration-200",
+                  currentQuestion.options.length > 4 ? "text-center" : "",
                   isSelected
                     ? "border-primary bg-primary/10"
                     : "border-border hover:border-primary/50 hover:bg-muted/50"
                 )}
               >
-                <p className="text-sm font-medium text-foreground">{option.label}</p>
-                {option.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                <p className="text-xs font-medium text-foreground">{option.label}</p>
+                {option.description && currentQuestion.options.length <= 4 && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{option.description}</p>
                 )}
               </button>
             );
           })}
         </div>
+
+        {/* Custom input option */}
+        {currentQuestion.allowCustom && (
+          <div className="px-3 pb-3">
+            {!showCustomInput ? (
+              <button
+                onClick={() => setShowCustomInput(true)}
+                className="w-full p-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+              >
+                + Enter custom amount
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    type="number"
+                    value={customValue}
+                    onChange={(e) => setCustomValue(e.target.value)}
+                    placeholder="Enter amount"
+                    className="pl-7 h-9 text-sm"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleCustomSubmit()}
+                  />
+                </div>
+                <button
+                  onClick={handleCustomSubmit}
+                  disabled={!customValue}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    customValue 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  Set
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
