@@ -29,15 +29,13 @@ const questions: SliderQuestion[] = [
     label: 'Call-to-Action',
     icon: MousePointer,
     options: [
-      { id: 'Shop Now', label: 'Shop Now' },
-      { id: 'Learn More', label: 'Learn More' },
-      { id: 'Sign Up', label: 'Sign Up' },
-      { id: 'Get Offer', label: 'Get Offer' },
-      { id: 'Book Now', label: 'Book Now' },
-      { id: 'Contact Us', label: 'Contact Us' },
-      { id: 'Download', label: 'Download' },
-      { id: 'Subscribe', label: 'Subscribe' },
-    ]
+      { id: 'Shop Now', label: 'Shop Now', description: 'Best for sales' },
+      { id: 'Learn More', label: 'Learn More', description: 'For awareness' },
+      { id: 'Sign Up', label: 'Sign Up', description: 'For leads' },
+      { id: 'Get Offer', label: 'Get Offer', description: 'For promos' },
+    ],
+    allowCustom: true,
+    customPlaceholder: 'Enter custom CTA'
   },
   {
     id: 'budget',
@@ -213,18 +211,20 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
                 onClick={() => setShowCustomInput(true)}
                 className="w-full p-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
               >
-                + Enter custom amount
+                + {currentQuestion.id === 'budget' ? 'Enter custom amount' : 'Enter custom CTA'}
               </button>
             ) : (
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  {currentQuestion.id === 'budget' && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  )}
                   <Input
-                    type="number"
+                    type={currentQuestion.id === 'budget' ? 'number' : 'text'}
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
-                    placeholder="Enter amount"
-                    className="pl-7 h-9 text-sm"
+                    placeholder={currentQuestion.id === 'budget' ? 'Enter amount' : 'e.g., Book Now'}
+                    className={cn("h-9 text-sm", currentQuestion.id === 'budget' && "pl-7")}
                     autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && handleCustomSubmit()}
                   />
