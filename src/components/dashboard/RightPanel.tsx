@@ -6,7 +6,7 @@ import { AvatarPreviewPanel } from './panels/AvatarPreviewPanel';
 import { CreativeGenerationPanel } from './panels/CreativeGenerationPanel';
 import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
 import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
-import { CampaignSummaryPanel } from './panels/CampaignSummaryPanel';
+import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
 import { StepLoadingAnimation } from './StepLoadingAnimation';
