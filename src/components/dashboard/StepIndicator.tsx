@@ -1,16 +1,38 @@
 import { CampaignStep } from '@/types/campaign';
 import { cn } from '@/lib/utils';
-import { Check, Link, FileText, User, Image, Settings, Share2, Building, Rocket } from 'lucide-react';
+import { Check, Link, Sparkles, Settings, Rocket } from 'lucide-react';
 
-const STEP_CONFIG: { id: CampaignStep; label: string; icon: React.ElementType }[] = [
-  { id: 'product-analysis', label: 'Product', icon: Link },
-  { id: 'script-selection', label: 'Script', icon: FileText },
-  { id: 'avatar-selection', label: 'Avatar', icon: User },
-  { id: 'creative-review', label: 'Creative', icon: Image },
-  { id: 'campaign-setup', label: 'Setup', icon: Settings },
-  { id: 'facebook-integration', label: 'Connect', icon: Share2 },
-  { id: 'ad-account-selection', label: 'Account', icon: Building },
-  { id: 'campaign-preview', label: 'Publish', icon: Rocket },
+// Grouped step configuration - 4 main steps instead of 8
+const STEP_GROUPS: { 
+  id: string; 
+  label: string; 
+  icon: React.ElementType;
+  steps: CampaignStep[];
+}[] = [
+  { 
+    id: 'product', 
+    label: 'Product', 
+    icon: Link,
+    steps: ['product-analysis']
+  },
+  { 
+    id: 'content', 
+    label: 'Content', 
+    icon: Sparkles,
+    steps: ['script-selection', 'avatar-selection', 'creative-generation', 'creative-review']
+  },
+  { 
+    id: 'campaign', 
+    label: 'Campaign', 
+    icon: Settings,
+    steps: ['campaign-setup', 'facebook-integration', 'ad-account-selection']
+  },
+  { 
+    id: 'review', 
+    label: 'Review & Publish', 
+    icon: Rocket,
+    steps: ['campaign-preview', 'publishing', 'published']
+  },
 ];
 
 interface StepIndicatorProps {
@@ -19,59 +41,70 @@ interface StepIndicatorProps {
 }
 
 export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) => {
-  // Handle special step mappings
-  const getDisplayIndex = () => {
-    if (currentStep === 'creative-generation') return STEP_CONFIG.findIndex(s => s.id === 'creative-review');
-    if (currentStep === 'publishing') return STEP_CONFIG.findIndex(s => s.id === 'campaign-preview');
-    if (currentStep === 'published') return STEP_CONFIG.length; // All steps completed
-    return STEP_CONFIG.findIndex(s => s.id === currentStep);
+  // Find which group the current step belongs to
+  const getCurrentGroupIndex = () => {
+    for (let i = 0; i < STEP_GROUPS.length; i++) {
+      if (STEP_GROUPS[i].steps.includes(currentStep)) {
+        return i;
+      }
+    }
+    return 0;
   };
 
-  const displayIndex = getDisplayIndex();
+  const currentGroupIndex = getCurrentGroupIndex();
   const isFullyCompleted = currentStep === 'published';
+
+  // Get the first step of a group for navigation
+  const getFirstStepOfGroup = (groupIndex: number): CampaignStep => {
+    return STEP_GROUPS[groupIndex].steps[0];
+  };
 
   return (
     <div className="px-6 py-4 border-b border-border bg-background">
       {/* Progress bar */}
       <div className="flex items-center gap-4 mb-4">
         <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-          {isFullyCompleted ? 'Completed' : `Step ${Math.max(1, displayIndex + 1)} of ${STEP_CONFIG.length}`}
+          {isFullyCompleted ? 'Completed' : `Step ${currentGroupIndex + 1} of ${STEP_GROUPS.length}`}
         </span>
         <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
           <div 
             className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${(Math.min(displayIndex + 1, STEP_CONFIG.length) / STEP_CONFIG.length) * 100}%` }}
+            style={{ 
+              width: isFullyCompleted 
+                ? '100%' 
+                : `${((currentGroupIndex + 1) / STEP_GROUPS.length) * 100}%` 
+            }}
           />
         </div>
       </div>
 
       {/* Step navigation pills - centered */}
-      <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {STEP_CONFIG.map((step, index) => {
-          const isCompleted = index < displayIndex;
-          const isCurrent = index === displayIndex && !isFullyCompleted;
-          const isClickable = isCompleted;
-          const Icon = step.icon;
+      <div className="flex items-center justify-center gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {STEP_GROUPS.map((group, index) => {
+          const isCompleted = index < currentGroupIndex || isFullyCompleted;
+          const isCurrent = index === currentGroupIndex && !isFullyCompleted;
+          const isClickable = isCompleted && index < currentGroupIndex;
+          const Icon = group.icon;
           
           return (
             <button
-              key={step.id}
-              onClick={() => isClickable && onStepClick(step.id)}
+              key={group.id}
+              onClick={() => isClickable && onStepClick(getFirstStepOfGroup(index))}
               disabled={!isClickable}
-              title={step.label}
+              title={group.label}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border",
+                "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border",
                 isCurrent && "bg-primary text-primary-foreground border-primary shadow-md",
-                isCompleted && "bg-secondary/15 text-secondary border-secondary/30 hover:bg-secondary/25 cursor-pointer",
+                isCompleted && !isCurrent && "bg-secondary/15 text-secondary border-secondary/30 hover:bg-secondary/25 cursor-pointer",
                 !isCompleted && !isCurrent && "bg-muted/50 text-muted-foreground border-transparent"
               )}
             >
-              {isCompleted ? (
+              {isCompleted && !isCurrent ? (
                 <Check className="w-4 h-4" />
               ) : (
                 <Icon className="w-4 h-4" />
               )}
-              <span className="hidden sm:inline">{step.label}</span>
+              <span>{group.label}</span>
             </button>
           );
         })}
