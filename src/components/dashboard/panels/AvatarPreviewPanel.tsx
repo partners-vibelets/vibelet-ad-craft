@@ -50,20 +50,21 @@ export const AvatarPreviewPanel = ({ avatars, selectedAvatar }: AvatarPreviewPan
 
       {/* Vertical Facebook-style avatar cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {avatars.map((avatar) => {
+        {avatars.map((avatar, index) => {
           const isSelected = selectedAvatar?.id === avatar.id;
           return (
             <div
               key={avatar.id}
               className={cn(
-                "relative rounded-xl border overflow-hidden transition-all group cursor-pointer",
+                "relative rounded-xl border overflow-hidden transition-all group cursor-pointer animate-fade-in",
                 isSelected 
                   ? "border-primary ring-2 ring-primary"
                   : "border-border bg-card hover:border-primary/50"
               )}
+              style={{ animationDelay: `${index * 75}ms`, animationFillMode: 'backwards' }}
             >
               {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10 animate-scale-in">
                   <Check className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
@@ -73,7 +74,7 @@ export const AvatarPreviewPanel = ({ avatars, selectedAvatar }: AvatarPreviewPan
                 <img 
                   src={avatar.image} 
                   alt={avatar.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
                 
                 {/* Gradient overlay at bottom */}
@@ -98,7 +99,7 @@ export const AvatarPreviewPanel = ({ avatars, selectedAvatar }: AvatarPreviewPan
                     onClick={() => handlePreview(avatar)}
                     className="absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
+                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg transition-transform duration-200 hover:scale-110">
                       <Play className="w-7 h-7 text-primary-foreground ml-1" />
                     </div>
                   </button>
