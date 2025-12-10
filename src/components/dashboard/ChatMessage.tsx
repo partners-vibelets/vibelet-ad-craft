@@ -45,14 +45,18 @@ export const ChatMessage = ({
   
   return (
     <div className={cn(
-      "flex gap-3 p-4 animate-fade-in",
-      isAssistant ? "bg-muted/30" : "bg-transparent"
+      "flex gap-3 p-4 animate-fade-in rounded-lg mx-2 my-1 transition-all duration-200",
+      isAssistant 
+        ? "bg-primary/5 dark:bg-primary/10 backdrop-blur-sm border border-primary/10 shadow-sm" 
+        : "bg-secondary/30 dark:bg-secondary/20 backdrop-blur-sm border border-secondary/20"
     )}>
       <div className={cn(
-        "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
-        isAssistant ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+        "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ring-2 ring-background/50",
+        isAssistant 
+          ? "bg-primary text-primary-foreground" 
+          : "bg-secondary text-secondary-foreground"
       )}>
-        {isAssistant ? <Bot className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+        {isAssistant ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
         <p className="text-xs font-medium text-muted-foreground mb-1">
