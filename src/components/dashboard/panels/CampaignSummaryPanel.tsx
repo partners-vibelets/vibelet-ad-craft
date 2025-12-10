@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MobilePreview, DesktopPreview } from './AdPreviewComponents';
 
 interface CampaignSummaryPanelProps {
@@ -77,12 +78,19 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] text-muted-foreground">{label}</span>
-        <button 
-          onClick={() => setEditingField(editingField === field ? null : field)}
-          className="transition-colors"
-        >
-          <Pencil className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={() => setEditingField(editingField === field ? null : field)}
+              className="transition-colors"
+            >
+              <Pencil className="w-3 h-3 text-muted-foreground/60 hover:text-foreground" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" className="text-xs">
+            Click to edit
+          </TooltipContent>
+        </Tooltip>
       </div>
       {editingField === field ? (
         multiline ? (
@@ -229,12 +237,19 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                 <div className="p-2 rounded-md bg-muted/30">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="text-[9px] text-muted-foreground">Daily Budget</p>
-                    <button 
-                      onClick={() => setEditingField(editingField === 'budgetAmount' ? null : 'budgetAmount')}
-                      className="transition-colors"
-                    >
-                      <Pencil className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-foreground" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button 
+                          onClick={() => setEditingField(editingField === 'budgetAmount' ? null : 'budgetAmount')}
+                          className="transition-colors"
+                        >
+                          <Pencil className="w-2.5 h-2.5 text-muted-foreground/60 hover:text-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-xs">
+                        Click to edit
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   {editingField === 'budgetAmount' ? (
                     <div className="flex items-center gap-1">
