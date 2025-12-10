@@ -44,10 +44,11 @@ export const AvatarPreviewPanel = ({ avatars, selectedAvatar }: AvatarPreviewPan
         </div>
         <h2 className="text-xl font-semibold text-foreground">AI Video Presenters</h2>
         <p className="text-sm text-muted-foreground">
-          Click preview to see how each avatar speaks
+          Preview how each avatar will appear in your Facebook ad
         </p>
       </div>
 
+      {/* Vertical Facebook-style avatar cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {avatars.map((avatar) => {
           const isSelected = selectedAvatar?.id === avatar.id;
@@ -55,51 +56,53 @@ export const AvatarPreviewPanel = ({ avatars, selectedAvatar }: AvatarPreviewPan
             <div
               key={avatar.id}
               className={cn(
-                "relative p-3 rounded-xl border transition-all group",
+                "relative rounded-xl border overflow-hidden transition-all group cursor-pointer",
                 isSelected 
-                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  ? "border-primary ring-2 ring-primary"
                   : "border-border bg-card hover:border-primary/50"
               )}
             >
               {isSelected && (
-                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center z-10">
-                  <Check className="w-3 h-3 text-primary-foreground" />
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center z-10">
+                  <Check className="w-4 h-4 text-primary-foreground" />
                 </div>
               )}
-              <div className="flex flex-col items-center text-center space-y-2">
-                <div className="relative">
-                  <div className={cn(
-                    "w-24 h-24 rounded-full overflow-hidden border-2",
-                    isSelected ? "border-primary" : "border-border"
-                  )}>
-                    <img 
-                      src={avatar.image} 
-                      alt={avatar.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {avatar.videoPreview && (
-                    <button
-                      onClick={() => handlePreview(avatar)}
-                      className="absolute inset-0 flex items-center justify-center bg-background/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                        <Play className="w-5 h-5 text-primary-foreground ml-0.5" />
-                      </div>
-                    </button>
-                  )}
-                </div>
-                <div>
+              
+              {/* Vertical video-style preview - 9:16 aspect ratio like Facebook Reels */}
+              <div className="relative aspect-[9/14] bg-muted overflow-hidden">
+                <img 
+                  src={avatar.image} 
+                  alt={avatar.name}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Gradient overlay at bottom */}
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background/90 to-transparent" />
+                
+                {/* Avatar info overlay at bottom */}
+                <div className="absolute inset-x-0 bottom-0 p-3">
                   <h3 className={cn(
-                    "font-medium text-sm",
+                    "font-semibold text-sm",
                     isSelected ? "text-primary" : "text-foreground"
                   )}>
                     {avatar.name}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                  <p className="text-xs text-muted-foreground line-clamp-1">
                     {avatar.style}
                   </p>
                 </div>
+                
+                {/* Play button overlay */}
+                {avatar.videoPreview && (
+                  <button
+                    onClick={() => handlePreview(avatar)}
+                    className="absolute inset-0 flex items-center justify-center bg-background/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
+                      <Play className="w-7 h-7 text-primary-foreground ml-1" />
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           );

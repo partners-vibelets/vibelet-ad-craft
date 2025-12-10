@@ -30,13 +30,16 @@ export const ChatPanel = ({
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (scrollRef.current) {
-      // Use smooth scrolling for better UX
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
+    // Delay scroll to ensure DOM is updated
+    const timeoutId = setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+    return () => clearTimeout(timeoutId);
   }, [messages, isTyping]);
 
   const handleQuestionAnswer = (questionId: string, answerId: string) => {
