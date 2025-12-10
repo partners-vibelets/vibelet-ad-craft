@@ -68,6 +68,7 @@ export interface AvatarOption {
   id: string;
   name: string;
   image: string;
+  videoPreview?: string;
   style: string;
 }
 
