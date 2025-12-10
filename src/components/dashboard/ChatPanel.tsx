@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Message } from '@/types/campaign';
+import { Message, CampaignConfig } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
@@ -12,7 +12,7 @@ interface ChatPanelProps {
   isTyping: boolean;
   onSendMessage: (message: string) => void;
   onQuestionAnswer: (questionId: string, answerId: string) => void;
-  onCampaignConfigComplete?: (config: Record<string, string>) => void;
+  onCampaignConfigComplete?: (config: CampaignConfig) => void;
   onFacebookConnect?: () => void;
   isFacebookConnected?: boolean;
   disabled?: boolean;
@@ -79,6 +79,8 @@ export const ChatPanel = ({
               onFacebookConnect={onFacebookConnect}
               selectedAnswers={selectedAnswers}
               isFacebookConnected={isFacebookConnected}
+              productUrl="https://example.com/product"
+              productTitle="Premium Wireless Headphones"
             />
           ))}
           {isTyping && <TypingIndicator />}

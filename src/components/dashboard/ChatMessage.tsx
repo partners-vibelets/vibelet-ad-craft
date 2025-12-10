@@ -1,17 +1,19 @@
-import { Message } from '@/types/campaign';
+import { Message, CampaignConfig } from '@/types/campaign';
 import { cn } from '@/lib/utils';
 import { Bot, User } from 'lucide-react';
 import { InlineQuestionCard } from './InlineQuestionCard';
-import { CampaignSetupSlider } from './CampaignSetupSlider';
+import { CampaignSetupForm } from './CampaignSetupForm';
 import { FacebookConnectCard } from './FacebookConnectCard';
 
 interface ChatMessageProps {
   message: Message;
   onQuestionAnswer?: (questionId: string, answerId: string) => void;
-  onCampaignConfigComplete?: (config: Record<string, string>) => void;
+  onCampaignConfigComplete?: (config: CampaignConfig) => void;
   onFacebookConnect?: () => void;
   selectedAnswers?: Record<string, string>;
   isFacebookConnected?: boolean;
+  productUrl?: string;
+  productTitle?: string;
 }
 
 export const ChatMessage = ({ 
@@ -20,7 +22,9 @@ export const ChatMessage = ({
   onCampaignConfigComplete,
   onFacebookConnect,
   selectedAnswers = {},
-  isFacebookConnected
+  isFacebookConnected,
+  productUrl = 'https://example.com/product',
+  productTitle = 'Your Product'
 }: ChatMessageProps) => {
   const isAssistant = message.role === 'assistant';
   
@@ -69,7 +73,11 @@ export const ChatMessage = ({
           />
         )}
         {message.showCampaignSlider && onCampaignConfigComplete && (
-          <CampaignSetupSlider onComplete={onCampaignConfigComplete} />
+          <CampaignSetupForm 
+            productUrl={productUrl}
+            productTitle={productTitle}
+            onComplete={onCampaignConfigComplete} 
+          />
         )}
         {message.showFacebookConnect && onFacebookConnect && (
           <FacebookConnectCard onConnect={onFacebookConnect} isConnected={isFacebookConnected} />

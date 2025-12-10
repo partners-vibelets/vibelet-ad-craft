@@ -17,7 +17,8 @@ import {
   Heart,
   MoreHorizontal,
   Pencil,
-  Type,
+  FileText,
+  Layers,
   Sparkles
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -35,8 +36,28 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
   
   const { productData, selectedCreative, campaignConfig, selectedAdAccount } = state;
 
-  const displayTitle = editedTitle || productData?.title || 'Your Product';
-  const displayHeadline = editedHeadline || productData?.description?.slice(0, 80) || 'Check out our amazing product!';
+  const displayTitle = editedTitle || campaignConfig?.campaignName || productData?.title || 'Your Product';
+  const displayHeadline = editedHeadline || campaignConfig?.primaryText || productData?.description?.slice(0, 80) || 'Check out our amazing product!';
+
+  // Format CTA for display
+  const formatCta = (cta: string | undefined) => {
+    if (!cta) return 'Shop Now';
+    return cta.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Calculate budget display
+  const getBudgetDisplay = () => {
+    if (!campaignConfig?.budgetAmount) return null;
+    const amount = parseFloat(campaignConfig.budgetAmount);
+    const duration = campaignConfig.duration === 'ongoing' ? 0 : parseInt(campaignConfig.duration);
+    
+    if (campaignConfig.duration === 'ongoing') {
+      return `$${amount}/day`;
+    }
+    
+    const total = campaignConfig.budgetType === 'daily' ? amount * duration : amount;
+    return `$${total.toLocaleString()}`;
+  };
 
   return (
     <div className="p-4 space-y-4 h-full overflow-auto">
@@ -89,14 +110,14 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
               creative={selectedCreative}
               title={displayTitle}
               headline={displayHeadline}
-              cta={campaignConfig?.cta || 'Shop Now'}
+              cta={formatCta(campaignConfig?.cta)}
             />
           ) : (
             <DesktopPreview 
               creative={selectedCreative}
               title={displayTitle}
               headline={displayHeadline}
-              cta={campaignConfig?.cta || 'Shop Now'}
+              cta={formatCta(campaignConfig?.cta)}
             />
           )}
         </div>
@@ -112,7 +133,7 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
               {/* Title */}
               <div className="group">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground">Title</span>
+                  <span className="text-[10px] text-muted-foreground">Campaign Name</span>
                   <button 
                     onClick={() => {
                       setIsEditingTitle(!isEditingTitle);
@@ -173,9 +194,11 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
               </div>
               <div className="p-2 grid grid-cols-2 gap-1.5">
                 <ConfigItem icon={Target} label="Goal" value={campaignConfig.objective} />
-                <ConfigItem icon={DollarSign} label="Budget" value={`$${campaignConfig.budget}/day`} />
-                <ConfigItem icon={MousePointer} label="CTA" value={campaignConfig.cta} />
-                <ConfigItem icon={Clock} label="Duration" value={campaignConfig.duration} />
+                <ConfigItem icon={Layers} label="Budget Type" value={campaignConfig.budgetType === 'daily' ? 'Daily' : 'Lifetime'} />
+                <ConfigItem icon={DollarSign} label="Budget" value={`$${campaignConfig.budgetAmount}/${campaignConfig.budgetType === 'daily' ? 'day' : 'total'}`} />
+                <ConfigItem icon={MousePointer} label="CTA" value={formatCta(campaignConfig.cta)} />
+                <ConfigItem icon={Clock} label="Duration" value={campaignConfig.duration === 'ongoing' ? 'Ongoing' : `${campaignConfig.duration} days`} />
+                <ConfigItem icon={FileText} label="Ad Set" value={campaignConfig.adSetName?.slice(0, 20) + '...'} />
               </div>
             </div>
           )}
@@ -200,15 +223,12 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Estimated Total</span>
                 <span className="text-base font-bold text-primary">
-                  ${campaignConfig.duration === 'Ongoing' 
-                    ? `${campaignConfig.budget}/day` 
-                    : (parseInt(campaignConfig.budget) * parseInt(campaignConfig.duration)).toLocaleString()
-                  }
+                  {getBudgetDisplay()}
                 </span>
               </div>
-              {campaignConfig.duration !== 'Ongoing' && (
+              {campaignConfig.duration !== 'ongoing' && (
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {campaignConfig.duration} at ${campaignConfig.budget}/day
+                  {campaignConfig.duration} days at ${campaignConfig.budgetAmount}/{campaignConfig.budgetType === 'daily' ? 'day' : 'total'}
                 </p>
               )}
             </div>
