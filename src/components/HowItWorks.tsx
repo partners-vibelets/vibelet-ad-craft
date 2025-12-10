@@ -53,18 +53,18 @@ const HowItWorks = () => {
               <div className="flex gap-6 md:gap-10 mb-12 group">
                 {/* Step number */}
                 <div 
-                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-300 group-hover:scale-105 shadow-md ${
+                  className={`flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold transition-all duration-300 group-hover:scale-105 ${
                     step.color === 'primary' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-secondary text-secondary-foreground'
+                      ? 'bg-primary text-primary-foreground glow-primary' 
+                      : 'bg-secondary text-secondary-foreground glow-secondary'
                   }`}
                 >
                   {step.number}
                 </div>
                 
                 {/* Content */}
-                <div className="flex-1 pt-2">
-                  <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3">
+                <div className="flex-1 pt-2 glass-card p-6 rounded-xl">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-3 flex items-center gap-3 text-foreground">
                     {step.title}
                     <ArrowRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </h3>

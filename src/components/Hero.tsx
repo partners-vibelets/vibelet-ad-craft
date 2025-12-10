@@ -12,7 +12,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-sm font-medium mb-8 animate-slide-up text-primary border border-primary/20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-sm font-medium mb-8 animate-slide-up text-primary">
             <Sparkles className="w-4 h-4" />
             <span>AI-Powered Ad Automation</span>
           </div>
@@ -58,7 +58,7 @@ const Hero = () => {
             style={{ animationDelay: '0.4s' }}
           >
             <p className="text-sm text-muted-foreground">Trusted by marketers at</p>
-            <div className="flex items-center gap-8 px-8 py-4 rounded-2xl bg-muted/50 border border-border">
+            <div className="flex items-center gap-8 px-8 py-4 rounded-2xl glass-card">
               <div className="text-xl font-bold text-foreground/60">Shopify</div>
               <div className="text-xl font-bold text-foreground/60">Meta</div>
               <div className="text-xl font-bold text-foreground/60">TikTok</div>

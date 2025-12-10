@@ -219,14 +219,14 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
                   "p-2.5 rounded-lg border text-left transition-all duration-200 relative",
                   currentQuestion.options.length > 4 ? "text-center" : "",
                   isSelected
-                    ? "border-primary bg-primary/10"
+                    ? "border-secondary bg-secondary/15 shadow-sm"
                     : isRecommended
-                    ? "border-primary/50 bg-primary/5"
+                    ? "border-secondary/60 bg-secondary/10 shadow-sm"
                     : "border-border hover:border-primary/50 hover:bg-muted/50"
                 )}
               >
                 {isRecommended && (
-                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary text-[8px] font-medium text-primary-foreground">
+                  <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-secondary text-[8px] font-semibold text-secondary-foreground glow-badge">
                     <Sparkles className="w-2 h-2" />
                     Best
                   </span>
