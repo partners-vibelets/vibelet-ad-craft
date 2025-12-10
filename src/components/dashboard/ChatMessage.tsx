@@ -45,10 +45,10 @@ export const ChatMessage = ({
   
   return (
     <div className={cn(
-      "flex gap-3 p-4 animate-fade-in rounded-lg mx-2 my-1 transition-all duration-200",
+      "flex gap-3 p-4 animate-fade-in rounded-lg mx-2 my-1 transition-all duration-200 cursor-default",
       isAssistant 
-        ? "bg-primary/5 dark:bg-primary/10 backdrop-blur-sm border border-primary/10 shadow-sm" 
-        : "bg-secondary/30 dark:bg-secondary/20 backdrop-blur-sm border border-secondary/20"
+        ? "bg-primary/5 dark:bg-primary/10 backdrop-blur-sm border border-primary/10 shadow-sm hover:shadow-md hover:shadow-primary/10 hover:-translate-y-0.5 hover:border-primary/20" 
+        : "bg-secondary/30 dark:bg-secondary/20 backdrop-blur-sm border border-secondary/20 hover:shadow-md hover:shadow-secondary/20 hover:-translate-y-0.5 hover:border-secondary/30"
     )}>
       <div className={cn(
         "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm ring-2 ring-background/50",
