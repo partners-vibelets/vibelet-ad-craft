@@ -21,11 +21,12 @@ const insightIcons: Record<string, React.ElementType> = {
 export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: ProductAnalysisPanelProps) => {
   if (isAnalyzing) {
     return (
-      <div className="flex flex-col h-full p-6">
-        {/* Simulated Page Screenshot */}
+      <div className="flex flex-col h-full p-6 animate-fade-in">
+        {/* Skeleton Page Screenshot */}
         <div className="relative rounded-xl overflow-hidden border border-border bg-muted mb-6">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/90 z-10" />
-          <div className="aspect-video bg-gradient-to-br from-muted to-muted-foreground/10 animate-pulse">
+          <div className="aspect-video bg-muted relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-muted via-muted-foreground/5 to-muted animate-[shimmer_2s_infinite]" 
+                 style={{ backgroundSize: '200% 100%', animation: 'shimmer 2s infinite linear' }} />
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-3" />
@@ -41,6 +42,42 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: P
           </div>
         </div>
 
+        {/* Skeleton Product Details */}
+        <Card className="border-border mb-4">
+          <CardHeader className="pb-3">
+            <div className="h-6 w-3/4 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-20 bg-muted rounded animate-pulse mt-2" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-muted/50">
+                <div className="h-3 w-12 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-6 w-16 bg-muted rounded animate-pulse" />
+              </div>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <div className="h-3 w-12 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-6 w-20 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+            <div>
+              <div className="h-3 w-20 bg-muted rounded animate-pulse mb-2" />
+              <div className="space-y-2">
+                <div className="h-4 w-full bg-muted rounded animate-pulse" />
+                <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-4/6 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+            <div>
+              <div className="h-3 w-24 bg-muted rounded animate-pulse mb-2" />
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Analysis Progress */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Analyzing Your Product</h2>
@@ -50,7 +87,7 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing }: P
               { label: 'Analyzing images', done: true },
               { label: 'Generating insights', done: false },
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
+              <div key={i} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${i * 200}ms` }}>
                 {item.done ? (
                   <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
                     <Sparkles className="w-3 h-3 text-primary" />
