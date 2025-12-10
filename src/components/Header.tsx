@@ -2,13 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import vibeLogo from "@/assets/vibelets-logo.png";
+import vibeLogoWhite from "@/assets/vibelets-logo-white.png";
 
 const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-strong">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img src={vibeLogo} alt="Vibelets" className="h-8 w-auto logo-adaptive" />
+          <img src={vibeLogo} alt="Vibelets" className="h-8 w-auto dark:hidden" />
+          <img src={vibeLogoWhite} alt="Vibelets" className="h-8 w-auto hidden dark:block" />
         </div>
         
         <nav className="hidden md:flex items-center gap-8">
