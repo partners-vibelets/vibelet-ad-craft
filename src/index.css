@@ -262,7 +262,13 @@
   }
 
   /* Logo filter for dark mode */
-  .dark .logo-adaptive {
-    filter: brightness(1.3) contrast(1.1);
-  }
+/* Light mode - darken the logo text */
+.logo-adaptive {
+  filter: contrast(1.4) brightness(0.9);
+}
+
+/* Dark mode - brighten the logo */
+.dark .logo-adaptive {
+  filter: brightness(1.3) contrast(1.1);
+}
 }
