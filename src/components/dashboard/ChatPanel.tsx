@@ -10,6 +10,9 @@ interface ChatPanelProps {
   isTyping: boolean;
   onSendMessage: (message: string) => void;
   onQuestionAnswer: (questionId: string, answerId: string) => void;
+  onCampaignConfigComplete?: (config: Record<string, string>) => void;
+  onFacebookConnect?: () => void;
+  isFacebookConnected?: boolean;
   disabled?: boolean;
 }
 
@@ -18,6 +21,9 @@ export const ChatPanel = ({
   isTyping, 
   onSendMessage, 
   onQuestionAnswer,
+  onCampaignConfigComplete,
+  onFacebookConnect,
+  isFacebookConnected,
   disabled 
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -56,7 +62,10 @@ export const ChatPanel = ({
               key={message.id} 
               message={message} 
               onQuestionAnswer={handleQuestionAnswer}
+              onCampaignConfigComplete={onCampaignConfigComplete}
+              onFacebookConnect={onFacebookConnect}
               selectedAnswers={selectedAnswers}
+              isFacebookConnected={isFacebookConnected}
             />
           ))}
           {isTyping && <TypingIndicator />}

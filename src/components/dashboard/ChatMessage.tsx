@@ -2,14 +2,26 @@ import { Message } from '@/types/campaign';
 import { cn } from '@/lib/utils';
 import { Bot, User } from 'lucide-react';
 import { InlineQuestionCard } from './InlineQuestionCard';
+import { CampaignSetupSlider } from './CampaignSetupSlider';
+import { FacebookConnectCard } from './FacebookConnectCard';
 
 interface ChatMessageProps {
   message: Message;
   onQuestionAnswer?: (questionId: string, answerId: string) => void;
+  onCampaignConfigComplete?: (config: Record<string, string>) => void;
+  onFacebookConnect?: () => void;
   selectedAnswers?: Record<string, string>;
+  isFacebookConnected?: boolean;
 }
 
-export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }: ChatMessageProps) => {
+export const ChatMessage = ({ 
+  message, 
+  onQuestionAnswer, 
+  onCampaignConfigComplete,
+  onFacebookConnect,
+  selectedAnswers = {},
+  isFacebookConnected
+}: ChatMessageProps) => {
   const isAssistant = message.role === 'assistant';
   
   const renderContent = (content: string) => {
@@ -55,6 +67,12 @@ export const ChatMessage = ({ message, onQuestionAnswer, selectedAnswers = {} }:
             onAnswer={onQuestionAnswer}
             selectedAnswer={selectedAnswers[message.inlineQuestion.id]}
           />
+        )}
+        {message.showCampaignSlider && onCampaignConfigComplete && (
+          <CampaignSetupSlider onComplete={onCampaignConfigComplete} />
+        )}
+        {message.showFacebookConnect && onFacebookConnect && (
+          <FacebookConnectCard onConnect={onFacebookConnect} isConnected={isFacebookConnected} />
         )}
       </div>
     </div>
