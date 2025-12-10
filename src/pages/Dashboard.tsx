@@ -9,13 +9,8 @@ const Dashboard = () => {
     isTyping,
     handleUserMessage,
     handleQuestionAnswer,
-    selectScript,
-    selectAvatar,
-    selectCreative,
-    setCampaignConfig,
-    connectFacebook,
-    selectAdAccount,
-    publishCampaign,
+    handleCampaignConfigComplete,
+    handleFacebookConnect,
     resetFlow,
     goToStep,
   } = useCampaignFlow();
@@ -30,6 +25,9 @@ const Dashboard = () => {
             isTyping={isTyping}
             onSendMessage={handleUserMessage}
             onQuestionAnswer={handleQuestionAnswer}
+            onCampaignConfigComplete={handleCampaignConfigComplete}
+            onFacebookConnect={handleFacebookConnect}
+            isFacebookConnected={state.facebookConnected}
           />
         </div>
       </div>
@@ -39,13 +37,6 @@ const Dashboard = () => {
         <div className="h-full glass-card rounded-2xl overflow-hidden shadow-lg">
           <RightPanel
             state={state}
-            onSelectScript={selectScript}
-            onSelectAvatar={selectAvatar}
-            onSelectCreative={selectCreative}
-            onCampaignSetup={setCampaignConfig}
-            onConnectFacebook={connectFacebook}
-            onSelectAdAccount={selectAdAccount}
-            onPublish={publishCampaign}
             onReset={resetFlow}
             onStepClick={goToStep}
           />
