@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CampaignState } from '@/types/campaign';
+import { CampaignState, CampaignConfig } from '@/types/campaign';
 import { cn } from '@/lib/utils';
 import { 
   CheckCircle2, 
@@ -19,9 +19,13 @@ import {
   Pencil,
   FileText,
   Layers,
-  Sparkles
+  Sparkles,
+  Globe,
+  BarChart3,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CampaignSummaryPanelProps {
   state: CampaignState;
@@ -29,15 +33,22 @@ interface CampaignSummaryPanelProps {
 
 export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
   const [device, setDevice] = useState<'mobile' | 'desktop'>('mobile');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState('');
-  const [isEditingHeadline, setIsEditingHeadline] = useState(false);
-  const [editedHeadline, setEditedHeadline] = useState('');
-  
   const { productData, selectedCreative, campaignConfig, selectedAdAccount } = state;
 
-  const displayTitle = editedTitle || campaignConfig?.campaignName || productData?.title || 'Your Product';
-  const displayHeadline = editedHeadline || campaignConfig?.primaryText || productData?.description?.slice(0, 80) || 'Check out our amazing product!';
+  // Editable fields state
+  const [editableFields, setEditableFields] = useState({
+    campaignName: campaignConfig?.campaignName || productData?.title || 'My Campaign',
+    primaryText: campaignConfig?.primaryText || productData?.description?.slice(0, 125) || 'Check out this amazing product!',
+    budgetAmount: campaignConfig?.budgetAmount || '50',
+    adSetName: campaignConfig?.adSetName || productData?.title || 'My Campaign',
+    adName: campaignConfig?.adName || productData?.title || 'My Campaign',
+  });
+
+  const [editingField, setEditingField] = useState<string | null>(null);
+
+  const handleFieldChange = (field: string, value: string) => {
+    setEditableFields(prev => ({ ...prev, [field]: value }));
+  };
 
   // Format CTA for display
   const formatCta = (cta: string | undefined) => {
@@ -47,17 +58,74 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
 
   // Calculate budget display
   const getBudgetDisplay = () => {
-    if (!campaignConfig?.budgetAmount) return null;
-    const amount = parseFloat(campaignConfig.budgetAmount);
-    const duration = campaignConfig.duration === 'ongoing' ? 0 : parseInt(campaignConfig.duration);
+    const amount = parseFloat(editableFields.budgetAmount);
+    const duration = campaignConfig?.duration === 'ongoing' ? 0 : parseInt(campaignConfig?.duration || '14');
     
-    if (campaignConfig.duration === 'ongoing') {
+    if (campaignConfig?.duration === 'ongoing') {
       return `$${amount}/day`;
     }
     
-    const total = campaignConfig.budgetType === 'daily' ? amount * duration : amount;
+    const total = amount * duration;
     return `$${total.toLocaleString()}`;
   };
+
+  const EditableField = ({ 
+    label, 
+    field, 
+    value, 
+    multiline = false 
+  }: { 
+    label: string; 
+    field: string; 
+    value: string; 
+    multiline?: boolean;
+  }) => (
+    <div className="group">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] text-muted-foreground">{label}</span>
+        <button 
+          onClick={() => setEditingField(editingField === field ? null : field)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+        </button>
+      </div>
+      {editingField === field ? (
+        multiline ? (
+          <Textarea
+            value={value}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+            onBlur={() => setEditingField(null)}
+            className="text-xs min-h-[60px] resize-none"
+            autoFocus
+          />
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => handleFieldChange(field, e.target.value)}
+            onBlur={() => setEditingField(null)}
+            className="h-7 text-xs"
+            autoFocus
+          />
+        )
+      ) : (
+        <p className={cn(
+          "text-xs font-medium text-foreground",
+          multiline ? "line-clamp-2" : "truncate"
+        )}>{value}</p>
+      )}
+    </div>
+  );
+
+  const ReadOnlyField = ({ label, value, icon: Icon }: { label: string; value: string; icon?: any }) => (
+    <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
+      {Icon && <Icon className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+      <div className="min-w-0 flex-1">
+        <p className="text-[9px] text-muted-foreground">{label}</p>
+        <p className="text-[11px] font-medium text-foreground truncate">{value}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="p-4 space-y-4 h-full overflow-auto">
@@ -68,7 +136,7 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
         </div>
         <div>
           <h2 className="text-base font-semibold text-foreground">Campaign Preview</h2>
-          <p className="text-[10px] text-muted-foreground">Review your ad before publishing</p>
+          <p className="text-[10px] text-muted-foreground">Review and edit before publishing</p>
         </div>
       </div>
 
@@ -108,100 +176,143 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
           {device === 'mobile' ? (
             <MobilePreview 
               creative={selectedCreative}
-              title={displayTitle}
-              headline={displayHeadline}
+              title={editableFields.adName}
+              headline={editableFields.primaryText}
               cta={formatCta(campaignConfig?.cta)}
             />
           ) : (
             <DesktopPreview 
               creative={selectedCreative}
-              title={displayTitle}
-              headline={displayHeadline}
+              title={editableFields.adName}
+              headline={editableFields.primaryText}
               cta={formatCta(campaignConfig?.cta)}
             />
           )}
         </div>
 
-        {/* Right - Campaign Details */}
+        {/* Right - Campaign Configuration */}
         <div className="space-y-3">
-          {/* Editable Ad Copy */}
+          {/* CAMPAIGN LEVEL */}
           <div className="rounded-lg border border-border bg-card overflow-hidden">
-            <div className="px-3 py-2 bg-muted/30 border-b border-border/50">
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Ad Copy</p>
+            <div className="px-3 py-2 bg-primary/5 border-b border-border/50 flex items-center gap-2">
+              <BarChart3 className="w-3 h-3 text-primary" />
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-wide">Campaign Level</p>
             </div>
-            <div className="p-3 space-y-2.5">
-              {/* Title */}
-              <div className="group">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground">Campaign Name</span>
-                  <button 
-                    onClick={() => {
-                      setIsEditingTitle(!isEditingTitle);
-                      if (!isEditingTitle) setEditedTitle(displayTitle);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                  </button>
-                </div>
-                {isEditingTitle ? (
-                  <Input
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onBlur={() => setIsEditingTitle(false)}
-                    className="h-7 text-xs"
-                    autoFocus
-                  />
-                ) : (
-                  <p className="text-xs font-medium text-foreground truncate">{displayTitle}</p>
-                )}
-              </div>
-              
-              {/* Headline */}
-              <div className="group">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-muted-foreground">Primary Text</span>
-                  <button 
-                    onClick={() => {
-                      setIsEditingHeadline(!isEditingHeadline);
-                      if (!isEditingHeadline) setEditedHeadline(displayHeadline);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Pencil className="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                  </button>
-                </div>
-                {isEditingHeadline ? (
-                  <Input
-                    value={editedHeadline}
-                    onChange={(e) => setEditedHeadline(e.target.value)}
-                    onBlur={() => setIsEditingHeadline(false)}
-                    className="h-7 text-xs"
-                    autoFocus
-                  />
-                ) : (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{displayHeadline}</p>
-                )}
+            <div className="p-3 space-y-3">
+              <EditableField 
+                label="Campaign Name" 
+                field="campaignName" 
+                value={editableFields.campaignName} 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <ReadOnlyField 
+                  label="Objective" 
+                  value={campaignConfig?.objective || 'Sales'} 
+                  icon={Target} 
+                />
+                <ReadOnlyField 
+                  label="Budget Type" 
+                  value="Daily" 
+                  icon={DollarSign} 
+                />
               </div>
             </div>
           </div>
 
-          {/* Campaign Config */}
-          {campaignConfig && (
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <div className="px-3 py-2 bg-muted/30 border-b border-border/50">
-                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Settings</p>
+          {/* AD SET LEVEL */}
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2 bg-secondary/5 border-b border-border/50 flex items-center gap-2">
+              <Layers className="w-3 h-3 text-secondary" />
+              <p className="text-[10px] font-semibold text-secondary uppercase tracking-wide">Ad Set Level</p>
+            </div>
+            <div className="p-3 space-y-3">
+              <EditableField 
+                label="Ad Set Name" 
+                field="adSetName" 
+                value={editableFields.adSetName} 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="group p-2 rounded-md bg-muted/30">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-[9px] text-muted-foreground">Daily Budget</p>
+                    <button 
+                      onClick={() => setEditingField(editingField === 'budgetAmount' ? null : 'budgetAmount')}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="w-2.5 h-2.5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  </div>
+                  {editingField === 'budgetAmount' ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[11px] text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        value={editableFields.budgetAmount}
+                        onChange={(e) => handleFieldChange('budgetAmount', e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        className="h-5 text-[11px] p-1 w-16"
+                        autoFocus
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-medium text-foreground">${editableFields.budgetAmount}/day</p>
+                  )}
+                </div>
+                <ReadOnlyField 
+                  label="Duration" 
+                  value={campaignConfig?.duration === 'ongoing' ? 'Ongoing' : `${campaignConfig?.duration || '14'} days`} 
+                  icon={Clock} 
+                />
               </div>
-              <div className="p-2 grid grid-cols-2 gap-1.5">
-                <ConfigItem icon={Target} label="Goal" value={campaignConfig.objective} />
-                <ConfigItem icon={Layers} label="Budget Type" value={campaignConfig.budgetType === 'daily' ? 'Daily' : 'Lifetime'} />
-                <ConfigItem icon={DollarSign} label="Budget" value={`$${campaignConfig.budgetAmount}/${campaignConfig.budgetType === 'daily' ? 'day' : 'total'}`} />
-                <ConfigItem icon={MousePointer} label="CTA" value={formatCta(campaignConfig.cta)} />
-                <ConfigItem icon={Clock} label="Duration" value={campaignConfig.duration === 'ongoing' ? 'Ongoing' : `${campaignConfig.duration} days`} />
-                <ConfigItem icon={FileText} label="Ad Set" value={campaignConfig.adSetName?.slice(0, 20) + '...'} />
+              {selectedAdAccount && (
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/30">
+                  <ReadOnlyField 
+                    label="FB Pixel ID" 
+                    value={`px_${selectedAdAccount.id.slice(-6)}`} 
+                    icon={BarChart3} 
+                  />
+                  <ReadOnlyField 
+                    label="FB Page ID" 
+                    value={`pg_${selectedAdAccount.id.slice(-6)}`} 
+                    icon={Facebook} 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* AD LEVEL */}
+          <div className="rounded-lg border border-border bg-card overflow-hidden">
+            <div className="px-3 py-2 bg-muted/50 border-b border-border/50 flex items-center gap-2">
+              <ImageIcon className="w-3 h-3 text-muted-foreground" />
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Ad Level</p>
+            </div>
+            <div className="p-3 space-y-3">
+              <EditableField 
+                label="Ad Name" 
+                field="adName" 
+                value={editableFields.adName} 
+              />
+              <EditableField 
+                label="Primary Text" 
+                field="primaryText" 
+                value={editableFields.primaryText}
+                multiline
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <ReadOnlyField 
+                  label="CTA Button" 
+                  value={formatCta(campaignConfig?.cta)} 
+                  icon={MousePointer} 
+                />
+                <ReadOnlyField 
+                  label="Website URL" 
+                  value={state.productUrl?.replace(/^https?:\/\//, '').slice(0, 20) + '...' || 'yourstore.com'} 
+                  icon={Globe} 
+                />
               </div>
             </div>
-          )}
+          </div>
 
           {/* Facebook Account */}
           {selectedAdAccount && (
@@ -228,7 +339,7 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
               </div>
               {campaignConfig.duration !== 'ongoing' && (
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  {campaignConfig.duration} days at ${campaignConfig.budgetAmount}/{campaignConfig.budgetType === 'daily' ? 'day' : 'total'}
+                  {campaignConfig.duration} days at ${editableFields.budgetAmount}/day
                 </p>
               )}
             </div>
@@ -238,16 +349,6 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
     </div>
   );
 };
-
-const ConfigItem = ({ icon: Icon, label, value }: { icon: any; label: string; value: string }) => (
-  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
-    <Icon className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-    <div className="min-w-0">
-      <p className="text-[9px] text-muted-foreground">{label}</p>
-      <p className="text-[11px] font-medium text-foreground truncate">{value}</p>
-    </div>
-  </div>
-);
 
 interface PreviewProps {
   creative: { thumbnail: string; type: string; name: string } | null;

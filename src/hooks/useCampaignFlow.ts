@@ -160,24 +160,39 @@ export const useCampaignFlow = () => {
     }
   }, [state.step, addMessage, simulateTyping]);
 
-  const handleCampaignConfigComplete = useCallback(async (config: CampaignConfig) => {
-    setState(prev => ({ ...prev, campaignConfig: config, isStepLoading: true }));
+  const handleCampaignConfigComplete = useCallback(async (config: Record<string, string>) => {
+    // Transform slider output to full CampaignConfig
+    const productTitle = state.productData?.title || 'Campaign';
+    const fullConfig: CampaignConfig = {
+      campaignName: productTitle,
+      objective: config.objective || 'Sales',
+      budgetType: 'daily',
+      adSetName: productTitle,
+      budgetAmount: config.budget || '50',
+      duration: config.duration || '14',
+      fbPixelId: '',
+      fbPageId: '',
+      adName: productTitle,
+      primaryText: state.productData?.description?.slice(0, 125) || 'Check out this amazing product!',
+      cta: config.cta || 'Shop Now',
+      websiteUrl: state.productUrl || ''
+    };
     
-    const budgetDisplay = config.budgetType === 'daily' 
-      ? `$${config.budgetAmount}/day` 
-      : `$${config.budgetAmount} total`;
-    const durationDisplay = config.duration === 'ongoing' ? 'Ongoing' : `${config.duration} days`;
+    setState(prev => ({ ...prev, campaignConfig: fullConfig, isStepLoading: true }));
     
-    addMessage('user', `Campaign configured: ${config.campaignName} • ${config.objective} • ${budgetDisplay} • ${durationDisplay}`);
+    const budgetDisplay = `$${fullConfig.budgetAmount}/day`;
+    const durationDisplay = fullConfig.duration === 'ongoing' ? 'Ongoing' : `${fullConfig.duration} days`;
+    
+    addMessage('user', `Campaign configured: ${fullConfig.objective} • ${budgetDisplay} • ${durationDisplay}`);
     
     // Check if Facebook was already connected in a previous session
     await simulateTyping(
-      `Your campaign is configured:\n• **Campaign:** ${config.campaignName}\n• **Objective:** ${config.objective}\n• **Budget:** ${budgetDisplay}\n• **Duration:** ${durationDisplay}\n\nNow let's connect your Facebook Ads account:`,
+      `Your campaign is configured:\n• **Objective:** ${fullConfig.objective}\n• **Budget:** ${budgetDisplay}\n• **Duration:** ${durationDisplay}\n\nNow let's connect your Facebook Ads account:`,
       { showFacebookConnect: true, stepId: 'facebook-integration' },
       1200
     );
     setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'], isStepLoading: false }));
-  }, [addMessage, simulateTyping]);
+  }, [state.productData, state.productUrl, addMessage, simulateTyping]);
 
   const handleFacebookConnect = useCallback(async () => {
     addMessage('user', "Connecting Facebook account...");
