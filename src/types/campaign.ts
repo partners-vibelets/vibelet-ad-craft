@@ -62,6 +62,12 @@ export interface ScriptOption {
   description: string;
   duration: string;
   style: string;
+  isCustom?: boolean;
+  customContent?: {
+    primaryText: string;
+    headline: string;
+    description: string;
+  };
 }
 
 export interface AvatarOption {
@@ -77,6 +83,8 @@ export interface CreativeOption {
   type: 'image' | 'video';
   thumbnail: string;
   name: string;
+  isCustom?: boolean;
+  file?: File;
 }
 
 export interface CampaignConfig {
@@ -127,4 +135,6 @@ export interface CampaignState {
   selectedAdAccount: AdAccount | null;
   isStepLoading: boolean;
   isRegenerating: 'product' | 'scripts' | 'creatives' | null;
+  isCustomScriptMode: boolean;
+  isCustomCreativeMode: boolean;
 }

@@ -1,4 +1,4 @@
-import { CampaignState, CampaignStep } from '@/types/campaign';
+import { CampaignState, CampaignStep, ScriptOption, CreativeOption } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
 import { ScriptPreviewPanel } from './panels/ScriptPreviewPanel';
@@ -8,6 +8,8 @@ import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
 import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
+import { CustomScriptInput } from './panels/CustomScriptInput';
+import { CustomCreativeUpload } from './panels/CustomCreativeUpload';
 import { StepIndicator } from './StepIndicator';
 import { StepLoadingAnimation } from './StepLoadingAnimation';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,6 +23,10 @@ interface RightPanelProps {
   onRegenerateProduct?: () => void;
   onRegenerateScripts?: () => void;
   onRegenerateCreatives?: () => void;
+  onCustomScriptSubmit?: (script: ScriptOption) => void;
+  onCustomScriptCancel?: () => void;
+  onCustomCreativeSubmit?: (creative: CreativeOption) => void;
+  onCustomCreativeCancel?: () => void;
 }
 
 export const RightPanel = ({
@@ -30,6 +36,10 @@ export const RightPanel = ({
   onRegenerateProduct,
   onRegenerateScripts,
   onRegenerateCreatives,
+  onCustomScriptSubmit,
+  onCustomScriptCancel,
+  onCustomCreativeSubmit,
+  onCustomCreativeCancel,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -80,12 +90,27 @@ export const RightPanel = ({
           <>
             <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
             <div ref={scriptSectionRef}>
-              <ScriptPreviewPanel 
-                scripts={scriptOptions} 
-                selectedScript={state.selectedScript}
-                isRegenerating={state.isRegenerating === 'scripts'}
-                onRegenerate={onRegenerateScripts}
-              />
+              {state.isCustomScriptMode && onCustomScriptSubmit && onCustomScriptCancel ? (
+                <CustomScriptInput 
+                  onSubmit={(script) => onCustomScriptSubmit({
+                    id: 'custom-script',
+                    name: 'Custom Script',
+                    description: script.headline,
+                    duration: 'Custom',
+                    style: 'User Created',
+                    isCustom: true,
+                    customContent: script
+                  })}
+                  onCancel={onCustomScriptCancel}
+                />
+              ) : (
+                <ScriptPreviewPanel 
+                  scripts={scriptOptions} 
+                  selectedScript={state.selectedScript}
+                  isRegenerating={state.isRegenerating === 'scripts'}
+                  onRegenerate={onRegenerateScripts}
+                />
+              )}
             </div>
           </>
         );
@@ -105,7 +130,19 @@ export const RightPanel = ({
         return <CreativeGenerationPanel />;
       
       case 'creative-review':
-        return (
+        return state.isCustomCreativeMode && onCustomCreativeSubmit && onCustomCreativeCancel ? (
+          <CustomCreativeUpload 
+            onSubmit={(creative) => onCustomCreativeSubmit({
+              id: 'custom-creative',
+              type: creative.type,
+              thumbnail: creative.preview,
+              name: creative.name,
+              isCustom: true,
+              file: creative.file
+            })}
+            onCancel={onCustomCreativeCancel}
+          />
+        ) : (
           <CreativeGalleryPanel 
             creatives={state.creatives} 
             selectedCreative={state.selectedCreative}

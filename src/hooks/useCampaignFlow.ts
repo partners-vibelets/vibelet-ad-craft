@@ -32,6 +32,8 @@ const initialState: CampaignState = {
   selectedAdAccount: null,
   isStepLoading: false,
   isRegenerating: null,
+  isCustomScriptMode: false,
+  isCustomCreativeMode: false,
 };
 
 const createMessage = (
@@ -225,7 +227,10 @@ export const useCampaignFlow = () => {
         const scriptQuestion: InlineQuestion = {
           id: 'script-selection',
           question: 'Choose a script style that matches your brand voice:',
-          options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
+          options: [
+            ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+            { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+          ]
         };
         
         await simulateTyping(
@@ -240,114 +245,33 @@ export const useCampaignFlow = () => {
         await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
       }
     } else if (questionId === 'script-selection') {
-      const script = scriptOptions.find(s => s.id === answerId);
-      if (script) {
-        setState(prev => ({ ...prev, selectedScript: script, isStepLoading: true }));
-        addMessage('user', `I'll use the "${script.name}" script.`);
-        
-        const avatarQuestion: InlineQuestion = {
-          id: 'avatar-selection',
-          question: 'Select an AI presenter for your video:',
-          options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
-        };
-        
+      if (answerId === 'custom-script') {
+        setState(prev => ({ ...prev, isCustomScriptMode: true, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
+        addMessage('user', "I'll write my own script.");
         await simulateTyping(
-          `Great choice! The ${script.name} style is proven to drive conversions. 🎬\n\nNow let's pick an AI avatar to present your product:`,
-          { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
-          1200
+          `Great! You can write your own ad copy in the panel. I'll guide you with Facebook's best practices for character limits. ✍️`,
+          { stepId: 'script-selection' },
+          800
         );
-        setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
-      }
-    } else if (questionId === 'avatar-selection') {
-      const avatar = avatarOptions.find(a => a.id === answerId);
-      if (avatar) {
-        setState(prev => ({ ...prev, selectedAvatar: avatar, isStepLoading: true }));
-        addMessage('user', `${avatar.name} will be the presenter.`);
-        
-        await simulateTyping(
-          `${avatar.name} is perfect! 🎥 Now generating your ad creatives...\n\nThis usually takes about 30 seconds.`,
-          { stepId: 'creative-generation' },
-          1000
-        );
-        setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'], isStepLoading: false }));
-        
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        setState(prev => ({ ...prev, creatives: mockCreatives, isStepLoading: true }));
-        
-        const creativeQuestion: InlineQuestion = {
-          id: 'creative-selection',
-          question: 'Select your preferred creative:',
-          options: mockCreatives.map(c => ({ 
-            id: c.id, 
-            label: c.name, 
-            description: c.type === 'video' ? 'Video format' : 'Image format'
-          }))
-        };
-        
-        await simulateTyping(
-          `Done! I've generated ${mockCreatives.length} creative variations:\n• 2 Video ads (15s and 30s)\n• 2 Image ads (Static and Carousel)\n\nWhich one would you like to use?`,
-          { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
-          1500
-        );
-        setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'], isStepLoading: false }));
-      }
-    } else if (questionId === 'creative-selection') {
-      const creative = mockCreatives.find(c => c.id === answerId);
-      if (creative) {
-        setState(prev => ({ ...prev, selectedCreative: creative, isStepLoading: true }));
-        addMessage('user', `I'll use the "${creative.name}" creative.`);
-        
-        await simulateTyping(
-          `Excellent choice! Your ${creative.name} is ready. ⏳\n\nLet's quickly configure your campaign:`,
-          { showCampaignSlider: true, stepId: 'campaign-setup' },
-          1200
-        );
-        setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
-      }
-    } else if (questionId === 'ad-account-selection') {
-      const account = mockAdAccounts.find(a => a.id === answerId);
-      if (account) {
-        setState(prev => ({ ...prev, selectedAdAccount: account, isStepLoading: true }));
-        addMessage('user', `Using "${account.name}" account.`);
-        
-        const publishQuestion: InlineQuestion = {
-          id: 'publish-confirm',
-          question: 'Ready to launch your campaign?',
-          options: [
-            { id: 'publish', label: 'Publish Campaign', description: 'Submit for Facebook review', icon: 'play' },
-            { id: 'preview', label: 'Review Details', description: 'Check campaign summary first', icon: 'target' }
-          ]
-        };
-        
-        await simulateTyping(
-          `Great! I've selected **${account.name}** and auto-fetched:\n✅ Facebook Pixel\n✅ Business Page\n\nYour campaign is ready! What would you like to do?`,
-          { inlineQuestion: publishQuestion, stepId: 'campaign-preview' },
-          1500
-        );
-        setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'], isStepLoading: false }));
-      }
-    } else if (questionId === 'publish-confirm') {
-      if (answerId === 'publish') {
-        addMessage('user', "Publish the campaign!");
-        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
-        
-        await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
-        
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        await simulateTyping(
-          `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
-          { stepId: 'published' },
-          2000
-        );
-        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
       } else {
-        await simulateTyping(
-          `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
-          {},
-          1000
-        );
+        const script = scriptOptions.find(s => s.id === answerId);
+        if (script) {
+          setState(prev => ({ ...prev, selectedScript: script, isStepLoading: true, isCustomScriptMode: false }));
+          addMessage('user', `I'll use the "${script.name}" script.`);
+          
+          const avatarQuestion: InlineQuestion = {
+            id: 'avatar-selection',
+            question: 'Select an AI presenter for your video:',
+            options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
+          };
+          
+          await simulateTyping(
+            `Great choice! The ${script.name} style is proven to drive conversions. 🎬\n\nNow let's pick an AI avatar to present your product:`,
+            { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
+            1200
+          );
+          setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
+        }
       }
     }
   }, [addMessage, simulateTyping]);
