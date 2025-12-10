@@ -1,13 +1,17 @@
 import { CampaignState, CampaignStep } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
+import { ScriptPreviewPanel } from './panels/ScriptPreviewPanel';
+import { AvatarPreviewPanel } from './panels/AvatarPreviewPanel';
 import { CreativeGenerationPanel } from './panels/CreativeGenerationPanel';
-import { CreativePreviewPanel } from './panels/CreativePreviewPanel';
+import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
+import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import { CampaignSummaryPanel } from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
 import { ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount } from '@/types/campaign';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { scriptOptions, avatarOptions } from '@/data/mockData';
 
 interface RightPanelProps {
   state: CampaignState;
@@ -34,22 +38,39 @@ export const RightPanel = ({
         return <WelcomePanel />;
       
       case 'product-analysis':
-      case 'script-selection':
-      case 'avatar-selection':
         return <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={!state.productData} />;
+      
+      case 'script-selection':
+        return (
+          <>
+            <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
+            <ScriptPreviewPanel scripts={scriptOptions} selectedScript={state.selectedScript} />
+          </>
+        );
+      
+      case 'avatar-selection':
+        return (
+          <>
+            <ProductAnalysisPanel productData={state.productData} productUrl={state.productUrl} isAnalyzing={false} />
+            <AvatarPreviewPanel avatars={avatarOptions} selectedAvatar={state.selectedAvatar} />
+          </>
+        );
       
       case 'creative-generation':
         return <CreativeGenerationPanel />;
       
       case 'creative-review':
+        return <CreativeGalleryPanel creatives={state.creatives} selectedCreative={state.selectedCreative} />;
+      
       case 'campaign-setup':
       case 'facebook-integration':
       case 'ad-account-selection':
         return (
-          <CreativePreviewPanel 
-            creatives={state.creatives} 
+          <CampaignConfigPanel 
             selectedCreative={state.selectedCreative}
             campaignConfig={state.campaignConfig}
+            facebookConnected={state.facebookConnected}
+            selectedAdAccount={state.selectedAdAccount}
           />
         );
       
