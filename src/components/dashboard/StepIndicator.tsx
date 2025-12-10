@@ -22,32 +22,34 @@ export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) 
   // Handle special step mappings
   const getDisplayIndex = () => {
     if (currentStep === 'creative-generation') return STEP_CONFIG.findIndex(s => s.id === 'creative-review');
-    if (currentStep === 'publishing' || currentStep === 'published') return STEP_CONFIG.findIndex(s => s.id === 'campaign-preview');
+    if (currentStep === 'publishing') return STEP_CONFIG.findIndex(s => s.id === 'campaign-preview');
+    if (currentStep === 'published') return STEP_CONFIG.length; // All steps completed
     return STEP_CONFIG.findIndex(s => s.id === currentStep);
   };
 
   const displayIndex = getDisplayIndex();
+  const isFullyCompleted = currentStep === 'published';
 
   return (
     <div className="px-6 py-4 border-b border-border bg-background">
       {/* Progress bar */}
       <div className="flex items-center gap-4 mb-4">
         <span className="text-sm font-semibold text-foreground whitespace-nowrap">
-          Step {Math.max(1, displayIndex + 1)} of {STEP_CONFIG.length}
+          {isFullyCompleted ? 'Completed' : `Step ${Math.max(1, displayIndex + 1)} of ${STEP_CONFIG.length}`}
         </span>
         <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
           <div 
             className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${((displayIndex + 1) / STEP_CONFIG.length) * 100}%` }}
+            style={{ width: `${(Math.min(displayIndex + 1, STEP_CONFIG.length) / STEP_CONFIG.length) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Step navigation pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/* Step navigation pills - centered */}
+      <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {STEP_CONFIG.map((step, index) => {
           const isCompleted = index < displayIndex;
-          const isCurrent = index === displayIndex;
+          const isCurrent = index === displayIndex && !isFullyCompleted;
           const isClickable = isCompleted;
           const Icon = step.icon;
           
