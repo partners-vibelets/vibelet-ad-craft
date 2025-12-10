@@ -56,26 +56,58 @@ export const avatarOptions: AvatarOption[] = [
   {
     id: 'avatar-1',
     name: 'Sarah',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
     style: 'Professional & Friendly'
   },
   {
     id: 'avatar-2',
     name: 'Marcus',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
     style: 'Energetic & Casual'
   },
   {
     id: 'avatar-3',
     name: 'Emma',
-    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
     style: 'Warm & Relatable'
   },
   {
     id: 'avatar-4',
     name: 'James',
-    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
+    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
     style: 'Authoritative & Trustworthy'
+  },
+  {
+    id: 'avatar-5',
+    name: 'Sophia',
+    image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    style: 'Youthful & Trendy'
+  },
+  {
+    id: 'avatar-6',
+    name: 'David',
+    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    style: 'Corporate & Confident'
+  },
+  {
+    id: 'avatar-7',
+    name: 'Aisha',
+    image: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    style: 'Warm & Inspiring'
+  },
+  {
+    id: 'avatar-8',
+    name: 'Alex',
+    image: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400',
+    videoPreview: 'https://www.w3schools.com/html/mov_bbb.mp4',
+    style: 'Dynamic & Bold'
   }
 ];
 
