@@ -9,19 +9,11 @@ import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import { CampaignSummaryPanel } from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { StepIndicator } from './StepIndicator';
-import { ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount } from '@/types/campaign';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { scriptOptions, avatarOptions } from '@/data/mockData';
 
 interface RightPanelProps {
   state: CampaignState;
-  onSelectScript: (script: ScriptOption) => void;
-  onSelectAvatar: (avatar: AvatarOption) => void;
-  onSelectCreative: (creative: CreativeOption) => void;
-  onCampaignSetup: (config: CampaignConfig) => void;
-  onConnectFacebook: () => void;
-  onSelectAdAccount: (account: AdAccount) => void;
-  onPublish: () => void;
   onReset: () => void;
   onStepClick: (step: CampaignStep) => void;
 }
