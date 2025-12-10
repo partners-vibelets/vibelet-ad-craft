@@ -160,20 +160,19 @@ export const useCampaignFlow = () => {
     }
   }, [state.step, addMessage, simulateTyping]);
 
-  const handleCampaignConfigComplete = useCallback(async (config: Record<string, string>) => {
-    const campaignConfig: CampaignConfig = {
-      objective: config.objective,
-      budget: config.budget,
-      cta: config.cta,
-      duration: config.duration === 'ongoing' ? 'Ongoing' : `${config.duration} days`
-    };
+  const handleCampaignConfigComplete = useCallback(async (config: CampaignConfig) => {
+    setState(prev => ({ ...prev, campaignConfig: config, isStepLoading: true }));
     
-    setState(prev => ({ ...prev, campaignConfig, isStepLoading: true }));
-    addMessage('user', `Campaign configured: ${campaignConfig.objective}, $${campaignConfig.budget}/day, ${campaignConfig.cta}, ${campaignConfig.duration}`);
+    const budgetDisplay = config.budgetType === 'daily' 
+      ? `$${config.budgetAmount}/day` 
+      : `$${config.budgetAmount} total`;
+    const durationDisplay = config.duration === 'ongoing' ? 'Ongoing' : `${config.duration} days`;
+    
+    addMessage('user', `Campaign configured: ${config.campaignName} • ${config.objective} • ${budgetDisplay} • ${durationDisplay}`);
     
     // Check if Facebook was already connected in a previous session
     await simulateTyping(
-      `Your campaign is configured:\n• **Objective:** ${campaignConfig.objective}\n• **Budget:** $${campaignConfig.budget}/day\n• **CTA:** ${campaignConfig.cta}\n• **Duration:** ${campaignConfig.duration}\n\nNow let's connect your Facebook Ads account:`,
+      `Your campaign is configured:\n• **Campaign:** ${config.campaignName}\n• **Objective:** ${config.objective}\n• **Budget:** ${budgetDisplay}\n• **Duration:** ${durationDisplay}\n\nNow let's connect your Facebook Ads account:`,
       { showFacebookConnect: true, stepId: 'facebook-integration' },
       1200
     );

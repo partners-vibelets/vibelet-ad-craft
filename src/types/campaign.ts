@@ -80,10 +80,23 @@ export interface CreativeOption {
 }
 
 export interface CampaignConfig {
+  // Campaign Level
+  campaignName: string;
   objective: string;
-  budget: string;
-  cta: string;
+  budgetType: 'daily' | 'lifetime';
+  
+  // Ad Set Level
+  adSetName: string;
+  budgetAmount: string;
   duration: string;
+  fbPixelId: string;
+  fbPageId: string;
+  
+  // Ad Level
+  adName: string;
+  primaryText: string;
+  cta: string;
+  websiteUrl: string;
 }
 
 export interface AdAccount {

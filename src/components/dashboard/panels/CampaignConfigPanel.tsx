@@ -1,5 +1,5 @@
 import { CampaignConfig, CreativeOption, AdAccount } from '@/types/campaign';
-import { Settings, Target, DollarSign, MousePointer, Calendar, Facebook, Check, Play, Loader2 } from 'lucide-react';
+import { Settings, Target, DollarSign, MousePointer, Calendar, Facebook, Check, Play, Loader2, FileText, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CampaignConfigPanelProps {
@@ -20,26 +20,48 @@ export const CampaignConfigPanel = ({
       label: 'Objective', 
       value: campaignConfig?.objective, 
       icon: Target,
+      category: 'campaign'
+    },
+    { 
+      label: 'Budget Type', 
+      value: campaignConfig?.budgetType === 'daily' ? 'Daily' : campaignConfig?.budgetType === 'lifetime' ? 'Lifetime' : undefined, 
+      icon: Layers,
+      category: 'campaign'
+    },
+    { 
+      label: 'Budget Amount', 
+      value: campaignConfig?.budgetAmount ? `$${campaignConfig.budgetAmount}/${campaignConfig.budgetType === 'daily' ? 'day' : 'total'}` : undefined, 
+      icon: DollarSign,
+      category: 'adset'
     },
     { 
       label: 'Call-to-Action', 
       value: campaignConfig?.cta, 
       icon: MousePointer,
-    },
-    { 
-      label: 'Daily Budget', 
-      value: campaignConfig?.budget ? `$${campaignConfig.budget}/day` : undefined, 
-      icon: DollarSign,
+      category: 'ad'
     },
     { 
       label: 'Duration', 
-      value: campaignConfig?.duration, 
+      value: campaignConfig?.duration === 'ongoing' ? 'Ongoing' : campaignConfig?.duration ? `${campaignConfig.duration} days` : undefined, 
       icon: Calendar,
+      category: 'adset'
     },
   ];
 
   const completedCount = configItems.filter(item => item.value).length + (facebookConnected ? 1 : 0);
   const totalItems = configItems.length + 1;
+
+  const getBudgetValue = () => {
+    if (!campaignConfig?.budgetAmount) return 0;
+    return parseFloat(campaignConfig.budgetAmount);
+  };
+
+  const getDurationValue = () => {
+    if (!campaignConfig?.duration || campaignConfig.duration === 'ongoing') return 0;
+    return parseInt(campaignConfig.duration);
+  };
+
+  const totalBudget = getBudgetValue() * (getDurationValue() || 1);
 
   return (
     <div className="p-4 space-y-4 h-full overflow-auto">
@@ -89,20 +111,20 @@ export const CampaignConfigPanel = ({
           )}
 
           {/* Quick Stats */}
-          {campaignConfig?.budget && campaignConfig?.duration && (
+          {campaignConfig?.budgetAmount && campaignConfig?.duration && (
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">Estimated Total</span>
                 <span className="text-sm font-bold text-primary">
-                  {campaignConfig.duration === 'Ongoing' 
-                    ? `$${campaignConfig.budget}/day` 
-                    : `$${(parseInt(campaignConfig.budget) * parseInt(campaignConfig.duration)).toLocaleString()}`
+                  {campaignConfig.duration === 'ongoing' 
+                    ? `$${campaignConfig.budgetAmount}/day` 
+                    : `$${totalBudget.toLocaleString()}`
                   }
                 </span>
               </div>
-              {campaignConfig.duration !== 'Ongoing' && (
+              {campaignConfig.duration !== 'ongoing' && (
                 <p className="text-[9px] text-muted-foreground mt-1">
-                  {campaignConfig.duration} at ${campaignConfig.budget}/day
+                  {campaignConfig.duration} days at ${campaignConfig.budgetAmount}/{campaignConfig.budgetType === 'daily' ? 'day' : 'total'}
                 </p>
               )}
             </div>
