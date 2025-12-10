@@ -16,6 +16,10 @@ const Dashboard = () => {
     regenerateProductAnalysis,
     regenerateScripts,
     regenerateCreatives,
+    handleCustomScriptSubmit,
+    handleCustomScriptCancel,
+    handleCustomCreativeSubmit,
+    handleCustomCreativeCancel,
   } = useCampaignFlow();
 
   return (
@@ -45,6 +49,10 @@ const Dashboard = () => {
             onRegenerateProduct={regenerateProductAnalysis}
             onRegenerateScripts={regenerateScripts}
             onRegenerateCreatives={regenerateCreatives}
+            onCustomScriptSubmit={handleCustomScriptSubmit}
+            onCustomScriptCancel={handleCustomScriptCancel}
+            onCustomCreativeSubmit={handleCustomCreativeSubmit}
+            onCustomCreativeCancel={handleCustomCreativeCancel}
           />
         </div>
       </div>

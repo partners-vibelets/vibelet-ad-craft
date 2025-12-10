@@ -273,6 +273,110 @@ export const useCampaignFlow = () => {
           setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
         }
       }
+    } else if (questionId === 'avatar-selection') {
+      const avatar = avatarOptions.find(a => a.id === answerId);
+      if (avatar) {
+        setState(prev => ({ ...prev, selectedAvatar: avatar, isStepLoading: true }));
+        addMessage('user', `${avatar.name} will be the presenter.`);
+        
+        await simulateTyping(
+          `${avatar.name} is perfect! 🎥 Now generating your ad creatives...\n\nThis usually takes about 30 seconds.`,
+          { stepId: 'creative-generation' },
+          1000
+        );
+        setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'], isStepLoading: false }));
+        
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        setState(prev => ({ ...prev, creatives: mockCreatives, isStepLoading: true }));
+        
+        const creativeQuestion: InlineQuestion = {
+          id: 'creative-selection',
+          question: 'Select your preferred creative:',
+          options: [
+            ...mockCreatives.map(c => ({ 
+              id: c.id, 
+              label: c.name, 
+              description: c.type === 'video' ? 'Video format' : 'Image format'
+            })),
+            { id: 'custom-creative', label: '📤 Upload My Own', description: 'Use your own image or video' }
+          ]
+        };
+        
+        await simulateTyping(
+          `Done! I've generated ${mockCreatives.length} creative variations:\n• 2 Video ads (15s and 30s)\n• 2 Image ads (Static and Carousel)\n\nWhich one would you like to use?`,
+          { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
+          1500
+        );
+        setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'], isStepLoading: false }));
+      }
+    } else if (questionId === 'creative-selection') {
+      if (answerId === 'custom-creative') {
+        setState(prev => ({ ...prev, isCustomCreativeMode: true, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
+        addMessage('user', "I'll upload my own creative.");
+        await simulateTyping(
+          `Perfect! Upload your image or video in the panel. I'll validate it against Facebook's ad specifications. 📤`,
+          { stepId: 'creative-review' },
+          800
+        );
+      } else {
+        const creative = mockCreatives.find(c => c.id === answerId);
+        if (creative) {
+          setState(prev => ({ ...prev, selectedCreative: creative, isStepLoading: true, isCustomCreativeMode: false }));
+          addMessage('user', `I'll use the "${creative.name}" creative.`);
+          
+          await simulateTyping(
+            `Excellent choice! Your ${creative.name} is ready. ⏳\n\nLet's quickly configure your campaign:`,
+            { showCampaignSlider: true, stepId: 'campaign-setup' },
+            1200
+          );
+          setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
+        }
+      }
+    } else if (questionId === 'ad-account-selection') {
+      const account = mockAdAccounts.find(a => a.id === answerId);
+      if (account) {
+        setState(prev => ({ ...prev, selectedAdAccount: account, isStepLoading: true }));
+        addMessage('user', `Using "${account.name}" account.`);
+        
+        const publishQuestion: InlineQuestion = {
+          id: 'publish-confirm',
+          question: 'Ready to launch your campaign?',
+          options: [
+            { id: 'publish', label: 'Publish Campaign', description: 'Submit for Facebook review', icon: 'play' },
+            { id: 'preview', label: 'Review Details', description: 'Check campaign summary first', icon: 'target' }
+          ]
+        };
+        
+        await simulateTyping(
+          `Great! I've selected **${account.name}** and auto-fetched:\n✅ Facebook Pixel\n✅ Business Page\n\nYour campaign is ready! What would you like to do?`,
+          { inlineQuestion: publishQuestion, stepId: 'campaign-preview' },
+          1500
+        );
+        setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'], isStepLoading: false }));
+      }
+    } else if (questionId === 'publish-confirm') {
+      if (answerId === 'publish') {
+        addMessage('user', "Publish the campaign!");
+        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
+        
+        await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
+        
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        await simulateTyping(
+          `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
+          { stepId: 'published' },
+          2000
+        );
+        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
+      } else {
+        await simulateTyping(
+          `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
+          {},
+          1000
+        );
+      }
     }
   }, [addMessage, simulateTyping]);
 
@@ -388,6 +492,71 @@ export const useCampaignFlow = () => {
     setState(prev => ({ ...prev, step: 'creative-review' }));
   }, [addMessage, simulateTyping]);
 
+  // Custom script/creative handlers
+  const handleCustomScriptSubmit = useCallback(async (script: ScriptOption) => {
+    setState(prev => ({ ...prev, selectedScript: script, isCustomScriptMode: false, isStepLoading: true }));
+    addMessage('user', `Custom script: "${script.customContent?.headline || 'My Script'}"`);
+    
+    const avatarQuestion: InlineQuestion = {
+      id: 'avatar-selection',
+      question: 'Select an AI presenter for your video:',
+      options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
+    };
+    
+    await simulateTyping(
+      `Great custom script! Your ad copy looks compelling. ✍️\n\nNow let's pick an AI avatar to present your product:`,
+      { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
+      1200
+    );
+    setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
+  }, [addMessage, simulateTyping]);
+
+  const handleCustomScriptCancel = useCallback(() => {
+    setState(prev => ({ ...prev, isCustomScriptMode: false }));
+    
+    const scriptQuestion: InlineQuestion = {
+      id: 'script-selection',
+      question: 'Choose a script style that matches your brand voice:',
+      options: [
+        ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+        { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+      ]
+    };
+    
+    addMessage('assistant', "No problem! Here are the AI-generated script options:", { inlineQuestion: scriptQuestion, stepId: 'script-selection' });
+  }, [addMessage]);
+
+  const handleCustomCreativeSubmit = useCallback(async (creative: CreativeOption) => {
+    setState(prev => ({ ...prev, selectedCreative: creative, isCustomCreativeMode: false, isStepLoading: true }));
+    addMessage('user', `Uploaded custom ${creative.type}: "${creative.name}"`);
+    
+    await simulateTyping(
+      `Your custom ${creative.type} looks great and meets Facebook's ad specifications! 📤\n\nLet's configure your campaign:`,
+      { showCampaignSlider: true, stepId: 'campaign-setup' },
+      1200
+    );
+    setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
+  }, [addMessage, simulateTyping]);
+
+  const handleCustomCreativeCancel = useCallback(() => {
+    setState(prev => ({ ...prev, isCustomCreativeMode: false }));
+    
+    const creativeQuestion: InlineQuestion = {
+      id: 'creative-selection',
+      question: 'Select your preferred creative:',
+      options: [
+        ...mockCreatives.map(c => ({ 
+          id: c.id, 
+          label: c.name, 
+          description: c.type === 'video' ? 'Video format' : 'Image format'
+        })),
+        { id: 'custom-creative', label: '📤 Upload My Own', description: 'Use your own image or video' }
+      ]
+    };
+    
+    addMessage('assistant', "No problem! Here are the AI-generated creative options:", { inlineQuestion: creativeQuestion, stepId: 'creative-review' });
+  }, [addMessage]);
+
   return {
     state,
     messages,
@@ -402,5 +571,9 @@ export const useCampaignFlow = () => {
     regenerateProductAnalysis,
     regenerateScripts,
     regenerateCreatives,
+    handleCustomScriptSubmit,
+    handleCustomScriptCancel,
+    handleCustomCreativeSubmit,
+    handleCustomCreativeCancel,
   };
 };
