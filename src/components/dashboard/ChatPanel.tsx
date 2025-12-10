@@ -3,6 +3,7 @@ import { Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import vibeletsLogo from '@/assets/vibelets-logo.png';
 
 interface ChatPanelProps {
@@ -50,12 +51,15 @@ export const ChatPanel = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header with subtle border */}
-      <div className="flex items-center gap-3 p-4 border-b border-border/50 flex-shrink-0 bg-background/30">
-        <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
-        <div className="min-w-0">
-          <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
-          <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
+      <div className="flex items-center justify-between p-4 border-b border-border/50 flex-shrink-0 bg-background/30">
+        <div className="flex items-center gap-3">
+          <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
+            <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
+          </div>
         </div>
+        <ThemeToggle />
       </div>
 
       {/* Messages */}
