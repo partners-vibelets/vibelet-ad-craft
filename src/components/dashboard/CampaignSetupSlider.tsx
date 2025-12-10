@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, Target, MousePointer, DollarSign, Calendar, Check, Type } from 'lucide-react';
+import { ChevronLeft, Target, MousePointer, DollarSign, Calendar, Check, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SliderQuestion {
   id: string;
@@ -10,6 +16,7 @@ interface SliderQuestion {
   options: { id: string; label: string; description?: string }[];
   allowCustom?: boolean;
   customPlaceholder?: string;
+  extraOptions?: { id: string; label: string }[];
 }
 
 const questions: SliderQuestion[] = [
@@ -35,7 +42,12 @@ const questions: SliderQuestion[] = [
       { id: 'Get Offer', label: 'Get Offer', description: 'For promos' },
     ],
     allowCustom: true,
-    customPlaceholder: 'Enter custom CTA'
+    extraOptions: [
+      { id: 'Book Now', label: 'Book Now' },
+      { id: 'Contact Us', label: 'Contact Us' },
+      { id: 'Download', label: 'Download' },
+      { id: 'Subscribe', label: 'Subscribe' },
+    ]
   },
   {
     id: 'budget',
@@ -206,42 +218,66 @@ export const CampaignSetupSlider = ({ onComplete, disabled }: CampaignSetupSlide
         {/* Custom input option */}
         {currentQuestion.allowCustom && (
           <div className="px-3 pb-3">
-            {!showCustomInput ? (
-              <button
-                onClick={() => setShowCustomInput(true)}
-                className="w-full p-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
-              >
-                + {currentQuestion.id === 'budget' ? 'Enter custom amount' : 'Enter custom CTA'}
-              </button>
+            {currentQuestion.extraOptions ? (
+              // Dropdown for extra CTA options
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-full p-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors flex items-center justify-center gap-1">
+                    + More options
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48 bg-card border border-border z-50">
+                  {currentQuestion.extraOptions.map((option) => (
+                    <DropdownMenuItem
+                      key={option.id}
+                      onClick={() => handleSelect(option.id)}
+                      className="text-xs cursor-pointer"
+                    >
+                      {option.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  {currentQuestion.id === 'budget' && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
-                  )}
-                  <Input
-                    type={currentQuestion.id === 'budget' ? 'number' : 'text'}
-                    value={customValue}
-                    onChange={(e) => setCustomValue(e.target.value)}
-                    placeholder={currentQuestion.id === 'budget' ? 'Enter amount' : 'e.g., Book Now'}
-                    className={cn("h-9 text-sm", currentQuestion.id === 'budget' && "pl-7")}
-                    autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && handleCustomSubmit()}
-                  />
-                </div>
-                <button
-                  onClick={handleCustomSubmit}
-                  disabled={!customValue}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    customValue 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  Set
-                </button>
-              </div>
+              // Text input for custom budget
+              <>
+                {!showCustomInput ? (
+                  <button
+                    onClick={() => setShowCustomInput(true)}
+                    className="w-full p-2 rounded-lg border border-dashed border-border text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                  >
+                    + Enter custom amount
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="number"
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        placeholder="Enter amount"
+                        className="pl-7 h-9 text-sm"
+                        autoFocus
+                        onKeyDown={(e) => e.key === 'Enter' && handleCustomSubmit()}
+                      />
+                    </div>
+                    <button
+                      onClick={handleCustomSubmit}
+                      disabled={!customValue}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                        customValue 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      Set
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
