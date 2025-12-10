@@ -83,12 +83,14 @@ export const RightPanel = ({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {showStepIndicator && (
-        <div className="flex-shrink-0 bg-background/30 border-b border-border/50">
+        <div className="flex-shrink-0 bg-background/30 border-b border-border/50 animate-fade-in">
           <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
         </div>
       )}
       <ScrollArea className="flex-1">
-        {renderPanel()}
+        <div key={state.step} className="animate-fade-in">
+          {renderPanel()}
+        </div>
       </ScrollArea>
     </div>
   );
