@@ -30,6 +30,7 @@ const initialState: CampaignState = {
   campaignConfig: null,
   facebookConnected: false,
   selectedAdAccount: null,
+  isStepLoading: false,
 };
 
 const createMessage = (
@@ -129,13 +130,13 @@ export const useCampaignFlow = () => {
     
     if (state.step === 'welcome' || state.step === 'product-url') {
       if (content.includes('.') || content.includes('http')) {
-        setState(prev => ({ ...prev, step: 'product-analysis', productUrl: content, stepHistory: [...prev.stepHistory, 'product-analysis'] }));
+        setState(prev => ({ ...prev, step: 'product-analysis', productUrl: content, stepHistory: [...prev.stepHistory, 'product-analysis'], isStepLoading: true }));
         
         await simulateTyping("Perfect! Analyzing your product page now... 🔍", { stepId: 'product-analysis' }, 1000);
         
         await new Promise(resolve => setTimeout(resolve, 2500));
         
-        setState(prev => ({ ...prev, productData: mockProductData }));
+        setState(prev => ({ ...prev, productData: mockProductData, isStepLoading: false }));
         
         // Show product analysis first, then ask about continuing
         const continueQuestion: InlineQuestion = {
@@ -166,7 +167,7 @@ export const useCampaignFlow = () => {
       duration: config.duration === 'ongoing' ? 'Ongoing' : `${config.duration} days`
     };
     
-    setState(prev => ({ ...prev, campaignConfig }));
+    setState(prev => ({ ...prev, campaignConfig, isStepLoading: true }));
     addMessage('user', `Campaign configured: ${campaignConfig.objective}, $${campaignConfig.budget}/day, ${campaignConfig.cta}, ${campaignConfig.duration}`);
     
     // Check if Facebook was already connected in a previous session
@@ -175,12 +176,12 @@ export const useCampaignFlow = () => {
       { showFacebookConnect: true, stepId: 'facebook-integration' },
       1200
     );
-    setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'] }));
+    setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'], isStepLoading: false }));
   }, [addMessage, simulateTyping]);
 
   const handleFacebookConnect = useCallback(async () => {
     addMessage('user', "Connecting Facebook account...");
-    setState(prev => ({ ...prev, facebookConnected: true }));
+    setState(prev => ({ ...prev, facebookConnected: true, isStepLoading: true }));
     
     // Simulate OAuth popup return
     await simulateTyping("Redirecting to Facebook...", {}, 500);
@@ -197,13 +198,14 @@ export const useCampaignFlow = () => {
       { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
       800
     );
-    setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'] }));
+    setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'], isStepLoading: false }));
   }, [addMessage, simulateTyping]);
 
   const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
     if (questionId === 'product-continue') {
       if (answerId === 'continue') {
         addMessage('user', "Let's continue!");
+        setState(prev => ({ ...prev, isStepLoading: true }));
         
         const scriptQuestion: InlineQuestion = {
           id: 'script-selection',
@@ -216,7 +218,7 @@ export const useCampaignFlow = () => {
           { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
           800
         );
-        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
+        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
       } else {
         addMessage('user', "I want to change the product URL.");
         setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
@@ -225,7 +227,7 @@ export const useCampaignFlow = () => {
     } else if (questionId === 'script-selection') {
       const script = scriptOptions.find(s => s.id === answerId);
       if (script) {
-        setState(prev => ({ ...prev, selectedScript: script }));
+        setState(prev => ({ ...prev, selectedScript: script, isStepLoading: true }));
         addMessage('user', `I'll use the "${script.name}" script.`);
         
         const avatarQuestion: InlineQuestion = {
@@ -239,12 +241,12 @@ export const useCampaignFlow = () => {
           { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
           1200
         );
-        setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'] }));
+        setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
       }
     } else if (questionId === 'avatar-selection') {
       const avatar = avatarOptions.find(a => a.id === answerId);
       if (avatar) {
-        setState(prev => ({ ...prev, selectedAvatar: avatar }));
+        setState(prev => ({ ...prev, selectedAvatar: avatar, isStepLoading: true }));
         addMessage('user', `${avatar.name} will be the presenter.`);
         
         await simulateTyping(
@@ -252,11 +254,11 @@ export const useCampaignFlow = () => {
           { stepId: 'creative-generation' },
           1000
         );
-        setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'] }));
+        setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'], isStepLoading: false }));
         
         await new Promise(resolve => setTimeout(resolve, 3000));
         
-        setState(prev => ({ ...prev, creatives: mockCreatives }));
+        setState(prev => ({ ...prev, creatives: mockCreatives, isStepLoading: true }));
         
         const creativeQuestion: InlineQuestion = {
           id: 'creative-selection',
@@ -273,12 +275,12 @@ export const useCampaignFlow = () => {
           { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
           1500
         );
-        setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
+        setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'], isStepLoading: false }));
       }
     } else if (questionId === 'creative-selection') {
       const creative = mockCreatives.find(c => c.id === answerId);
       if (creative) {
-        setState(prev => ({ ...prev, selectedCreative: creative }));
+        setState(prev => ({ ...prev, selectedCreative: creative, isStepLoading: true }));
         addMessage('user', `I'll use the "${creative.name}" creative.`);
         
         await simulateTyping(
@@ -286,12 +288,12 @@ export const useCampaignFlow = () => {
           { showCampaignSlider: true, stepId: 'campaign-setup' },
           1200
         );
-        setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'] }));
+        setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
       }
     } else if (questionId === 'ad-account-selection') {
       const account = mockAdAccounts.find(a => a.id === answerId);
       if (account) {
-        setState(prev => ({ ...prev, selectedAdAccount: account }));
+        setState(prev => ({ ...prev, selectedAdAccount: account, isStepLoading: true }));
         addMessage('user', `Using "${account.name}" account.`);
         
         const publishQuestion: InlineQuestion = {
@@ -308,12 +310,12 @@ export const useCampaignFlow = () => {
           { inlineQuestion: publishQuestion, stepId: 'campaign-preview' },
           1500
         );
-        setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'] }));
+        setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'], isStepLoading: false }));
       }
     } else if (questionId === 'publish-confirm') {
       if (answerId === 'publish') {
         addMessage('user', "Publish the campaign!");
-        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'] }));
+        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
         
         await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
         
@@ -324,7 +326,7 @@ export const useCampaignFlow = () => {
           { stepId: 'published' },
           2000
         );
-        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'] }));
+        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
       } else {
         await simulateTyping(
           `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
