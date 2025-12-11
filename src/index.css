@@ -153,11 +153,11 @@
     --chart-4: 100 60% 60%;
     --chart-5: 0 0% 60%;
 
-    /* Glass Effects - Pure Black Base */
+    /* Glass Effects - Pure Black Base with White Borders */
     --glass-background: hsl(0 0% 6% / 0.75);
     --glass-background-strong: hsl(0 0% 3% / 0.9);
-    --glass-border: hsl(243 50% 65% / 0.3);
-    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(243 50% 65% / 0.1);
+    --glass-border: hsl(0 0% 100% / 0.15);
+    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(0 0% 100% / 0.1), 0 0 20px hsl(0 0% 100% / 0.05);
 
     /* Shadows - Enhanced for dark mode */
     --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.4);
