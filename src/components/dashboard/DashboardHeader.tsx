@@ -39,7 +39,7 @@ export const DashboardHeader = () => {
     .slice(0, 2);
 
   return (
-    <header className="h-16 flex-shrink-0 glass-strong border-b border-border/50 px-4 flex items-center justify-between">
+    <header className="h-16 flex-shrink-0 bg-background/80 backdrop-blur-sm px-4 flex items-center justify-between">
       {/* Left - Logo */}
       <div className="flex items-center gap-3">
         <img src={vibeLogo} alt="Vibelets" className="h-7" />
