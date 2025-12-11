@@ -69,9 +69,9 @@ export const FacebookAccountCard = ({
             You signed in with Facebook. Would you like to use this account for your ads?
           </p>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2">
             <Button
-              className="flex-1 h-11 rounded-xl"
+              className="w-full h-11 rounded-xl"
               onClick={onUseExisting}
               disabled={disabled}
             >
@@ -80,7 +80,7 @@ export const FacebookAccountCard = ({
             </Button>
             <Button
               variant="outline"
-              className="flex-1 h-11 rounded-xl"
+              className="w-full h-11 rounded-xl"
               onClick={() => setShowOptions(true)}
               disabled={disabled}
             >
