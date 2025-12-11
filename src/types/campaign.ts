@@ -83,6 +83,8 @@ export interface CreativeOption {
   type: 'image' | 'video';
   thumbnail: string;
   name: string;
+  format?: 'feed' | 'story' | 'reel' | 'landscape';
+  aspectRatio?: '1:1' | '4:5' | '9:16' | '1.91:1';
   isCustom?: boolean;
   file?: File;
 }
