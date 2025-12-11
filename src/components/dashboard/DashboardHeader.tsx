@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   Coins, 
   LogOut, 
@@ -45,8 +45,11 @@ export const DashboardHeader = () => {
         <img src={vibeLogo} alt="Vibelets" className="h-7" />
       </div>
 
-      {/* Right - Credits & Profile */}
+      {/* Right - Theme Toggle, Credits & Profile */}
       <div className="flex items-center gap-3">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+        
         {/* Credits Badge */}
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
           <div className="relative">

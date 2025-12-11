@@ -8,21 +8,14 @@ import {
   Gift, 
   Check, 
   ArrowRight, 
-  Zap,
-  Palette,
-  Rocket
+  Coins
 } from 'lucide-react';
-import vibeLogo from '@/assets/vibelets-logo-unified.png';
-
-type OnboardingStep = 'welcome' | 'credits' | 'ready';
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const { user, completeOnboarding, claimBonusCredits, isAuthenticated, isLoading } = useAuth();
-  const [step, setStep] = useState<OnboardingStep>('welcome');
   const [isClaimingBonus, setIsClaimingBonus] = useState(false);
   const [bonusClaimed, setBonusClaimed] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -44,32 +37,18 @@ const Onboarding = () => {
     );
   }
 
-  const handleNextStep = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      if (step === 'welcome') setStep('credits');
-      else if (step === 'credits') setStep('ready');
-      setIsTransitioning(false);
-    }, 300);
-  };
-
-  const handleClaimBonus = async () => {
-    setIsClaimingBonus(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    claimBonusCredits();
-    setBonusClaimed(true);
-    setIsClaimingBonus(false);
-  };
-
-  const handleComplete = () => {
+  const handleClaimAndContinue = async () => {
+    if (!bonusClaimed) {
+      setIsClaimingBonus(true);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      claimBonusCredits();
+      setBonusClaimed(true);
+      setIsClaimingBonus(false);
+      // Brief pause to show claimed state, then navigate
+      await new Promise(resolve => setTimeout(resolve, 600));
+    }
     completeOnboarding();
     navigate('/dashboard');
-  };
-
-  const getProgress = () => {
-    if (step === 'welcome') return 33;
-    if (step === 'credits') return 66;
-    return 100;
   };
 
   return (
@@ -80,211 +59,118 @@ const Onboarding = () => {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
-      {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-1.5 bg-muted z-50">
-        <div 
-          className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-500 ease-out"
-          style={{ width: `${getProgress()}%` }}
-        />
-      </div>
-
-      {/* Main content */}
+      {/* Main content - Single merged screen */}
       <div className="relative z-10 w-full max-w-lg">
-        <div className={cn(
-          "glass-panel rounded-3xl p-8 shadow-2xl border border-border/50 transition-all duration-300",
-          isTransitioning && "opacity-0 scale-95"
-        )}>
-          {/* Welcome Step */}
-          {step === 'welcome' && (
-            <div className="text-center animate-fade-in">
-              {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full animate-pulse" />
-                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center relative">
-                    <Sparkles className="w-10 h-10 text-primary" />
-                  </div>
-                </div>
+        <div className="glass-panel rounded-3xl p-8 shadow-2xl border border-border/50 animate-fade-in">
+          {/* Welcome Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full animate-pulse" />
+              <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center relative">
+                <Sparkles className="w-10 h-10 text-primary" />
               </div>
-
-              <h1 className="text-3xl font-bold text-foreground mb-3">
-                Welcome to Vibelets
-              </h1>
-              <p className="text-lg text-muted-foreground mb-6">
-                Your <span className="text-primary font-semibold">Free Forever</span> plan is active, {user.name.split(' ')[0]}!
-              </p>
-
-              {/* Plan card */}
-              <div className="bg-primary/5 rounded-2xl p-6 mb-8 border border-primary/10">
-                <p className="text-sm text-muted-foreground mb-2">Active Plan</p>
-                <p className="text-2xl font-bold text-foreground mb-1">Free Forever</p>
-                <p className="text-sm text-muted-foreground">5 daily credits • Preview mode</p>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full h-14 rounded-xl text-lg font-medium group"
-                onClick={handleNextStep}
-              >
-                Get Started
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
             </div>
-          )}
+          </div>
 
-          {/* Credits Step */}
-          {step === 'credits' && (
-            <div className="text-center animate-fade-in">
-              {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-secondary/30 blur-xl rounded-full animate-pulse" />
-                  <div className="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center relative">
-                    <Gift className="w-10 h-10 text-secondary" />
-                  </div>
-                </div>
+          <h1 className="text-3xl font-bold text-foreground mb-2 text-center">
+            Welcome to Vibelets, {user.name.split(' ')[0]}!
+          </h1>
+          <p className="text-muted-foreground mb-6 text-center">
+            Your <span className="text-primary font-semibold">Free Forever</span> plan is now active
+          </p>
+
+          {/* Plan & Credits Card */}
+          <div className="bg-muted/50 rounded-2xl p-5 mb-6 border border-border/50">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/30">
+              <div>
+                <p className="text-sm text-muted-foreground">Your Plan</p>
+                <p className="text-lg font-bold text-foreground">Free Forever</p>
               </div>
-
-              <h1 className="text-3xl font-bold text-foreground mb-3">
-                Your Credits
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Credits let you create ad creatives, videos, and campaigns with AI
-              </p>
-
-              {/* Credits info card */}
-              <div className="bg-muted/50 rounded-2xl p-5 mb-6 text-left space-y-4 border border-border/50">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Daily Credits</span>
-                  <span className="font-bold text-foreground">{user.dailyCredits}/day</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Rollover Cap</span>
-                  <span className="font-bold text-foreground">{user.rolloverCap} credits</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Current Balance</span>
-                  <span className="font-bold text-primary">{user.credits} credits</span>
-                </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/20 border border-secondary/30">
+                <Coins className="w-4 h-4 text-secondary" />
+                <span className="font-semibold text-secondary">{user.credits}</span>
               </div>
-
-              {/* Bonus card */}
-              <div className="bg-primary/5 rounded-2xl p-5 mb-6 border border-primary/20">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
-                    <Gift className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-semibold text-foreground mb-1">Onboarding Bonus</p>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Get 500 bonus credits to start creating
-                    </p>
-                    <Button
-                      className={cn(
-                        "w-full h-12 rounded-xl font-medium transition-all",
-                        bonusClaimed && "bg-secondary hover:bg-secondary"
-                      )}
-                      onClick={handleClaimBonus}
-                      disabled={isClaimingBonus || bonusClaimed}
-                    >
-                      {isClaimingBonus ? (
-                        <span className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Claiming...
-                        </span>
-                      ) : bonusClaimed ? (
-                        <span className="flex items-center gap-2">
-                          <Check className="w-5 h-5" />
-                          500 Credits Claimed!
-                        </span>
-                      ) : (
-                        'Claim 500 Credits'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full h-14 rounded-xl text-lg font-medium group"
-                onClick={handleNextStep}
-              >
-                Next
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
             </div>
-          )}
-
-          {/* Ready Step */}
-          {step === 'ready' && (
-            <div className="text-center animate-fade-in">
-              {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-secondary/30 blur-xl rounded-full animate-pulse" />
-                  <div className="w-20 h-20 rounded-full bg-secondary/20 flex items-center justify-center relative">
-                    <Sparkles className="w-10 h-10 text-secondary" />
-                  </div>
-                </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Daily Credits</p>
+                <p className="font-semibold text-foreground">{user.dailyCredits}/day</p>
               </div>
-
-              <h1 className="text-3xl font-bold text-foreground mb-3">
-                Ready to Create?
-              </h1>
-              <p className="text-muted-foreground mb-6">
-                Start generating AI-powered ad creatives, videos, and campaigns
-              </p>
-
-              {/* Features list */}
-              <div className="bg-muted/50 rounded-2xl p-5 mb-8 text-left border border-border/50">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-secondary" />
-                    </div>
-                    <span className="text-foreground">Generate unlimited previews with your credits</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-secondary" />
-                    </div>
-                    <span className="text-foreground">Test different creative styles and formats</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-secondary/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-secondary" />
-                    </div>
-                    <span className="text-foreground">Upgrade anytime to publish live campaigns</span>
-                  </div>
-                </div>
+              <div>
+                <p className="text-muted-foreground">Rollover Cap</p>
+                <p className="font-semibold text-foreground">{user.rolloverCap} credits</p>
               </div>
-
-              <Button
-                size="lg"
-                className="w-full h-14 rounded-xl text-lg font-medium group mb-3"
-                onClick={handleComplete}
-              >
-                Create First Asset
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="lg"
-                className="w-full h-12 text-muted-foreground hover:text-foreground"
-                onClick={handleComplete}
-              >
-                Go to Dashboard
-              </Button>
             </div>
-          )}
+          </div>
+
+          {/* Bonus Claim Card */}
+          <div className={cn(
+            "rounded-2xl p-5 mb-6 border transition-all duration-500",
+            bonusClaimed 
+              ? "bg-secondary/10 border-secondary/30" 
+              : "bg-primary/5 border-primary/20"
+          )}>
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                bonusClaimed ? "bg-secondary/20" : "bg-primary/20"
+              )}>
+                {bonusClaimed ? (
+                  <Check className="w-6 h-6 text-secondary" />
+                ) : (
+                  <Gift className="w-6 h-6 text-primary" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground">
+                  {bonusClaimed ? "Bonus Claimed!" : "Welcome Bonus"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {bonusClaimed ? "500 credits added to your account" : "Claim 500 bonus credits to get started"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What you can do */}
+          <div className="space-y-3 mb-8">
+            <p className="text-sm font-medium text-muted-foreground">What you can create:</p>
+            <div className="flex flex-wrap gap-2">
+              {['AI Ad Creatives', 'Video Ads', 'Facebook Campaigns'].map((item) => (
+                <div key={item} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 text-sm">
+                  <Check className="w-3.5 h-3.5 text-secondary" />
+                  <span className="text-foreground">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Single CTA */}
+          <Button
+            size="lg"
+            className="w-full h-14 rounded-xl text-lg font-medium group"
+            onClick={handleClaimAndContinue}
+            disabled={isClaimingBonus}
+          >
+            {isClaimingBonus ? (
+              <span className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Claiming Bonus...
+              </span>
+            ) : bonusClaimed ? (
+              <span className="flex items-center gap-2">
+                Create First Campaign
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                Claim Bonus & Start Creating
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            )}
+          </Button>
         </div>
-
-        {/* Step indicator */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          Step {step === 'welcome' ? 1 : step === 'credits' ? 2 : 3} of 3
-        </p>
       </div>
     </div>
   );

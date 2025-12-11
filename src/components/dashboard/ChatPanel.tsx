@@ -3,12 +3,11 @@ import { Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { AssistantChatMessage } from './AssistantChatMessage';
 import { useAssistantChat, isGeneralQuery } from '@/hooks/useAssistantChat';
-import vibeletsLogo from '@/assets/vibelets-logo-unified.png';
-import { MessageCircle, X, Trash2 } from 'lucide-react';
+import { MessageCircle, X, Trash2, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -20,6 +19,8 @@ interface ChatPanelProps {
   onFacebookUseExisting?: () => void;
   isFacebookConnected?: boolean;
   disabled?: boolean;
+  threadTitle?: string;
+  onThreadTitleChange?: (title: string) => void;
 }
 
 export const ChatPanel = ({ 
@@ -31,11 +32,16 @@ export const ChatPanel = ({
   onFacebookConnect,
   onFacebookUseExisting,
   isFacebookConnected,
-  disabled 
+  disabled,
+  threadTitle = 'New Campaign',
+  onThreadTitleChange
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const assistantScrollRef = useRef<HTMLDivElement>(null);
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(threadTitle);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   
   const {
     messages: assistantMessages,
@@ -43,6 +49,14 @@ export const ChatPanel = ({
     sendMessage: sendAssistantMessage,
     clearChat: clearAssistantChat,
   } = useAssistantChat();
+
+  // Focus input when editing
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
 
   // Scroll campaign chat
   useEffect(() => {
@@ -85,22 +99,67 @@ export const ChatPanel = ({
     sendAssistantMessage(message);
   }, [sendAssistantMessage]);
 
+  const handleSaveTitle = () => {
+    if (editedTitle.trim() && onThreadTitleChange) {
+      onThreadTitleChange(editedTitle.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      setEditedTitle(threadTitle);
+      setIsEditingTitle(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden relative">
-      {/* Header */}
+      {/* Header - No logo, editable title */}
       <div className="flex items-center justify-between p-4 border-b border-border/50 flex-shrink-0 bg-background/30">
-        <div className="flex items-center gap-3">
-          <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
-          <div className="min-w-0">
-            <h2 className="font-semibold text-sm text-foreground whitespace-nowrap">
-              Campaign Builder
-            </h2>
-            <p className="text-xs text-muted-foreground whitespace-nowrap">
-              AI-powered ad creation
-            </p>
-          </div>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                ref={titleInputRef}
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={handleSaveTitle}
+                className="h-8 text-sm font-semibold bg-muted/50 border-primary/30 focus-visible:ring-primary/30"
+                maxLength={50}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 flex-shrink-0"
+                onClick={handleSaveTitle}
+              >
+                <Check className="h-4 w-4 text-secondary" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 min-w-0 group cursor-pointer" onClick={() => setIsEditingTitle(true)}>
+              <div className="min-w-0">
+                <h2 className="font-semibold text-sm text-foreground truncate">
+                  {threadTitle}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  AI-powered ad creation
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+              >
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </div>
+          )}
         </div>
-        <ThemeToggle />
       </div>
 
       {/* Campaign Messages */}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChatPanel } from '@/components/dashboard/ChatPanel';
 import { RightPanel } from '@/components/dashboard/RightPanel';
@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [threadTitle, setThreadTitle] = useState('New Campaign');
 
   const {
     state,
@@ -75,6 +76,8 @@ const Dashboard = () => {
               onFacebookConnect={handleFacebookConnect}
               onFacebookUseExisting={handleFacebookUseExisting}
               isFacebookConnected={state.facebookConnected}
+              threadTitle={threadTitle}
+              onThreadTitleChange={setThreadTitle}
             />
           </div>
         </div>
