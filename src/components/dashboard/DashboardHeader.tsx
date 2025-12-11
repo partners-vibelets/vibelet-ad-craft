@@ -50,14 +50,16 @@ export const DashboardHeader = () => {
         {/* Theme Toggle */}
         <ThemeToggle />
         
-        {/* Credits Badge */}
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-          <div className="relative">
-            <Coins className="w-4 h-4 text-primary" />
-            <Sparkles className="w-2.5 h-2.5 text-secondary absolute -top-1 -right-1" />
+        {/* Credits Badge with animated gradient border */}
+        <div className="relative p-[1px] rounded-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-[gradient-shift_3s_ease-in-out_infinite]">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background">
+            <div className="relative">
+              <Coins className="w-4 h-4 text-primary" />
+              <Sparkles className="w-2.5 h-2.5 text-secondary absolute -top-1 -right-1" />
+            </div>
+            <span className="font-semibold text-sm text-primary">{user.credits}</span>
+            <span className="text-xs text-muted-foreground">credits</span>
           </div>
-          <span className="font-semibold text-sm text-primary">{user.credits}</span>
-          <span className="text-xs text-muted-foreground">credits</span>
         </div>
 
         {/* Profile Dropdown */}
