@@ -58,7 +58,7 @@ export const ChatInput = ({ onSend, disabled, placeholder }: ChatInputProps) => 
   };
 
   return (
-    <div className="border-t border-border bg-background p-4">
+    <div className="bg-background p-4">
       <div className="flex gap-2 items-end">
         <div className="flex-1 relative">
           <Textarea
