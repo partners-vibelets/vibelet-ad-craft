@@ -259,6 +259,20 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
           </TabsTrigger>
         </TabsList>
 
+        {/* Single hidden file input outside conditional blocks */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={activeTab === 'image' ? 'image/*' : 'video/*'}
+          multiple={true}
+          onChange={(e) => {
+            handleFileSelect(e.target.files);
+            // Reset input value to allow re-selecting same files
+            e.target.value = '';
+          }}
+          className="hidden"
+        />
+
         <TabsContent value={activeTab} className="space-y-4 mt-4">
           {uploadedFiles.length === 0 ? (
             /* Empty state - Upload Zone */
@@ -272,14 +286,6 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={activeTab === 'image' ? 'image/*' : 'video/*'}
-                multiple
-                onChange={(e) => handleFileSelect(e.target.files)}
-                className="hidden"
-              />
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-muted mb-3">
                 {activeTab === 'image' ? (
                   <Image className="w-7 h-7 text-muted-foreground" />
@@ -458,16 +464,6 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
                   </button>
                 )}
               </div>
-
-              {/* Hidden file input for adding more */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={activeTab === 'image' ? 'image/*' : 'video/*'}
-                multiple
-                onChange={(e) => handleFileSelect(e.target.files)}
-                className="hidden"
-              />
 
               {/* Selected file info */}
               {selectedFile && (
