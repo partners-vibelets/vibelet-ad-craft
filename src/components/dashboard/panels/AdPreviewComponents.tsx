@@ -6,7 +6,6 @@ import {
   Share2,
   MoreHorizontal
 } from 'lucide-react';
-import { ImageMagnifier } from '@/components/ui/image-magnifier';
 export interface AdPreviewProps {
   creative: { thumbnail: string; type: string; name: string } | null;
   title: string;
@@ -36,13 +35,10 @@ export const MobilePreview = memo(({ creative, title, headline, cta }: AdPreview
 
       {/* Creative */}
       <div className="relative aspect-square">
-        <ImageMagnifier 
+        <img 
           src={creative.thumbnail} 
           alt="Ad" 
-          zoomLevel={2.5}
-          magnifierSize={100}
-          className="w-full h-full"
-          imageClassName="w-full h-full object-cover"
+          className="w-full h-full object-cover"
         />
         {creative.type === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
@@ -106,13 +102,10 @@ export const DesktopPreview = memo(({ creative, title, headline, cta }: AdPrevie
 
       {/* Creative */}
       <div className="relative aspect-video">
-        <ImageMagnifier 
+        <img 
           src={creative.thumbnail} 
           alt="Ad" 
-          zoomLevel={2.5}
-          magnifierSize={120}
-          className="w-full h-full"
-          imageClassName="w-full h-full object-cover"
+          className="w-full h-full object-cover"
         />
         {creative.type === 'video' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
