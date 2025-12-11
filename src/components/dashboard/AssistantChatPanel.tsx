@@ -3,6 +3,7 @@ import { AssistantMessage } from '@/hooks/useAssistantChat';
 import { AssistantChatMessage } from './AssistantChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
+import { ChatTabs, ChatMode } from './ChatTabs';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,9 @@ interface AssistantChatPanelProps {
   isTyping: boolean;
   onSendMessage: (message: string) => void;
   onClearChat: () => void;
+  activeTab: ChatMode;
+  onTabChange: (tab: ChatMode) => void;
+  hasNewAssistantMessage?: boolean;
 }
 
 export const AssistantChatPanel = ({
@@ -24,6 +28,9 @@ export const AssistantChatPanel = ({
   isTyping,
   onSendMessage,
   onClearChat,
+  activeTab,
+  onTabChange,
+  hasNewAssistantMessage,
 }: AssistantChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,8 +84,15 @@ export const AssistantChatPanel = ({
         </div>
       </div>
 
-      {/* Input */}
+      {/* Input with integrated tabs */}
       <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
+        <div className="flex items-center justify-between px-4 pt-2">
+          <ChatTabs 
+            activeTab={activeTab} 
+            onTabChange={onTabChange}
+            hasNewAssistantMessage={hasNewAssistantMessage}
+          />
+        </div>
         <ChatInput
           onSend={onSendMessage}
           disabled={isTyping}

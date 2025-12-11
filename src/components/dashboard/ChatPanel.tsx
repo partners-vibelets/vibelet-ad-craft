@@ -119,15 +119,6 @@ export const ChatPanel = ({
         <ThemeToggle />
       </div>
 
-      {/* Tabs */}
-      <div className="flex justify-center px-4 py-2 border-b border-border/30 bg-background/20">
-        <ChatTabs 
-          activeTab={activeTab} 
-          onTabChange={handleTabChange}
-          hasNewAssistantMessage={hasNewAssistantMessage}
-        />
-      </div>
-
       {/* Tab Content */}
       {activeTab === 'campaign' ? (
         <>
@@ -152,8 +143,15 @@ export const ChatPanel = ({
             </div>
           </div>
 
-          {/* Campaign Input with glass effect */}
+          {/* Campaign Input with integrated tabs */}
           <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
+            <div className="flex items-center justify-between px-4 pt-2">
+              <ChatTabs 
+                activeTab={activeTab} 
+                onTabChange={handleTabChange}
+                hasNewAssistantMessage={hasNewAssistantMessage}
+              />
+            </div>
             <ChatInput 
               onSend={handleSendMessage} 
               disabled={disabled || isTyping} 
@@ -167,6 +165,9 @@ export const ChatPanel = ({
           isTyping={assistantIsTyping}
           onSendMessage={handleAssistantMessage}
           onClearChat={clearAssistantChat}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          hasNewAssistantMessage={hasNewAssistantMessage}
         />
       )}
     </div>
