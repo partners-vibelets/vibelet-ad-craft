@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { PerformanceDashboardState, PublishedCampaign } from '@/types/campaign';
 import { MetricsGrid } from '../performance/MetricsGrid';
 import { AIActionsPreview } from '../performance/AIActionsPreview';
@@ -6,25 +7,48 @@ import { CampaignLifecycleMeter } from '../performance/CampaignLifecycleMeter';
 import { WhatChangedWidget } from '../performance/WhatChangedWidget';
 import { AIActionCenter } from '../performance/AIActionCenter';
 import { Button } from '@/components/ui/button';
-import { Plus, BarChart3 } from 'lucide-react';
+import { Plus, BarChart3, RefreshCw } from 'lucide-react';
 
 interface PerformanceDashboardPanelProps {
   dashboard: PerformanceDashboardState;
+  isRefreshing?: boolean;
   onCampaignFilterChange: (campaignId: string | null) => void;
   onOpenActionCenter: () => void;
   onCloseActionCenter: () => void;
   onRecommendationAction: (recommendationId: string, action: string, value?: number) => void;
   onCreateAnother: () => void;
+  onRefresh?: () => void;
 }
+
+const POLLING_INTERVAL = 30000; // 30 seconds
 
 export const PerformanceDashboardPanel = ({
   dashboard,
+  isRefreshing = false,
   onCampaignFilterChange,
   onOpenActionCenter,
   onCloseActionCenter,
   onRecommendationAction,
-  onCreateAnother
+  onCreateAnother,
+  onRefresh
 }: PerformanceDashboardPanelProps) => {
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-polling every 30 seconds
+  useEffect(() => {
+    if (onRefresh) {
+      pollingRef.current = setInterval(() => {
+        onRefresh();
+      }, POLLING_INTERVAL);
+    }
+
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, [onRefresh]);
+
   const selectedCampaign = dashboard.selectedCampaignId 
     ? dashboard.publishedCampaigns.find(c => c.id === dashboard.selectedCampaignId)
     : null;
@@ -55,15 +79,29 @@ export const PerformanceDashboardPanel = ({
               </p>
             </div>
           </div>
-          <Button size="sm" onClick={onCreateAnother}>
-            <Plus className="h-4 w-4 mr-1" />
-            New Campaign
-          </Button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
+            <Button size="sm" onClick={onCreateAnother}>
+              <Plus className="h-4 w-4 mr-1" />
+              New Campaign
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Unified Section: Metrics + AI Actions */}
-      <MetricsGrid metrics={dashboard.unifiedMetrics} />
+      <MetricsGrid metrics={dashboard.unifiedMetrics} isRefreshing={isRefreshing} />
       
       <AIActionsPreview 
         recommendations={dashboard.recommendations}

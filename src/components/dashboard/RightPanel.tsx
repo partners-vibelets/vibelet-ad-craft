@@ -32,6 +32,7 @@ interface RightPanelProps {
   onOpenActionCenter?: () => void;
   onCloseActionCenter?: () => void;
   onRecommendationAction?: (recommendationId: string, action: string, value?: number) => void;
+  onRefreshDashboard?: () => void;
 }
 
 export const RightPanel = ({
@@ -49,6 +50,7 @@ export const RightPanel = ({
   onOpenActionCenter,
   onCloseActionCenter,
   onRecommendationAction,
+  onRefreshDashboard,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -183,11 +185,13 @@ export const RightPanel = ({
           return (
             <PerformanceDashboardPanel
               dashboard={state.performanceDashboard}
+              isRefreshing={state.isRefreshingDashboard}
               onCampaignFilterChange={onCampaignFilterChange}
               onOpenActionCenter={onOpenActionCenter}
               onCloseActionCenter={onCloseActionCenter}
               onRecommendationAction={onRecommendationAction}
               onCreateAnother={onReset}
+              onRefresh={onRefreshDashboard}
             />
           );
         }

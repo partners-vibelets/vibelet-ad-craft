@@ -38,6 +38,7 @@ const initialState: CampaignState = {
   isCustomScriptMode: false,
   isCustomCreativeMode: false,
   performanceDashboard: null,
+  isRefreshingDashboard: false,
 };
 
 const createMessage = (
@@ -643,11 +644,37 @@ export const useCampaignFlow = () => {
         case 'wait':
           toast.info('We\'ll remind you later');
           return prev;
-        default:
+      default:
           return prev;
       }
     });
   }, []);
+
+  const refreshPerformanceDashboard = useCallback(async () => {
+    if (!state.performanceDashboard) return;
+    
+    setState(prev => ({ ...prev, isRefreshingDashboard: true }));
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Generate fresh mock data with slightly varied values
+    const freshDashboard = createMockPerformanceDashboard();
+    
+    setState(prev => ({
+      ...prev,
+      performanceDashboard: {
+        ...freshDashboard,
+        selectedCampaignId: prev.performanceDashboard?.selectedCampaignId || null,
+        isActionCenterOpen: prev.performanceDashboard?.isActionCenterOpen || false,
+      },
+      isRefreshingDashboard: false,
+    }));
+    
+    toast.success('Dashboard refreshed', {
+      description: 'Performance data updated with latest metrics',
+    });
+  }, [state.performanceDashboard]);
 
   const getCompletedSteps = useCallback((): CampaignStep[] => {
     const currentIndex = STEP_ORDER.indexOf(state.step);
@@ -858,5 +885,6 @@ export const useCampaignFlow = () => {
     handleOpenActionCenter,
     handleCloseActionCenter,
     handleRecommendationAction,
+    refreshPerformanceDashboard,
   };
 };

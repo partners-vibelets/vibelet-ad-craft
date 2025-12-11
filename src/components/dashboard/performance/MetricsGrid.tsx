@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface MetricsGridProps {
   metrics: UnifiedMetrics;
+  isRefreshing?: boolean;
 }
 
 interface MetricCardProps {
@@ -42,7 +43,7 @@ const MetricCard = ({ metric, index }: MetricCardProps) => {
   );
 };
 
-export const MetricsGrid = ({ metrics }: MetricsGridProps) => {
+export const MetricsGrid = ({ metrics, isRefreshing }: MetricsGridProps) => {
   const metricsList = [
     metrics.totalSpent,
     metrics.profit,
@@ -53,7 +54,7 @@ export const MetricsGrid = ({ metrics }: MetricsGridProps) => {
   ];
 
   return (
-    <div className="p-4">
+    <div className={cn("p-4 transition-opacity duration-300", isRefreshing && "opacity-60")}>
       <h3 className="text-sm font-medium text-muted-foreground mb-3">Overall Performance</h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {metricsList.map((metric, index) => (
