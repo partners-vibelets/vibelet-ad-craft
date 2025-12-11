@@ -26,7 +26,7 @@ export const FacebookAccountCard = ({
   // If already connected in campaign flow
   if (isConnected) {
     return (
-      <div className="mt-4 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-fade-in">
+      <div className="mt-4 p-4 rounded-xl border border-primary/30 bg-primary/5 animate-scale-in">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center">
             <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -48,7 +48,7 @@ export const FacebookAccountCard = ({
   // If user logged in via Facebook - show options to use existing or add new
   if (loggedInViaFacebook && !showOptions) {
     return (
-      <div className="mt-4 animate-fade-in">
+      <div className="mt-4 animate-scale-in">
         <div className="p-4 rounded-xl border-2 border-[#1877F2]/30 bg-[#1877F2]/5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center">
@@ -95,7 +95,7 @@ export const FacebookAccountCard = ({
 
   // Default connect button (or after choosing "Use Different Account")
   return (
-    <div className="mt-4 animate-fade-in">
+    <div className="mt-4 animate-scale-in">
       <button
         onClick={onConnect}
         disabled={disabled}
