@@ -3,6 +3,7 @@ import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, U
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { cn } from '@/lib/utils';
 interface ProductAnalysisPanelProps {
   productData: ProductData | null;
@@ -114,7 +115,7 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Page Screenshot Preview */}
       <div className="relative rounded-xl overflow-hidden border border-border">
-        <img
+        <ImageLightbox
           src={productData.pageScreenshot || productData.images[0]} 
           alt="Product page preview" 
           className="w-full h-48 object-cover"
@@ -170,7 +171,7 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
             </div>
             <div className="grid grid-cols-3 gap-2">
               {productData.images.map((img, i) => (
-                <img
+                <ImageLightbox
                   key={i}
                   src={img}
                   alt={`Product ${i + 1}`}
