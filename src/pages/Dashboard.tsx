@@ -25,7 +25,7 @@ const Dashboard = () => {
   return (
     <div className="h-screen flex bg-muted/30 overflow-hidden">
       {/* Left Panel - Chat with glass effect */}
-      <div className="w-[380px] max-w-[380px] min-w-[320px] flex-shrink-0 overflow-hidden m-3 mr-0">
+      <div className="w-[35%] max-w-[500px] min-w-[380px] flex-shrink-0 overflow-hidden m-3 mr-0">
         <div className="h-full glass-strong rounded-2xl overflow-hidden shadow-lg">
           <ChatPanel
             messages={messages}
