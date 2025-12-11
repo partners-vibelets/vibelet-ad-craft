@@ -51,7 +51,7 @@ export const DashboardHeader = () => {
         <ThemeToggle />
         
         {/* Credits Badge with animated gradient border */}
-        <div className="relative p-[1px] rounded-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-[gradient-shift_3s_ease-in-out_infinite]">
+        <div className="relative p-[1px] rounded-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-shift transition-all duration-300 hover:shadow-glow hover:scale-105 cursor-pointer">
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background">
             <div className="relative">
               <Coins className="w-4 h-4 text-primary" />
