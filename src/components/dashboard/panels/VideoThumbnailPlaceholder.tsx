@@ -49,19 +49,19 @@ export const VideoThumbnailPlaceholder = ({ aspectRatio, className }: VideoThumb
       </div>
 
       {/* Center play button with glow */}
-      <div className="relative z-10 flex flex-col items-center gap-3">
+      <div className="relative z-10 flex flex-col items-center gap-2">
         <div className="relative">
-          {/* Glow effect */}
-          <div className="absolute inset-0 w-16 h-16 rounded-full bg-primary/30 blur-xl animate-pulse" />
+          {/* Glow effect - positioned behind */}
+          <div className="absolute -inset-2 rounded-full bg-primary/20 blur-lg animate-pulse" />
           
           {/* Play button */}
-          <div className="relative w-16 h-16 rounded-full bg-background/90 backdrop-blur-sm border border-border/50 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
-            <Play className="w-7 h-7 text-primary ml-1" fill="currentColor" />
+          <div className="relative w-14 h-14 rounded-full bg-background/90 backdrop-blur-sm border border-border/50 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
+            <Play className="w-6 h-6 text-primary ml-0.5" fill="currentColor" />
           </div>
         </div>
         
-        {/* Label */}
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/80 backdrop-blur-sm border border-border/30">
+        {/* Label - separate from button */}
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/80 backdrop-blur-sm border border-border/30 mt-1">
           <span className="text-xs font-medium text-foreground/80">Video Preview</span>
           {aspectRatio && (
             <span className="text-[10px] text-muted-foreground">• {aspectRatio}</span>

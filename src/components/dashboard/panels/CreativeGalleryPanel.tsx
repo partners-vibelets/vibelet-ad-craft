@@ -91,11 +91,11 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
           {isVideo && creative.thumbnail && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
               <div className={cn(
-                "w-12 h-12 rounded-full bg-background/95 flex items-center justify-center shadow-xl",
-                "transition-all duration-300 group-hover:scale-110 group-hover:bg-primary",
-                "border border-border/50"
+                "w-12 h-12 rounded-full bg-secondary flex items-center justify-center shadow-xl",
+                "transition-all duration-300 group-hover:scale-110 group-hover:bg-secondary-hover",
+                "border border-secondary-dark/50"
               )}>
-                <Play className="w-5 h-5 text-foreground group-hover:text-primary-foreground ml-0.5" fill="currentColor" />
+                <Play className="w-5 h-5 text-secondary-foreground ml-0.5" fill="currentColor" />
               </div>
             </div>
           )}
