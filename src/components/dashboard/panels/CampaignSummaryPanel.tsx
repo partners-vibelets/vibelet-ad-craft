@@ -316,11 +316,32 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                   icon={Globe} 
                 />
               </div>
-              <ReadOnlyField 
-                label="Page Name" 
-                value={selectedAdAccount ? selectedAdAccount.name : 'Not connected'} 
-                icon={Facebook} 
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <ReadOnlyField 
+                  label="Page Name" 
+                  value={selectedAdAccount ? selectedAdAccount.name : 'Not connected'} 
+                  icon={Facebook} 
+                />
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30">
+                {selectedCreative?.thumbnail ? (
+                    <img 
+                      src={selectedCreative.thumbnail} 
+                      alt="Creative preview"
+                      className="w-8 h-8 rounded object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                      <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] text-muted-foreground">Creative</p>
+                    <p className="text-[11px] font-medium text-foreground truncate">
+                      {selectedCreative?.type === 'video' ? 'Video' : 'Image'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
