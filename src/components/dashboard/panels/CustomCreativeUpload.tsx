@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, Image, Video, Check, AlertCircle, X, Info } from 'lucide-react';
+import { Upload, Image, Video, Check, AlertCircle, X, Info, Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,7 +33,10 @@ const CREATIVE_SPECS = {
   }
 };
 
+const MAX_FILES = 16; // 4x4 grid
+
 interface UploadedFile {
+  id: string;
   file: File;
   preview: string;
   type: 'image' | 'video';
@@ -51,7 +54,8 @@ interface CustomCreativeUploadProps {
 
 export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploadProps) => {
   const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
-  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +110,7 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
     }
 
     return {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       file,
       preview,
       type: type as 'image' | 'video',
@@ -154,13 +159,21 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
   const handleFileSelect = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
-    const file = files[0];
-    const validated = await validateFile(file);
-    setUploadedFile(validated);
+    const remainingSlots = MAX_FILES - uploadedFiles.length;
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
     
-    // Switch tab based on file type
-    if (validated.type !== activeTab) {
-      setActiveTab(validated.type);
+    const validatedFiles = await Promise.all(filesToProcess.map(validateFile));
+    
+    setUploadedFiles(prev => [...prev, ...validatedFiles]);
+    
+    // Switch tab based on first file type if needed
+    if (validatedFiles.length > 0 && validatedFiles[0].type !== activeTab) {
+      setActiveTab(validatedFiles[0].type);
+    }
+    
+    // Select the first newly added file
+    if (uploadedFiles.length === 0 && validatedFiles.length > 0) {
+      setSelectedIndex(0);
     }
   };
 
@@ -180,34 +193,57 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
   };
 
   const handleSubmit = () => {
-    if (uploadedFile && uploadedFile.isValid) {
+    const selectedFile = uploadedFiles[selectedIndex];
+    if (selectedFile && selectedFile.isValid) {
       onSubmit({
-        type: uploadedFile.type,
-        file: uploadedFile.file,
-        preview: uploadedFile.preview,
-        name: `Custom ${uploadedFile.type === 'video' ? 'Video' : 'Image'} Ad`
+        type: selectedFile.type,
+        file: selectedFile.file,
+        preview: selectedFile.preview,
+        name: `Custom ${selectedFile.type === 'video' ? 'Video' : 'Image'} Ad`
       });
     }
   };
 
-  const clearUpload = () => {
-    if (uploadedFile) {
-      URL.revokeObjectURL(uploadedFile.preview);
+  const removeFile = (index: number) => {
+    const file = uploadedFiles[index];
+    if (file) {
+      URL.revokeObjectURL(file.preview);
     }
-    setUploadedFile(null);
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    
+    // Adjust selected index if needed
+    if (selectedIndex >= index && selectedIndex > 0) {
+      setSelectedIndex(prev => prev - 1);
+    }
+  };
+
+  const clearAllUploads = () => {
+    uploadedFiles.forEach(file => URL.revokeObjectURL(file.preview));
+    setUploadedFiles([]);
+    setSelectedIndex(0);
+  };
+
+  const navigateCarousel = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && selectedIndex > 0) {
+      setSelectedIndex(prev => prev - 1);
+    } else if (direction === 'next' && selectedIndex < uploadedFiles.length - 1) {
+      setSelectedIndex(prev => prev + 1);
+    }
   };
 
   const specs = activeTab === 'image' ? CREATIVE_SPECS.image : CREATIVE_SPECS.video;
+  const selectedFile = uploadedFiles[selectedIndex];
+  const hasValidFile = uploadedFiles.some(f => f.isValid);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div className="text-center space-y-2">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
           <Upload className="w-6 h-6 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Upload Your Creative</h2>
+        <h2 className="text-xl font-semibold text-foreground">Upload Your Creatives</h2>
         <p className="text-sm text-muted-foreground">
-          Upload your own image or video following Facebook guidelines
+          Upload up to {MAX_FILES} images or videos
         </p>
       </div>
 
@@ -224,8 +260,8 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4 mt-4">
-          {/* Upload Zone */}
-          {!uploadedFile ? (
+          {uploadedFiles.length === 0 ? (
+            /* Empty state - Upload Zone */
             <div
               className={cn(
                 "border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer",
@@ -240,6 +276,7 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
                 ref={fileInputRef}
                 type="file"
                 accept={activeTab === 'image' ? 'image/*' : 'video/*'}
+                multiple
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
@@ -251,7 +288,7 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
                 )}
               </div>
               <p className="text-foreground font-medium">
-                Drop your {activeTab} here or click to browse
+                Drop your {activeTab}s here or click to browse
               </p>
               <p className="text-sm text-muted-foreground mt-1">
                 {activeTab === 'image' ? 'JPG, PNG, or WebP' : 'MP4 or MOV'}
@@ -290,74 +327,182 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
               </div>
             </div>
           ) : (
-            /* Preview */
+            /* Files uploaded - Carousel + Grid */
             <div className="space-y-4">
-              <div className="relative rounded-xl overflow-hidden border border-border">
-                <button
-                  onClick={clearUpload}
-                  className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-background/80 flex items-center justify-center hover:bg-background transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                
-                {uploadedFile.type === 'image' ? (
-                  <img 
-                    src={uploadedFile.preview} 
-                    alt="Preview" 
-                    className="w-full max-h-[300px] object-contain bg-muted"
-                  />
-                ) : (
-                  <video 
-                    src={uploadedFile.preview} 
-                    controls 
-                    className="w-full max-h-[300px] object-contain bg-muted"
-                  />
+              {/* Main Preview Carousel */}
+              <div className="relative rounded-xl overflow-hidden border border-border bg-muted">
+                {/* Navigation arrows */}
+                {uploadedFiles.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => navigateCarousel('prev')}
+                      disabled={selectedIndex === 0}
+                      className={cn(
+                        "absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 flex items-center justify-center transition-all",
+                        selectedIndex === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-background hover:scale-110"
+                      )}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => navigateCarousel('next')}
+                      disabled={selectedIndex === uploadedFiles.length - 1}
+                      className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-background/90 flex items-center justify-center transition-all",
+                        selectedIndex === uploadedFiles.length - 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-background hover:scale-110"
+                      )}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
                 )}
-              </div>
 
-              {/* File Info */}
-              <div className="rounded-lg border border-border p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground truncate max-w-[200px]">
-                    {uploadedFile.file.name}
-                  </span>
-                  {uploadedFile.isValid ? (
-                    <span className="text-xs text-secondary flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      Valid
-                    </span>
-                  ) : (
-                    <span className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Issues found
-                    </span>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  {uploadedFile.dimensions && (
-                    <span>Size: {uploadedFile.dimensions.width} × {uploadedFile.dimensions.height}</span>
-                  )}
-                  {uploadedFile.aspectRatio && (
-                    <span>Ratio: {uploadedFile.aspectRatio}</span>
-                  )}
-                  {uploadedFile.duration !== undefined && (
-                    <span>Duration: {Math.round(uploadedFile.duration)}s</span>
-                  )}
-                  <span>File: {(uploadedFile.file.size / (1024 * 1024)).toFixed(1)}MB</span>
+                {/* Remove current file button */}
+                <button
+                  onClick={() => removeFile(selectedIndex)}
+                  className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-destructive/90 flex items-center justify-center hover:bg-destructive transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 text-destructive-foreground" />
+                </button>
+
+                {/* Counter badge */}
+                <div className="absolute top-2 left-2 z-10 px-2 py-1 rounded-full bg-background/90 text-xs font-medium">
+                  {selectedIndex + 1} / {uploadedFiles.length}
                 </div>
 
-                {uploadedFile.errors.length > 0 && (
-                  <div className="pt-2 border-t border-border space-y-1">
-                    {uploadedFile.errors.map((error, i) => (
-                      <p key={i} className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                        {error}
-                      </p>
-                    ))}
+                {/* Preview content */}
+                {selectedFile?.type === 'image' ? (
+                  <img 
+                    src={selectedFile.preview} 
+                    alt="Preview" 
+                    className="w-full h-[200px] object-contain"
+                  />
+                ) : selectedFile?.type === 'video' ? (
+                  <video 
+                    key={selectedFile.id}
+                    src={selectedFile.preview} 
+                    controls 
+                    className="w-full h-[200px] object-contain"
+                  />
+                ) : null}
+
+                {/* Validation status overlay */}
+                {selectedFile && !selectedFile.isValid && (
+                  <div className="absolute bottom-2 left-2 right-2 z-10">
+                    <div className="px-3 py-2 rounded-lg bg-destructive/90 text-destructive-foreground text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>{selectedFile.errors[0]}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {/* Thumbnail Grid (4x4) */}
+              <div className="grid grid-cols-4 gap-2">
+                {uploadedFiles.map((file, index) => (
+                  <button
+                    key={file.id}
+                    onClick={() => setSelectedIndex(index)}
+                    className={cn(
+                      "relative aspect-square rounded-lg overflow-hidden border-2 transition-all group",
+                      index === selectedIndex 
+                        ? "border-primary ring-2 ring-primary/30" 
+                        : "border-border hover:border-primary/50",
+                      !file.isValid && "border-destructive/50"
+                    )}
+                  >
+                    {file.type === 'image' ? (
+                      <img src={file.preview} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <Video className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    
+                    {/* Remove button on hover */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(index);
+                      }}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive/90 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:flex"
+                    >
+                      <X className="w-3 h-3 text-destructive-foreground" />
+                    </button>
+
+                    {/* Invalid indicator */}
+                    {!file.isValid && (
+                      <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-destructive flex items-center justify-center">
+                        <AlertCircle className="w-3 h-3 text-destructive-foreground" />
+                      </div>
+                    )}
+
+                    {/* Selected indicator */}
+                    {index === selectedIndex && file.isValid && (
+                      <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-3 h-3 text-primary-foreground" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+
+                {/* Add more button */}
+                {uploadedFiles.length < MAX_FILES && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 flex items-center justify-center transition-colors group"
+                  >
+                    <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </button>
+                )}
+              </div>
+
+              {/* Hidden file input for adding more */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={activeTab === 'image' ? 'image/*' : 'video/*'}
+                multiple
+                onChange={(e) => handleFileSelect(e.target.files)}
+                className="hidden"
+              />
+
+              {/* Selected file info */}
+              {selectedFile && (
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground truncate max-w-[180px]">
+                      {selectedFile.file.name}
+                    </span>
+                    {selectedFile.isValid ? (
+                      <span className="text-xs text-secondary flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        Valid
+                      </span>
+                    ) : (
+                      <span className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Issues
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    {selectedFile.dimensions && (
+                      <span>{selectedFile.dimensions.width} × {selectedFile.dimensions.height}</span>
+                    )}
+                    {selectedFile.aspectRatio && (
+                      <span>{selectedFile.aspectRatio}</span>
+                    )}
+                    {selectedFile.duration !== undefined && (
+                      <span>{Math.round(selectedFile.duration)}s</span>
+                    )}
+                    <span>{(selectedFile.file.size / (1024 * 1024)).toFixed(1)}MB</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -366,18 +511,21 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
       <div className="flex gap-3 pt-2">
         <Button
           variant="outline"
-          onClick={onCancel}
+          onClick={() => {
+            clearAllUploads();
+            onCancel();
+          }}
           className="flex-1"
         >
           Back to AI Creatives
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={!uploadedFile?.isValid}
+          disabled={!hasValidFile || !selectedFile?.isValid}
           className="flex-1 bg-secondary hover:bg-secondary/90"
         >
           <Check className="w-4 h-4 mr-2" />
-          Use This Creative
+          Use Selected
         </Button>
       </div>
     </div>
