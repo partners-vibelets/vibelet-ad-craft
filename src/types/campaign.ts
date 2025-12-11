@@ -220,4 +220,5 @@ export interface CampaignState {
   isCustomScriptMode: boolean;
   isCustomCreativeMode: boolean;
   performanceDashboard: PerformanceDashboardState | null;
+  isRefreshingDashboard: boolean;
 }

@@ -33,6 +33,7 @@ const Dashboard = () => {
     handleOpenActionCenter,
     handleCloseActionCenter,
     handleRecommendationAction,
+    refreshPerformanceDashboard,
   } = useCampaignFlow();
 
   // Redirect to auth if not authenticated
@@ -104,6 +105,7 @@ const Dashboard = () => {
               onOpenActionCenter={handleOpenActionCenter}
               onCloseActionCenter={handleCloseActionCenter}
               onRecommendationAction={handleRecommendationAction}
+              onRefreshDashboard={refreshPerformanceDashboard}
             />
           </div>
         </div>
