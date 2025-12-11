@@ -6,7 +6,7 @@ import {
   Share2,
   MoreHorizontal
 } from 'lucide-react';
-
+import { ImageMagnifier } from '@/components/ui/image-magnifier';
 export interface AdPreviewProps {
   creative: { thumbnail: string; type: string; name: string } | null;
   title: string;
@@ -36,9 +36,16 @@ export const MobilePreview = memo(({ creative, title, headline, cta }: AdPreview
 
       {/* Creative */}
       <div className="relative aspect-square">
-        <img src={creative.thumbnail} alt="Ad" className="w-full h-full object-cover" />
+        <ImageMagnifier 
+          src={creative.thumbnail} 
+          alt="Ad" 
+          zoomLevel={2.5}
+          magnifierSize={100}
+          className="w-full h-full"
+          imageClassName="w-full h-full object-cover"
+        />
         {creative.type === 'video' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
             <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
               <Play className="w-3 h-3 text-foreground ml-0.5" fill="currentColor" />
             </div>
@@ -99,9 +106,16 @@ export const DesktopPreview = memo(({ creative, title, headline, cta }: AdPrevie
 
       {/* Creative */}
       <div className="relative aspect-video">
-        <img src={creative.thumbnail} alt="Ad" className="w-full h-full object-cover" />
+        <ImageMagnifier 
+          src={creative.thumbnail} 
+          alt="Ad" 
+          zoomLevel={2.5}
+          magnifierSize={120}
+          className="w-full h-full"
+          imageClassName="w-full h-full object-cover"
+        />
         {creative.type === 'video' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
             <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
               <Play className="w-4 h-4 text-foreground ml-0.5" fill="currentColor" />
             </div>
