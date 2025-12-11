@@ -1,9 +1,16 @@
+import { useState } from 'react';
 import { CreativeOption } from '@/types/campaign';
-import { Image, Video, Check, Play, RefreshCw } from 'lucide-react';
+import { Image, Video, Check, Play, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { VideoThumbnailPlaceholder } from './VideoThumbnailPlaceholder';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
 interface CreativeGalleryPanelProps {
   creatives: CreativeOption[];
   selectedCreative: CreativeOption | null;
@@ -20,6 +27,15 @@ const getFormatLabel = (format?: string, aspectRatio?: string) => {
 };
 
 export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerating, onRegenerate }: CreativeGalleryPanelProps) => {
+  const [videoPreview, setVideoPreview] = useState<CreativeOption | null>(null);
+
+  const handleVideoClick = (creative: CreativeOption, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (creative.type === 'video') {
+      setVideoPreview(creative);
+    }
+  };
+
   const renderCreativeCard = (creative: CreativeOption) => {
     const isSelected = selectedCreative?.id === creative.id;
     const isVideo = creative.type === 'video';
@@ -27,10 +43,12 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
     return (
       <div
         key={creative.id}
+        onClick={isVideo ? (e) => handleVideoClick(creative, e) : undefined}
         className={cn(
           "group relative rounded-xl overflow-hidden transition-all duration-300",
           "border-2 bg-card",
           "hover:shadow-xl hover:shadow-primary/15 hover:-translate-y-1",
+          isVideo && "cursor-pointer",
           isSelected 
             ? "border-primary ring-2 ring-primary/30 shadow-lg shadow-primary/20"
             : "border-border/60 hover:border-primary/40"
@@ -135,6 +153,72 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
           </Button>
         </div>
       )}
+
+      {/* Video Preview Modal */}
+      <Dialog open={!!videoPreview} onOpenChange={(open) => !open && setVideoPreview(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black border-border/50">
+          <DialogTitle className="sr-only">Video Preview</DialogTitle>
+          
+          {/* Close button */}
+          <button
+            onClick={() => setVideoPreview(null)}
+            className="absolute top-3 right-3 z-50 w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center hover:bg-background transition-colors border border-border/50"
+          >
+            <X className="w-4 h-4 text-foreground" />
+          </button>
+
+          {videoPreview && (
+            <div className="relative">
+              {/* Video player */}
+              <div className={cn(
+                "w-full bg-black flex items-center justify-center",
+                videoPreview.aspectRatio === '9:16' ? "aspect-[9/16] max-h-[80vh]" : 
+                videoPreview.aspectRatio === '1:1' ? "aspect-square" :
+                videoPreview.aspectRatio === '4:5' ? "aspect-[4/5]" :
+                "aspect-video"
+              )}>
+                {videoPreview.videoUrl ? (
+                  <video 
+                    src={videoPreview.videoUrl} 
+                    controls 
+                    autoPlay 
+                    className="w-full h-full object-contain"
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <div className="flex flex-col items-center gap-4 text-center p-8">
+                    <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Video className="w-10 h-10 text-primary" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-lg font-medium text-white">{videoPreview.name}</p>
+                      <p className="text-sm text-white/60">
+                        Video preview will be available once generated
+                      </p>
+                      <Badge variant="secondary" className="mt-2">
+                        {videoPreview.aspectRatio || '1:1'} • {getFormatLabel(videoPreview.format, videoPreview.aspectRatio)}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Video info bar */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">{videoPreview.name}</p>
+                    <p className="text-white/60 text-sm">
+                      {getFormatLabel(videoPreview.format, videoPreview.aspectRatio)} • {videoPreview.aspectRatio}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
