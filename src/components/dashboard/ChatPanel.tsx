@@ -1,10 +1,14 @@
-import { useRef, useEffect, useState, memo } from 'react';
+import { useRef, useEffect, useState, memo, useCallback } from 'react';
 import { Message } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ChatTabs, ChatMode } from './ChatTabs';
+import { AssistantChatPanel } from './AssistantChatPanel';
+import { useAssistantChat, isGeneralQuery } from '@/hooks/useAssistantChat';
 import vibeletsLogo from '@/assets/vibelets-logo-unified.png';
+import { toast } from 'sonner';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -29,6 +33,15 @@ export const ChatPanel = ({
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<ChatMode>('campaign');
+  const [hasNewAssistantMessage, setHasNewAssistantMessage] = useState(false);
+  
+  const {
+    messages: assistantMessages,
+    isTyping: assistantIsTyping,
+    sendMessage: sendAssistantMessage,
+    clearChat: clearAssistantChat,
+  } = useAssistantChat();
 
   useEffect(() => {
     // Delay scroll to ensure DOM is updated
@@ -43,10 +56,54 @@ export const ChatPanel = ({
     return () => clearTimeout(timeoutId);
   }, [messages, isTyping]);
 
+  // Clear notification when switching to assistant tab
+  useEffect(() => {
+    if (activeTab === 'assistant') {
+      setHasNewAssistantMessage(false);
+    }
+  }, [activeTab]);
+
   const handleQuestionAnswer = (questionId: string, answerId: string) => {
     setSelectedAnswers(prev => ({ ...prev, [questionId]: answerId }));
     onQuestionAnswer(questionId, answerId);
   };
+
+  const handleTabChange = (tab: ChatMode) => {
+    setActiveTab(tab);
+  };
+
+  const handleSendMessage = useCallback((message: string) => {
+    // Intelligent routing based on message content
+    if (isGeneralQuery(message)) {
+      // Route to assistant chat
+      if (activeTab !== 'assistant') {
+        setActiveTab('assistant');
+        toast.info('Switched to Assistant', {
+          description: 'I detected a general question. Answering in the Assistant tab.',
+          duration: 3000,
+        });
+      }
+      sendAssistantMessage(message);
+    } else {
+      // Route to campaign flow
+      if (activeTab !== 'campaign') {
+        setActiveTab('campaign');
+        toast.info('Switched to Campaign', {
+          description: 'Processing your campaign request.',
+          duration: 3000,
+        });
+      }
+      onSendMessage(message);
+    }
+  }, [activeTab, onSendMessage, sendAssistantMessage]);
+
+  const handleAssistantMessage = useCallback((message: string) => {
+    sendAssistantMessage(message);
+    // If user sends from campaign tab context but it's a general query, show notification
+    if (activeTab !== 'assistant') {
+      setHasNewAssistantMessage(true);
+    }
+  }, [activeTab, sendAssistantMessage]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -62,31 +119,56 @@ export const ChatPanel = ({
         <ThemeToggle />
       </div>
 
-      {/* Messages */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
-      >
-        <div className="flex flex-col">
-          {messages.map((message) => (
-            <ChatMessage 
-              key={message.id} 
-              message={message} 
-              onQuestionAnswer={handleQuestionAnswer}
-              onCampaignConfigComplete={onCampaignConfigComplete}
-              onFacebookConnect={onFacebookConnect}
-              selectedAnswers={selectedAnswers}
-              isFacebookConnected={isFacebookConnected}
-            />
-          ))}
-          {isTyping && <TypingIndicator />}
-        </div>
+      {/* Tabs */}
+      <div className="flex justify-center px-4 py-2 border-b border-border/30 bg-background/20">
+        <ChatTabs 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          hasNewAssistantMessage={hasNewAssistantMessage}
+        />
       </div>
 
-      {/* Input with glass effect */}
-      <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
-        <ChatInput onSend={onSendMessage} disabled={disabled || isTyping} />
-      </div>
+      {/* Tab Content */}
+      {activeTab === 'campaign' ? (
+        <>
+          {/* Campaign Messages */}
+          <div 
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden"
+          >
+            <div className="flex flex-col">
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  onQuestionAnswer={handleQuestionAnswer}
+                  onCampaignConfigComplete={onCampaignConfigComplete}
+                  onFacebookConnect={onFacebookConnect}
+                  selectedAnswers={selectedAnswers}
+                  isFacebookConnected={isFacebookConnected}
+                />
+              ))}
+              {isTyping && <TypingIndicator />}
+            </div>
+          </div>
+
+          {/* Campaign Input with glass effect */}
+          <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
+            <ChatInput 
+              onSend={handleSendMessage} 
+              disabled={disabled || isTyping} 
+              placeholder="Paste product URL or ask a question..."
+            />
+          </div>
+        </>
+      ) : (
+        <AssistantChatPanel
+          messages={assistantMessages}
+          isTyping={assistantIsTyping}
+          onSendMessage={handleAssistantMessage}
+          onClearChat={clearAssistantChat}
+        />
+      )}
     </div>
   );
 };
