@@ -29,6 +29,10 @@ const Dashboard = () => {
     handleCustomScriptCancel,
     handleCustomCreativeSubmit,
     handleCustomCreativeCancel,
+    handleCampaignFilterChange,
+    handleOpenActionCenter,
+    handleCloseActionCenter,
+    handleRecommendationAction,
   } = useCampaignFlow();
 
   // Redirect to auth if not authenticated
@@ -96,6 +100,10 @@ const Dashboard = () => {
               onCustomScriptCancel={handleCustomScriptCancel}
               onCustomCreativeSubmit={handleCustomCreativeSubmit}
               onCustomCreativeCancel={handleCustomCreativeCancel}
+              onCampaignFilterChange={handleCampaignFilterChange}
+              onOpenActionCenter={handleOpenActionCenter}
+              onCloseActionCenter={handleCloseActionCenter}
+              onRecommendationAction={handleRecommendationAction}
             />
           </div>
         </div>

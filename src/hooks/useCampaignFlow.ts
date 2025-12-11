@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
+import { createMockPerformanceDashboard } from '@/data/mockPerformanceData';
 import { toast } from 'sonner';
 import { isValidUrl, sanitizeInput, validateCampaignConfig, formatErrorMessage } from '@/lib/validation';
 
@@ -36,6 +37,7 @@ const initialState: CampaignState = {
   isRegenerating: null,
   isCustomScriptMode: false,
   isCustomCreativeMode: false,
+  performanceDashboard: null,
 };
 
 const createMessage = (
@@ -505,12 +507,15 @@ export const useCampaignFlow = () => {
             description: 'Your ad has been submitted for Facebook review.',
           });
           
+          // Initialize performance dashboard
+          const performanceDashboard = createMockPerformanceDashboard();
+          
           await simulateTyping(
-            `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
+            `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Check out the AI recommendations!\n\nWant to create another campaign? Just paste a new product URL!`,
             { stepId: 'published' },
             2000
           );
-          setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
+          setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false, performanceDashboard }));
         } else {
           await simulateTyping(
             `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
@@ -558,6 +563,90 @@ export const useCampaignFlow = () => {
     setMessages([
       createMessage('assistant', "Ready for your next campaign! 🚀 Paste a product URL to get started.", { stepId: 'welcome' })
     ]);
+  }, []);
+
+  // Performance dashboard handlers
+  const handleCampaignFilterChange = useCallback((campaignId: string | null) => {
+    setState(prev => {
+      if (!prev.performanceDashboard) return prev;
+      return {
+        ...prev,
+        performanceDashboard: {
+          ...prev.performanceDashboard,
+          selectedCampaignId: campaignId
+        }
+      };
+    });
+  }, []);
+
+  const handleOpenActionCenter = useCallback(() => {
+    setState(prev => {
+      if (!prev.performanceDashboard) return prev;
+      return {
+        ...prev,
+        performanceDashboard: {
+          ...prev.performanceDashboard,
+          isActionCenterOpen: true
+        }
+      };
+    });
+  }, []);
+
+  const handleCloseActionCenter = useCallback(() => {
+    setState(prev => {
+      if (!prev.performanceDashboard) return prev;
+      return {
+        ...prev,
+        performanceDashboard: {
+          ...prev.performanceDashboard,
+          isActionCenterOpen: false
+        }
+      };
+    });
+  }, []);
+
+  const handleRecommendationAction = useCallback((recommendationId: string, action: string, value?: number) => {
+    setState(prev => {
+      if (!prev.performanceDashboard) return prev;
+      
+      const rec = prev.performanceDashboard.recommendations.find(r => r.id === recommendationId);
+      if (!rec) return prev;
+
+      // Handle different actions
+      switch (action) {
+        case 'apply':
+        case 'resume':
+        case 'pause':
+        case 'clone':
+        case 'clone-all':
+          toast.success('Action applied!', {
+            description: `${rec.title} has been processed.`,
+          });
+          // Remove the recommendation after action
+          return {
+            ...prev,
+            performanceDashboard: {
+              ...prev.performanceDashboard,
+              recommendations: prev.performanceDashboard.recommendations.filter(r => r.id !== recommendationId)
+            }
+          };
+        case 'dismiss':
+          toast.info('Recommendation dismissed');
+          return {
+            ...prev,
+            performanceDashboard: {
+              ...prev.performanceDashboard,
+              recommendations: prev.performanceDashboard.recommendations.filter(r => r.id !== recommendationId)
+            }
+          };
+        case 'remind':
+        case 'wait':
+          toast.info('We\'ll remind you later');
+          return prev;
+        default:
+          return prev;
+      }
+    });
   }, []);
 
   const getCompletedSteps = useCallback((): CampaignStep[] => {
@@ -765,5 +854,9 @@ export const useCampaignFlow = () => {
     handleCustomScriptCancel,
     handleCustomCreativeSubmit,
     handleCustomCreativeCancel,
+    handleCampaignFilterChange,
+    handleOpenActionCenter,
+    handleCloseActionCenter,
+    handleRecommendationAction,
   };
 };

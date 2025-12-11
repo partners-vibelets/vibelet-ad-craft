@@ -124,6 +124,85 @@ export interface StepInfo {
   current: boolean;
 }
 
+// =========== PERFORMANCE TYPES ===========
+
+export type CampaignLifecycleStage = 'testing' | 'optimizing' | 'scaling';
+
+export interface PerformanceMetric {
+  id: string;
+  label: string;
+  value: number;
+  previousValue: number;
+  format: 'currency' | 'percentage' | 'number';
+  trend: 'up' | 'down' | 'neutral';
+}
+
+export interface PerformanceChange {
+  id: string;
+  category: 'good' | 'attention' | 'steady' | 'action-taken';
+  title: string;
+  description: string;
+  metric?: string;
+  change?: string;
+}
+
+export interface PublishedCampaign {
+  id: string;
+  name: string;
+  status: 'active' | 'paused' | 'learning';
+  budget: string;
+  lifecycleStage: CampaignLifecycleStage;
+  stageProgress: number;
+  stageDescription: string;
+  metrics: PerformanceMetric[];
+  changes: PerformanceChange[];
+  createdAt: Date;
+}
+
+export type RecommendationPriority = 'high' | 'medium' | 'suggestion';
+export type RecommendationType = 'budget-increase' | 'budget-decrease' | 'pause-creative' | 'resume-campaign' | 'clone-creative';
+
+export interface AIRecommendation {
+  id: string;
+  type: RecommendationType;
+  priority: RecommendationPriority;
+  campaignId: string;
+  campaignName: string;
+  title: string;
+  reasoning: string;
+  currentValue?: number;
+  recommendedValue?: number;
+  projectedImpact?: {
+    label: string;
+    value: string;
+  }[];
+  creative?: {
+    id: string;
+    name: string;
+    thumbnail: string;
+    metrics: { label: string; value: string }[];
+  };
+  targetCampaigns?: { id: string; name: string; recommended?: boolean }[];
+  createdAt: Date;
+}
+
+export interface UnifiedMetrics {
+  totalSpent: PerformanceMetric;
+  profit: PerformanceMetric;
+  roi: PerformanceMetric;
+  conversions: PerformanceMetric;
+  aov: PerformanceMetric;
+  ctr: PerformanceMetric;
+}
+
+export interface PerformanceDashboardState {
+  unifiedMetrics: UnifiedMetrics;
+  publishedCampaigns: PublishedCampaign[];
+  recommendations: AIRecommendation[];
+  selectedCampaignId: string | null;
+  isActionCenterOpen: boolean;
+}
+
 export interface CampaignState {
   step: CampaignStep;
   stepHistory: CampaignStep[];
@@ -140,4 +219,5 @@ export interface CampaignState {
   isRegenerating: 'product' | 'scripts' | 'creatives' | null;
   isCustomScriptMode: boolean;
   isCustomCreativeMode: boolean;
+  performanceDashboard: PerformanceDashboardState | null;
 }

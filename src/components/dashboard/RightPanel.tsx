@@ -8,6 +8,7 @@ import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
 import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
+import { PerformanceDashboardPanel } from './panels/PerformanceDashboardPanel';
 import { CustomScriptInput } from './panels/CustomScriptInput';
 import { CustomCreativeUpload } from './panels/CustomCreativeUpload';
 import { StepIndicator } from './StepIndicator';
@@ -27,6 +28,10 @@ interface RightPanelProps {
   onCustomScriptCancel?: () => void;
   onCustomCreativeSubmit?: (creative: CreativeOption) => void;
   onCustomCreativeCancel?: () => void;
+  onCampaignFilterChange?: (campaignId: string | null) => void;
+  onOpenActionCenter?: () => void;
+  onCloseActionCenter?: () => void;
+  onRecommendationAction?: (recommendationId: string, action: string, value?: number) => void;
 }
 
 export const RightPanel = ({
@@ -40,6 +45,10 @@ export const RightPanel = ({
   onCustomScriptCancel,
   onCustomCreativeSubmit,
   onCustomCreativeCancel,
+  onCampaignFilterChange,
+  onOpenActionCenter,
+  onCloseActionCenter,
+  onRecommendationAction,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -167,8 +176,22 @@ export const RightPanel = ({
         return <CampaignSummaryPanel state={state} />;
       
       case 'publishing':
+        return <PublishingPanel isPublished={false} onCreateAnother={onReset} />;
+      
       case 'published':
-        return <PublishingPanel isPublished={state.step === 'published'} onCreateAnother={onReset} />;
+        if (state.performanceDashboard && onCampaignFilterChange && onOpenActionCenter && onCloseActionCenter && onRecommendationAction) {
+          return (
+            <PerformanceDashboardPanel
+              dashboard={state.performanceDashboard}
+              onCampaignFilterChange={onCampaignFilterChange}
+              onOpenActionCenter={onOpenActionCenter}
+              onCloseActionCenter={onCloseActionCenter}
+              onRecommendationAction={onRecommendationAction}
+              onCreateAnother={onReset}
+            />
+          );
+        }
+        return <PublishingPanel isPublished={true} onCreateAnother={onReset} />;
       
       default:
         return <WelcomePanel />;
