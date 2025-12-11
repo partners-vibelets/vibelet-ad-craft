@@ -116,25 +116,33 @@ export const mockCreatives: CreativeOption[] = [
     id: 'creative-1',
     type: 'video',
     thumbnail: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400',
-    name: 'Video Ad - 15s'
+    name: 'Story/Reel Video',
+    format: 'reel',
+    aspectRatio: '9:16'
   },
   {
     id: 'creative-2',
     type: 'video',
     thumbnail: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400',
-    name: 'Video Ad - 30s'
+    name: 'Feed Video',
+    format: 'feed',
+    aspectRatio: '4:5'
   },
   {
     id: 'creative-3',
     type: 'image',
     thumbnail: 'https://images.unsplash.com/photo-1598331668826-20cecc596b86?w=400',
-    name: 'Static Image Ad'
+    name: 'Square Feed Image',
+    format: 'feed',
+    aspectRatio: '1:1'
   },
   {
     id: 'creative-4',
     type: 'image',
     thumbnail: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400',
-    name: 'Carousel Ad'
+    name: 'Landscape Ad',
+    format: 'landscape',
+    aspectRatio: '1.91:1'
   }
 ];
 
