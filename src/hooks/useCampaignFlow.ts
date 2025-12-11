@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
+import { toast } from 'sonner';
+import { isValidUrl, sanitizeInput, validateCampaignConfig, formatErrorMessage } from '@/lib/validation';
 
 const STEP_ORDER: CampaignStep[] = [
   'welcome',
@@ -66,6 +68,17 @@ export const useCampaignFlow = () => {
     addMessage('assistant', content, options);
   }, [addMessage]);
 
+  const handleError = useCallback((error: unknown, context: string) => {
+    console.error(`Error in ${context}:`, error);
+    const message = formatErrorMessage(error);
+    toast.error(`${context} failed`, {
+      description: message,
+      duration: 5000,
+    });
+    setState(prev => ({ ...prev, isStepLoading: false, isRegenerating: null }));
+    addMessage('assistant', `Sorry, something went wrong while ${context.toLowerCase()}. Please try again or contact support if the issue persists.`);
+  }, [addMessage]);
+
   const goToStep = useCallback((targetStep: CampaignStep) => {
     const targetIndex = STEP_ORDER.indexOf(targetStep);
     const currentIndex = STEP_ORDER.indexOf(state.step);
@@ -129,135 +142,198 @@ export const useCampaignFlow = () => {
   };
 
   const handleUserMessage = useCallback(async (content: string) => {
-    addMessage('user', content);
-    
-    if (state.step === 'welcome' || state.step === 'product-url') {
-      if (content.includes('.') || content.includes('http')) {
-        setState(prev => ({ ...prev, step: 'product-analysis', productUrl: content, stepHistory: [...prev.stepHistory, 'product-analysis'], isStepLoading: true }));
-        
-        await simulateTyping("Perfect! Analyzing your product page now... 🔍", { stepId: 'product-analysis' }, 1000);
-        
-        await new Promise(resolve => setTimeout(resolve, 2500));
-        
-        setState(prev => ({ ...prev, productData: mockProductData, isStepLoading: false }));
-        
-        // Show product analysis first, then ask about continuing
-        const continueQuestion: InlineQuestion = {
-          id: 'product-continue',
-          question: 'Ready to create your ad?',
-          options: [
-            { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
-            { id: 'change', label: 'Change URL', description: 'Use a different product' }
-          ]
-        };
-        
-        await simulateTyping(
-          `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
-          { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
-          1500
-        );
-      } else {
-        await simulateTyping("Please share your product URL (e.g., https://yourstore.com/product) and I'll analyze it for you.");
+    try {
+      const sanitizedContent = sanitizeInput(content);
+      if (!sanitizedContent) {
+        toast.error('Invalid input', { description: 'Please enter a valid message' });
+        return;
       }
+      
+      addMessage('user', sanitizedContent);
+      
+      if (state.step === 'welcome' || state.step === 'product-url') {
+        // Check if it looks like a URL
+        if (sanitizedContent.includes('.') || sanitizedContent.includes('http')) {
+          // Validate URL format
+          if (!isValidUrl(sanitizedContent)) {
+            await simulateTyping("That doesn't look like a valid URL. Please provide a complete product URL (e.g., https://yourstore.com/product).");
+            return;
+          }
+          
+          setState(prev => ({ ...prev, step: 'product-analysis', productUrl: sanitizedContent, stepHistory: [...prev.stepHistory, 'product-analysis'], isStepLoading: true }));
+          
+          await simulateTyping("Perfect! Analyzing your product page now... 🔍", { stepId: 'product-analysis' }, 1000);
+          
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          
+          // Simulate potential API failure (in production, this would be real API call)
+          if (Math.random() < 0.02) { // 2% simulated failure rate for demo
+            throw new Error('Failed to fetch product data. The page may be unavailable or blocking our requests.');
+          }
+          
+          setState(prev => ({ ...prev, productData: mockProductData, isStepLoading: false }));
+          
+          const continueQuestion: InlineQuestion = {
+            id: 'product-continue',
+            question: 'Ready to create your ad?',
+            options: [
+              { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
+              { id: 'change', label: 'Change URL', description: 'Use a different product' }
+            ]
+          };
+          
+          await simulateTyping(
+            `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
+            { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
+            1500
+          );
+        } else {
+          await simulateTyping("Please share your product URL (e.g., https://yourstore.com/product) and I'll analyze it for you.");
+        }
+      }
+    } catch (error) {
+      handleError(error, 'Processing your message');
     }
-  }, [state.step, addMessage, simulateTyping]);
+  }, [state.step, addMessage, simulateTyping, handleError]);
 
   const handleCampaignConfigComplete = useCallback(async (config: Record<string, string>) => {
-    // Transform slider output to full CampaignConfig
-    const productTitle = state.productData?.title || 'Campaign';
-    const fullConfig: CampaignConfig = {
-      campaignName: productTitle,
-      objective: config.objective || 'Sales',
-      budgetType: 'daily',
-      adSetName: productTitle,
-      budgetAmount: config.budget || '50',
-      duration: config.duration || '14',
-      fbPixelId: '',
-      fbPageId: '',
-      adName: productTitle,
-      primaryText: state.productData?.description?.slice(0, 125) || 'Check out this amazing product!',
-      cta: config.cta || 'Shop Now',
-      websiteUrl: state.productUrl || ''
-    };
-    
-    setState(prev => ({ ...prev, campaignConfig: fullConfig, isStepLoading: true }));
-    
-    const budgetDisplay = `$${fullConfig.budgetAmount}/day`;
-    const durationDisplay = fullConfig.duration === 'ongoing' ? 'Ongoing' : `${fullConfig.duration} days`;
-    
-    addMessage('user', `Campaign configured: ${fullConfig.objective} • ${budgetDisplay} • ${durationDisplay}`);
-    
-    // Check if Facebook was already connected in a previous session
-    await simulateTyping(
-      `Your campaign is configured:\n• **Objective:** ${fullConfig.objective}\n• **Budget:** ${budgetDisplay}\n• **Duration:** ${durationDisplay}\n\nNow let's connect your Facebook Ads account:`,
-      { showFacebookConnect: true, stepId: 'facebook-integration' },
-      1200
-    );
-    setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'], isStepLoading: false }));
-  }, [state.productData, state.productUrl, addMessage, simulateTyping]);
+    try {
+      // Validate configuration
+      const validation = validateCampaignConfig(config);
+      if (!validation.valid) {
+        toast.error('Invalid configuration', {
+          description: validation.errors.join('. '),
+        });
+        return;
+      }
+      
+      // Transform slider output to full CampaignConfig
+      const productTitle = state.productData?.title || 'Campaign';
+      const fullConfig: CampaignConfig = {
+        campaignName: sanitizeInput(productTitle),
+        objective: config.objective || 'Sales',
+        budgetType: 'daily',
+        adSetName: sanitizeInput(productTitle),
+        budgetAmount: config.budget || '50',
+        duration: config.duration || '14',
+        fbPixelId: '',
+        fbPageId: '',
+        adName: sanitizeInput(productTitle),
+        primaryText: state.productData?.description?.slice(0, 125) || 'Check out this amazing product!',
+        cta: config.cta || 'Shop Now',
+        websiteUrl: state.productUrl || ''
+      };
+      
+      setState(prev => ({ ...prev, campaignConfig: fullConfig, isStepLoading: true }));
+      
+      const budgetDisplay = `$${fullConfig.budgetAmount}/day`;
+      const durationDisplay = fullConfig.duration === 'ongoing' ? 'Ongoing' : `${fullConfig.duration} days`;
+      
+      addMessage('user', `Campaign configured: ${fullConfig.objective} • ${budgetDisplay} • ${durationDisplay}`);
+      
+      await simulateTyping(
+        `Your campaign is configured:\n• **Objective:** ${fullConfig.objective}\n• **Budget:** ${budgetDisplay}\n• **Duration:** ${durationDisplay}\n\nNow let's connect your Facebook Ads account:`,
+        { showFacebookConnect: true, stepId: 'facebook-integration' },
+        1200
+      );
+      setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Saving campaign configuration');
+    }
+  }, [state.productData, state.productUrl, addMessage, simulateTyping, handleError]);
 
   const handleFacebookConnect = useCallback(async () => {
-    addMessage('user', "Connecting Facebook account...");
-    setState(prev => ({ ...prev, facebookConnected: true, isStepLoading: true }));
-    
-    // Simulate OAuth popup return
-    await simulateTyping("Redirecting to Facebook...", {}, 500);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const accountQuestion: InlineQuestion = {
-      id: 'ad-account-selection',
-      question: 'Which ad account should we use?',
-      options: mockAdAccounts.map(a => ({ id: a.id, label: a.name, description: `Status: ${a.status}` }))
-    };
-    
-    await simulateTyping(
-      `Facebook connected! 🔗\n\nI found ${mockAdAccounts.length} ad accounts. Select one to continue:`,
-      { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
-      800
-    );
-    setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'], isStepLoading: false }));
-  }, [addMessage, simulateTyping]);
+    try {
+      addMessage('user', "Connecting Facebook account...");
+      setState(prev => ({ ...prev, facebookConnected: true, isStepLoading: true }));
+      
+      // Simulate OAuth popup return
+      await simulateTyping("Redirecting to Facebook...", {}, 500);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Check for ad accounts
+      if (!mockAdAccounts || mockAdAccounts.length === 0) {
+        throw new Error('No ad accounts found. Please ensure you have at least one Facebook Ad Account.');
+      }
+      
+      const accountQuestion: InlineQuestion = {
+        id: 'ad-account-selection',
+        question: 'Which ad account should we use?',
+        options: mockAdAccounts.map(a => ({ id: a.id, label: a.name, description: `Status: ${a.status}` }))
+      };
+      
+      await simulateTyping(
+        `Facebook connected! 🔗\n\nI found ${mockAdAccounts.length} ad accounts. Select one to continue:`,
+        { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
+        800
+      );
+      setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Connecting to Facebook');
+      setState(prev => ({ ...prev, facebookConnected: false }));
+    }
+  }, [addMessage, simulateTyping, handleError]);
 
   const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
-    if (questionId === 'product-continue') {
-      if (answerId === 'continue') {
-        addMessage('user', "Let's continue!");
-        setState(prev => ({ ...prev, isStepLoading: true }));
-        
-        const scriptQuestion: InlineQuestion = {
-          id: 'script-selection',
-          question: 'Choose a script style that matches your brand voice:',
-          options: [
-            ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
-            { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
-          ]
-        };
-        
-        await simulateTyping(
-          `Great! Now let's choose how to tell your product's story:`,
-          { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
-          800
-        );
-        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
-      } else {
-        addMessage('user', "I want to change the product URL.");
-        setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
-        await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
+    try {
+      if (!questionId || !answerId) {
+        toast.error('Invalid selection', { description: 'Please try again' });
+        return;
       }
-    } else if (questionId === 'script-selection') {
-      if (answerId === 'custom-script') {
-        setState(prev => ({ ...prev, isCustomScriptMode: true, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
-        addMessage('user', "I'll write my own script.");
-        await simulateTyping(
-          `Great! You can write your own ad copy in the panel. I'll guide you with Facebook's best practices for character limits. ✍️`,
-          { stepId: 'script-selection' },
-          800
-        );
-      } else {
-        const script = scriptOptions.find(s => s.id === answerId);
-        if (script) {
+      
+      if (questionId === 'product-continue') {
+        if (answerId === 'continue') {
+          addMessage('user', "Let's continue!");
+          setState(prev => ({ ...prev, isStepLoading: true }));
+          
+          // Check if we have script options
+          if (!scriptOptions || scriptOptions.length === 0) {
+            throw new Error('Script options not available');
+          }
+          
+          const scriptQuestion: InlineQuestion = {
+            id: 'script-selection',
+            question: 'Choose a script style that matches your brand voice:',
+            options: [
+              ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+              { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+            ]
+          };
+          
+          await simulateTyping(
+            `Great! Now let's choose how to tell your product's story:`,
+            { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+            800
+          );
+          setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
+        } else {
+          addMessage('user', "I want to change the product URL.");
+          setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
+          await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
+        }
+      } else if (questionId === 'script-selection') {
+        if (answerId === 'custom-script') {
+          setState(prev => ({ ...prev, isCustomScriptMode: true, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
+          addMessage('user', "I'll write my own script.");
+          await simulateTyping(
+            `Great! You can write your own ad copy in the panel. I'll guide you with Facebook's best practices for character limits. ✍️`,
+            { stepId: 'script-selection' },
+            800
+          );
+        } else {
+          const script = scriptOptions.find(s => s.id === answerId);
+          if (!script) {
+            toast.error('Script not found', { description: 'Please select a valid script option' });
+            return;
+          }
+          
           setState(prev => ({ ...prev, selectedScript: script, isStepLoading: true, isCustomScriptMode: false }));
           addMessage('user', `I'll use the "${script.name}" script.`);
+          
+          // Check if we have avatar options
+          if (!avatarOptions || avatarOptions.length === 0) {
+            throw new Error('Avatar options not available');
+          }
           
           const avatarQuestion: InlineQuestion = {
             id: 'avatar-selection',
@@ -272,10 +348,13 @@ export const useCampaignFlow = () => {
           );
           setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
         }
-      }
-    } else if (questionId === 'avatar-selection') {
-      const avatar = avatarOptions.find(a => a.id === answerId);
-      if (avatar) {
+      } else if (questionId === 'avatar-selection') {
+        const avatar = avatarOptions.find(a => a.id === answerId);
+        if (!avatar) {
+          toast.error('Avatar not found', { description: 'Please select a valid avatar' });
+          return;
+        }
+        
         setState(prev => ({ ...prev, selectedAvatar: avatar, isStepLoading: true }));
         addMessage('user', `${avatar.name} will be the presenter.`);
         
@@ -287,6 +366,11 @@ export const useCampaignFlow = () => {
         setState(prev => ({ ...prev, step: 'creative-generation', stepHistory: [...prev.stepHistory, 'creative-generation'], isStepLoading: false }));
         
         await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Check for creatives
+        if (!mockCreatives || mockCreatives.length === 0) {
+          throw new Error('Failed to generate creatives. Please try again.');
+        }
         
         setState(prev => ({ ...prev, creatives: mockCreatives, isStepLoading: true }));
         
@@ -309,19 +393,22 @@ export const useCampaignFlow = () => {
           1500
         );
         setState(prev => ({ ...prev, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'], isStepLoading: false }));
-      }
-    } else if (questionId === 'creative-selection') {
-      if (answerId === 'custom-creative') {
-        setState(prev => ({ ...prev, isCustomCreativeMode: true, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
-        addMessage('user', "I'll upload my own creative.");
-        await simulateTyping(
-          `Perfect! Upload your image or video in the panel. I'll validate it against Facebook's ad specifications. 📤`,
-          { stepId: 'creative-review' },
-          800
-        );
-      } else {
-        const creative = mockCreatives.find(c => c.id === answerId);
-        if (creative) {
+      } else if (questionId === 'creative-selection') {
+        if (answerId === 'custom-creative') {
+          setState(prev => ({ ...prev, isCustomCreativeMode: true, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
+          addMessage('user', "I'll upload my own creative.");
+          await simulateTyping(
+            `Perfect! Upload your image or video in the panel. I'll validate it against Facebook's ad specifications. 📤`,
+            { stepId: 'creative-review' },
+            800
+          );
+        } else {
+          const creative = mockCreatives.find(c => c.id === answerId);
+          if (!creative) {
+            toast.error('Creative not found', { description: 'Please select a valid creative' });
+            return;
+          }
+          
           setState(prev => ({ ...prev, selectedCreative: creative, isStepLoading: true, isCustomCreativeMode: false }));
           addMessage('user', `I'll use the "${creative.name}" creative.`);
           
@@ -332,10 +419,20 @@ export const useCampaignFlow = () => {
           );
           setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
         }
-      }
-    } else if (questionId === 'ad-account-selection') {
-      const account = mockAdAccounts.find(a => a.id === answerId);
-      if (account) {
+      } else if (questionId === 'ad-account-selection') {
+        const account = mockAdAccounts.find(a => a.id === answerId);
+        if (!account) {
+          toast.error('Ad account not found', { description: 'Please select a valid ad account' });
+          return;
+        }
+        
+        // Check account status
+        if (account.status !== 'Active') {
+          toast.warning('Account not active', { 
+            description: `${account.name} is ${account.status}. You may need to activate it in Facebook Business Manager.` 
+          });
+        }
+        
         setState(prev => ({ ...prev, selectedAdAccount: account, isStepLoading: true }));
         addMessage('user', `Using "${account.name}" account.`);
         
@@ -354,31 +451,47 @@ export const useCampaignFlow = () => {
           1500
         );
         setState(prev => ({ ...prev, step: 'campaign-preview', stepHistory: [...prev.stepHistory, 'campaign-preview'], isStepLoading: false }));
+      } else if (questionId === 'publish-confirm') {
+        if (answerId === 'publish') {
+          // Validate campaign is complete
+          if (!state.campaignConfig || !state.selectedCreative || !state.selectedAdAccount) {
+            throw new Error('Campaign is incomplete. Please ensure all steps are completed.');
+          }
+          
+          addMessage('user', "Publish the campaign!");
+          setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
+          
+          await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
+          
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Simulate potential publishing failure (2% chance in demo)
+          if (Math.random() < 0.02) {
+            throw new Error('Publishing failed. Facebook API returned an error. Please try again.');
+          }
+          
+          toast.success('Campaign Published!', {
+            description: 'Your ad has been submitted for Facebook review.',
+          });
+          
+          await simulateTyping(
+            `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
+            { stepId: 'published' },
+            2000
+          );
+          setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
+        } else {
+          await simulateTyping(
+            `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
+            {},
+            1000
+          );
+        }
       }
-    } else if (questionId === 'publish-confirm') {
-      if (answerId === 'publish') {
-        addMessage('user', "Publish the campaign!");
-        setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
-        
-        await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
-        
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        await simulateTyping(
-          `🎉 **Campaign Published!**\n\nYour ad has been submitted for review (typically 24-48 hours).\n\n**What's next:**\n• Monitor performance in your dashboard\n• I'll notify you when approved\n• Optimization tips coming soon!\n\nWant to create another campaign? Just paste a new product URL!`,
-          { stepId: 'published' },
-          2000
-        );
-        setState(prev => ({ ...prev, step: 'published', stepHistory: [...prev.stepHistory, 'published'], isStepLoading: false }));
-      } else {
-        await simulateTyping(
-          `Take your time to review. Check the campaign preview on the right, and when you're ready, just say "publish" or select Publish Campaign above.`,
-          {},
-          1000
-        );
-      }
+    } catch (error) {
+      handleError(error, 'Processing your selection');
     }
-  }, [addMessage, simulateTyping]);
+  }, [state.campaignConfig, state.selectedCreative, state.selectedAdAccount, addMessage, simulateTyping, handleError]);
 
   // Legacy functions for backward compatibility (now handled via inline questions)
   const selectScript = useCallback(async (script: ScriptOption) => {
@@ -423,93 +536,129 @@ export const useCampaignFlow = () => {
 
   // Regenerate handlers for AI-generated content
   const regenerateProductAnalysis = useCallback(async () => {
-    if (!state.productUrl) return;
-    
-    setState(prev => ({ ...prev, isRegenerating: 'product' }));
-    addMessage('assistant', "Regenerating product analysis with fresh AI insights... ✨");
-    
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    // In real implementation, this would call the AI API
-    // For now, we simulate with slightly modified mock data
-    const refreshedData = {
-      ...mockProductData,
-      insights: mockProductData.insights?.map(insight => ({
-        ...insight,
-        value: insight.value // In real app, AI would generate new insights
-      }))
-    };
-    
-    setState(prev => ({ ...prev, productData: refreshedData, isRegenerating: null }));
-    addMessage('assistant', "Product analysis refreshed! I've generated new insights based on the latest AI models.");
-  }, [state.productUrl, addMessage]);
+    try {
+      if (!state.productUrl) {
+        toast.error('No product URL', { description: 'Please provide a product URL first' });
+        return;
+      }
+      
+      setState(prev => ({ ...prev, isRegenerating: 'product' }));
+      addMessage('assistant', "Regenerating product analysis with fresh AI insights... ✨");
+      
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      const refreshedData = {
+        ...mockProductData,
+        insights: mockProductData.insights?.map(insight => ({
+          ...insight,
+          value: insight.value
+        }))
+      };
+      
+      setState(prev => ({ ...prev, productData: refreshedData, isRegenerating: null }));
+      addMessage('assistant', "Product analysis refreshed! I've generated new insights based on the latest AI models.");
+      toast.success('Analysis refreshed', { description: 'New insights generated successfully' });
+    } catch (error) {
+      handleError(error, 'Regenerating product analysis');
+    }
+  }, [state.productUrl, addMessage, handleError]);
 
   const regenerateScripts = useCallback(async () => {
-    setState(prev => ({ ...prev, isRegenerating: 'scripts', selectedScript: null }));
-    addMessage('assistant', "Generating new script variations... 🎬");
-    
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // In real implementation, this would call the AI API for new scripts
-    setState(prev => ({ ...prev, isRegenerating: null }));
-    
-    const scriptQuestion: InlineQuestion = {
-      id: 'script-selection',
-      question: 'Here are fresh script options:',
-      options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
-    };
-    
-    await simulateTyping(
-      "I've generated new script variations! Choose the one that best fits your brand:",
-      { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
-      500
-    );
-  }, [addMessage, simulateTyping]);
+    try {
+      setState(prev => ({ ...prev, isRegenerating: 'scripts', selectedScript: null }));
+      addMessage('assistant', "Generating new script variations... 🎬");
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      if (!scriptOptions || scriptOptions.length === 0) {
+        throw new Error('Failed to generate script variations');
+      }
+      
+      setState(prev => ({ ...prev, isRegenerating: null }));
+      
+      const scriptQuestion: InlineQuestion = {
+        id: 'script-selection',
+        question: 'Here are fresh script options:',
+        options: scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description }))
+      };
+      
+      await simulateTyping(
+        "I've generated new script variations! Choose the one that best fits your brand:",
+        { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+        500
+      );
+      toast.success('Scripts regenerated', { description: 'New script options available' });
+    } catch (error) {
+      handleError(error, 'Regenerating scripts');
+    }
+  }, [addMessage, simulateTyping, handleError]);
 
   const regenerateCreatives = useCallback(async () => {
-    setState(prev => ({ ...prev, isRegenerating: 'creatives', selectedCreative: null, step: 'creative-generation' }));
-    addMessage('assistant', "Regenerating ad creatives with new AI variations... 🎨");
-    
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    setState(prev => ({ ...prev, creatives: mockCreatives, isRegenerating: null }));
-    
-    const creativeQuestion: InlineQuestion = {
-      id: 'creative-selection',
-      question: 'Here are your new creative options:',
-      options: mockCreatives.map(c => ({ 
-        id: c.id, 
-        label: c.name, 
-        description: c.type === 'video' ? 'Video format' : 'Image format'
-      }))
-    };
-    
-    await simulateTyping(
-      "Fresh creatives ready! I've generated new variations based on your product and script:",
-      { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
-      1500
-    );
-    setState(prev => ({ ...prev, step: 'creative-review' }));
-  }, [addMessage, simulateTyping]);
+    try {
+      setState(prev => ({ ...prev, isRegenerating: 'creatives', selectedCreative: null, step: 'creative-generation' }));
+      addMessage('assistant', "Regenerating ad creatives with new AI variations... 🎨");
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      if (!mockCreatives || mockCreatives.length === 0) {
+        throw new Error('Failed to generate creative variations');
+      }
+      
+      setState(prev => ({ ...prev, creatives: mockCreatives, isRegenerating: null }));
+      
+      const creativeQuestion: InlineQuestion = {
+        id: 'creative-selection',
+        question: 'Here are your new creative options:',
+        options: mockCreatives.map(c => ({ 
+          id: c.id, 
+          label: c.name, 
+          description: c.type === 'video' ? 'Video format' : 'Image format'
+        }))
+      };
+      
+      await simulateTyping(
+        "Fresh creatives ready! I've generated new variations based on your product and script:",
+        { inlineQuestion: creativeQuestion, stepId: 'creative-review' },
+        1500
+      );
+      setState(prev => ({ ...prev, step: 'creative-review' }));
+      toast.success('Creatives regenerated', { description: 'New creative options available' });
+    } catch (error) {
+      handleError(error, 'Regenerating creatives');
+    }
+  }, [addMessage, simulateTyping, handleError]);
 
   // Custom script/creative handlers
   const handleCustomScriptSubmit = useCallback(async (script: ScriptOption) => {
-    setState(prev => ({ ...prev, selectedScript: script, isCustomScriptMode: false, isStepLoading: true }));
-    addMessage('user', `Custom script: "${script.customContent?.headline || 'My Script'}"`);
-    
-    const avatarQuestion: InlineQuestion = {
-      id: 'avatar-selection',
-      question: 'Select an AI presenter for your video:',
-      options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
-    };
-    
-    await simulateTyping(
-      `Great custom script! Your ad copy looks compelling. ✍️\n\nNow let's pick an AI avatar to present your product:`,
-      { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
-      1200
-    );
-    setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
-  }, [addMessage, simulateTyping]);
+    try {
+      if (!script?.customContent?.primaryText) {
+        toast.error('Invalid script', { description: 'Please provide primary text for your ad' });
+        return;
+      }
+      
+      setState(prev => ({ ...prev, selectedScript: script, isCustomScriptMode: false, isStepLoading: true }));
+      addMessage('user', `Custom script: "${script.customContent?.headline || 'My Script'}"`);
+      
+      if (!avatarOptions || avatarOptions.length === 0) {
+        throw new Error('Avatar options not available');
+      }
+      
+      const avatarQuestion: InlineQuestion = {
+        id: 'avatar-selection',
+        question: 'Select an AI presenter for your video:',
+        options: avatarOptions.map(a => ({ id: a.id, label: a.name, description: a.style }))
+      };
+      
+      await simulateTyping(
+        `Great custom script! Your ad copy looks compelling. ✍️\n\nNow let's pick an AI avatar to present your product:`,
+        { inlineQuestion: avatarQuestion, stepId: 'avatar-selection' },
+        1200
+      );
+      setState(prev => ({ ...prev, step: 'avatar-selection', stepHistory: [...prev.stepHistory, 'avatar-selection'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Submitting custom script');
+    }
+  }, [addMessage, simulateTyping, handleError]);
 
   const handleCustomScriptCancel = useCallback(() => {
     setState(prev => ({ ...prev, isCustomScriptMode: false }));
@@ -527,16 +676,25 @@ export const useCampaignFlow = () => {
   }, [addMessage]);
 
   const handleCustomCreativeSubmit = useCallback(async (creative: CreativeOption) => {
-    setState(prev => ({ ...prev, selectedCreative: creative, isCustomCreativeMode: false, isStepLoading: true }));
-    addMessage('user', `Uploaded custom ${creative.type}: "${creative.name}"`);
-    
-    await simulateTyping(
-      `Your custom ${creative.type} looks great and meets Facebook's ad specifications! 📤\n\nLet's configure your campaign:`,
-      { showCampaignSlider: true, stepId: 'campaign-setup' },
-      1200
-    );
-    setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
-  }, [addMessage, simulateTyping]);
+    try {
+      if (!creative?.thumbnail) {
+        toast.error('Invalid creative', { description: 'Please upload a valid image or video' });
+        return;
+      }
+      
+      setState(prev => ({ ...prev, selectedCreative: creative, isCustomCreativeMode: false, isStepLoading: true }));
+      addMessage('user', `Uploaded custom ${creative.type}: "${creative.name}"`);
+      
+      await simulateTyping(
+        `Your custom ${creative.type} looks great and meets Facebook's ad specifications! 📤\n\nLet's configure your campaign:`,
+        { showCampaignSlider: true, stepId: 'campaign-setup' },
+        1200
+      );
+      setState(prev => ({ ...prev, step: 'campaign-setup', stepHistory: [...prev.stepHistory, 'campaign-setup'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Submitting custom creative');
+    }
+  }, [addMessage, simulateTyping, handleError]);
 
   const handleCustomCreativeCancel = useCallback(() => {
     setState(prev => ({ ...prev, isCustomCreativeMode: false }));
