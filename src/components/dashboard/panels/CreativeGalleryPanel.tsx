@@ -77,27 +77,30 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
         
         {/* Creative image - consistent square container with object-cover */}
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-          {isVideo ? (
+          {isVideo && !creative.thumbnail ? (
+            // Video without thumbnail - show placeholder with built-in play button
             <VideoThumbnailPlaceholder aspectRatio={creative.aspectRatio} />
           ) : (
-            <img 
-              src={creative.thumbnail} 
-              alt={creative.name}
-              className="w-full h-full object-cover"
-            />
-          )}
-          
-          {/* Video play overlay - only for images that have thumbnails */}
-          {isVideo && creative.thumbnail && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
-              <div className={cn(
-                "w-12 h-12 rounded-full bg-secondary flex items-center justify-center shadow-xl",
-                "transition-all duration-300 group-hover:scale-110 group-hover:bg-secondary-hover",
-                "border border-secondary-dark/50"
-              )}>
-                <Play className="w-5 h-5 text-secondary-foreground ml-0.5" fill="currentColor" />
-              </div>
-            </div>
+            // Image or video with thumbnail
+            <>
+              <img 
+                src={creative.thumbnail} 
+                alt={creative.name}
+                className="w-full h-full object-cover"
+              />
+              {/* Video play overlay - only for videos with thumbnails */}
+              {isVideo && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                  <div className={cn(
+                    "w-14 h-14 rounded-full bg-secondary flex items-center justify-center shadow-xl",
+                    "transition-all duration-300 group-hover:scale-110 group-hover:bg-secondary-hover",
+                    "border border-secondary-dark/50"
+                  )}>
+                    <Play className="w-6 h-6 text-secondary-foreground ml-0.5" fill="currentColor" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
           
           {/* Gradient overlay for text readability */}
