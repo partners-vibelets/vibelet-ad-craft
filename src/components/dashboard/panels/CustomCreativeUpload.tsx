@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Upload, Image, Video, Check, AlertCircle, X, Sparkles, Info } from 'lucide-react';
+import { Upload, Image, Video, Check, AlertCircle, X, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -224,40 +224,6 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4 mt-4">
-          {/* Specs Card */}
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <h3 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Recommended Specifications
-            </h3>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              {specs.aspectRatios.filter(r => r.recommended).map((ratio) => (
-                <div key={ratio.name} className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="w-3 h-3 text-secondary" />
-                  <span>{ratio.name}</span>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="w-3 h-3" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{ratio.dimensions}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              ))}
-            </div>
-            {activeTab === 'video' && (
-              <p className="text-xs text-muted-foreground mt-2">
-                • Recommended duration: 15-60 seconds
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              • Max size: {specs.maxSize >= 1024 * 1024 * 1024 
-                ? `${specs.maxSize / (1024 * 1024 * 1024)}GB` 
-                : `${specs.maxSize / (1024 * 1024)}MB`}
-            </p>
-          </div>
-
           {/* Upload Zone */}
           {!uploadedFile ? (
             <div
@@ -277,11 +243,11 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
                 onChange={(e) => handleFileSelect(e.target.files)}
                 className="hidden"
               />
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-muted mb-3">
                 {activeTab === 'image' ? (
-                  <Image className="w-8 h-8 text-muted-foreground" />
+                  <Image className="w-7 h-7 text-muted-foreground" />
                 ) : (
-                  <Video className="w-8 h-8 text-muted-foreground" />
+                  <Video className="w-7 h-7 text-muted-foreground" />
                 )}
               </div>
               <p className="text-foreground font-medium">
@@ -290,6 +256,38 @@ export const CustomCreativeUpload = ({ onSubmit, onCancel }: CustomCreativeUploa
               <p className="text-sm text-muted-foreground mt-1">
                 {activeTab === 'image' ? 'JPG, PNG, or WebP' : 'MP4 or MOV'}
               </p>
+              
+              {/* Compact specs inline */}
+              <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1.5 cursor-help">
+                      <Check className="w-3 h-3 text-secondary" />
+                      1:1, 4:5{activeTab === 'video' ? ', 9:16' : ''}
+                      <Info className="w-3 h-3" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-medium mb-1">Recommended Aspect Ratios</p>
+                    <ul className="space-y-0.5">
+                      {specs.aspectRatios.filter(r => r.recommended).map((ratio) => (
+                        <li key={ratio.name}>{ratio.name} ({ratio.dimensions})</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+                <span className="text-border">•</span>
+                <span>Max {specs.maxSize >= 1024 * 1024 * 1024 
+                  ? `${specs.maxSize / (1024 * 1024 * 1024)}GB` 
+                  : `${specs.maxSize / (1024 * 1024)}MB`}
+                </span>
+                {activeTab === 'video' && (
+                  <>
+                    <span className="text-border">•</span>
+                    <span>15-60s recommended</span>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             /* Preview */
