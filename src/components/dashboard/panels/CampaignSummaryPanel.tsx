@@ -214,10 +214,15 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                 />
                 <ReadOnlyField 
                   label="Budget Type" 
-                  value="Daily" 
+                  value={campaignConfig?.budgetType === 'lifetime' ? 'Lifetime' : 'Daily'} 
                   icon={DollarSign} 
                 />
               </div>
+              <ReadOnlyField 
+                label="Budget" 
+                value={getBudgetDisplay()} 
+                icon={DollarSign} 
+              />
             </div>
           </div>
 
@@ -273,20 +278,11 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                   icon={Clock} 
                 />
               </div>
-              {selectedAdAccount && (
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/30">
-                  <ReadOnlyField 
-                    label="FB Pixel ID" 
-                    value={`px_${selectedAdAccount.id.slice(-6)}`} 
-                    icon={BarChart3} 
-                  />
-                  <ReadOnlyField 
-                    label="FB Page ID" 
-                    value={`pg_${selectedAdAccount.id.slice(-6)}`} 
-                    icon={Facebook} 
-                  />
-                </div>
-              )}
+              <ReadOnlyField 
+                label="Pixel ID" 
+                value={selectedAdAccount ? `px_${selectedAdAccount.id.slice(-6)}` : 'Not connected'} 
+                icon={BarChart3} 
+              />
             </div>
           </div>
 
@@ -320,6 +316,11 @@ export const CampaignSummaryPanel = ({ state }: CampaignSummaryPanelProps) => {
                   icon={Globe} 
                 />
               </div>
+              <ReadOnlyField 
+                label="Page Name" 
+                value={selectedAdAccount ? selectedAdAccount.name : 'Not connected'} 
+                icon={Facebook} 
+              />
             </div>
           </div>
 
