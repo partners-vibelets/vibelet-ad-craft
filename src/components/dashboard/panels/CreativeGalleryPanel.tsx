@@ -3,7 +3,7 @@ import { Image, Video, Check, Play, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-
+import { VideoThumbnailPlaceholder } from './VideoThumbnailPlaceholder';
 interface CreativeGalleryPanelProps {
   creatives: CreativeOption[];
   selectedCreative: CreativeOption | null;
@@ -59,14 +59,18 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
         
         {/* Creative image - consistent square container with object-cover */}
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-          <img 
-            src={creative.thumbnail} 
-            alt={creative.name}
-            className="w-full h-full object-cover"
-          />
+          {isVideo ? (
+            <VideoThumbnailPlaceholder aspectRatio={creative.aspectRatio} />
+          ) : (
+            <img 
+              src={creative.thumbnail} 
+              alt={creative.name}
+              className="w-full h-full object-cover"
+            />
+          )}
           
-          {/* Video play overlay */}
-          {isVideo && (
+          {/* Video play overlay - only for images that have thumbnails */}
+          {isVideo && creative.thumbnail && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
               <div className={cn(
                 "w-12 h-12 rounded-full bg-background/95 flex items-center justify-center shadow-xl",
