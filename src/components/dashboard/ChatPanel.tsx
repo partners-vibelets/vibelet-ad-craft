@@ -79,42 +79,15 @@ export const ChatPanel = ({
         <div className="flex items-center gap-3">
           <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
           <div className="min-w-0">
-            <h2 className="font-semibold text-sm text-foreground">
+            <h2 className="font-semibold text-sm text-foreground whitespace-nowrap">
               {mode === 'campaign' ? 'Campaign Builder' : 'Assistant'}
             </h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
               {mode === 'campaign' ? 'AI-powered ad creation' : 'Ask me anything'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Chat Toggle Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMode}
-            className={cn(
-              "h-8 px-3 gap-1.5 text-xs font-medium transition-all",
-              mode === 'assistant' 
-                ? "bg-secondary/20 text-secondary hover:bg-secondary/30" 
-                : "hover:bg-secondary/10 text-muted-foreground hover:text-secondary"
-            )}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Chat
-          </Button>
-          {mode === 'assistant' && assistantMessages.length > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearAssistantChat}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </div>
 
       {/* Messages */}
@@ -151,6 +124,37 @@ export const ChatPanel = ({
 
       {/* Input */}
       <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
+        <div className="flex items-center justify-between px-4 pt-3 pb-1">
+          <span className="text-xs text-muted-foreground">
+            {mode === 'campaign' ? 'Campaign Builder' : 'Assistant Chat'}
+          </span>
+          <div className="flex items-center gap-2">
+            {mode === 'assistant' && assistantMessages.length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearAssistantChat}
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMode}
+              className={cn(
+                "h-7 px-2.5 gap-1.5 text-xs font-medium transition-all rounded-full",
+                mode === 'assistant' 
+                  ? "bg-secondary/20 text-secondary hover:bg-secondary/30" 
+                  : "hover:bg-secondary/10 text-muted-foreground hover:text-secondary"
+              )}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              {mode === 'assistant' ? 'Campaign' : 'Chat'}
+            </Button>
+          </div>
+        </div>
         <ChatInput 
           onSend={handleSendMessage} 
           disabled={mode === 'campaign' ? (disabled || isTyping) : assistantIsTyping} 
