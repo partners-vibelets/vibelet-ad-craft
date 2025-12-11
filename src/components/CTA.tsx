@@ -29,7 +29,7 @@ const CTA = () => {
               className="bg-secondary text-secondary-foreground hover:bg-secondary-hover shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all"
               asChild
             >
-              <Link to="/dashboard">
+              <Link to="/auth">
                 Get Started Free
                 <ArrowRight className="w-5 h-5" />
               </Link>
