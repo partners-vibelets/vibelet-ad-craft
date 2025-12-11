@@ -67,8 +67,10 @@ I can help you with:
 };
 
 const QUERY_PATTERNS: { pattern: RegExp; key: string }[] = [
+  { pattern: /what'?s?\s*vibelets/i, key: 'what is vibelets' },
   { pattern: /what\s+(is|are)\s+vibelets/i, key: 'what is vibelets' },
-  { pattern: /what\s+(can|could)\s+i\s+do/i, key: 'what can i do' },
+  { pattern: /what\s+(can|could).*(do|done)/i, key: 'what can i do' },
+  { pattern: /what.*(can|could)\s+i\s+do/i, key: 'what can i do' },
   { pattern: /how\s+(does|do)\s+(it|this)\s+work/i, key: 'how does it work' },
   { pattern: /how\s+to\s+(use|start|begin)/i, key: 'how does it work' },
   { pattern: /pric(e|ing|es)/i, key: 'pricing' },
@@ -80,22 +82,6 @@ const QUERY_PATTERNS: { pattern: RegExp; key: string }[] = [
 
 // Detect if a query is a general/RAG query vs campaign-related
 export const isGeneralQuery = (message: string): boolean => {
-  const generalKeywords = [
-    'what is vibelets',
-    'what can i do',
-    'how does it work',
-    'who are you',
-    'what are you',
-    'help me',
-    'pricing',
-    'support',
-    'contact',
-    'features',
-    'about',
-    'explain',
-    'tell me about',
-  ];
-  
   const messageLower = message.toLowerCase().trim();
   
   // Check for URL patterns (campaign intent)
@@ -103,18 +89,33 @@ export const isGeneralQuery = (message: string): boolean => {
     return false;
   }
   
-  // Check for campaign-related keywords
-  const campaignKeywords = ['campaign', 'ad', 'product', 'publish', 'facebook', 'creative', 'script', 'avatar', 'budget'];
+  // Check for campaign-related keywords with action intent
+  const campaignKeywords = ['campaign', 'publish', 'facebook', 'creative', 'script', 'avatar', 'budget'];
   const hasCampaignIntent = campaignKeywords.some(kw => messageLower.includes(kw));
   
-  // If it has campaign keywords and looks like an action, it's campaign-related
   if (hasCampaignIntent && (messageLower.includes('create') || messageLower.includes('start') || messageLower.includes('make'))) {
     return false;
   }
   
-  // Check for general query patterns
-  return generalKeywords.some(kw => messageLower.includes(kw)) || 
-         QUERY_PATTERNS.some(({ pattern }) => pattern.test(messageLower));
+  // General query patterns - more flexible matching
+  const generalPatterns = [
+    /what'?s?\s*vibelets/i,
+    /what\s+(is|are)\s+vibelets/i,
+    /what\s+(can|could).*(do|done)/i,
+    /how\s+(does|do).*(work|function)/i,
+    /how\s+to\s+(use|start|begin)/i,
+    /tell\s+me\s+(about|more)/i,
+    /explain/i,
+    /who\s+are\s+you/i,
+    /what\s+are\s+you/i,
+    /^help$/i,
+    /help\s+me/i,
+    /pricing|price|cost/i,
+    /support|contact/i,
+    /features|about/i,
+  ];
+  
+  return generalPatterns.some(pattern => pattern.test(messageLower));
 };
 
 const getRAGResponse = (query: string): string => {
