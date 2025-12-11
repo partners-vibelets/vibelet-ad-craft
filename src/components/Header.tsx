@@ -29,7 +29,7 @@ const Header = () => {
             Sign In
           </Button>
           <Button size="sm" asChild>
-            <Link to="/dashboard">Get Started</Link>
+            <Link to="/auth">Get Started</Link>
           </Button>
         </div>
       </div>

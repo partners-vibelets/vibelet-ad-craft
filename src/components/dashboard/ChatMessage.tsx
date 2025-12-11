@@ -3,13 +3,14 @@ import { cn } from '@/lib/utils';
 import { Bot, User } from 'lucide-react';
 import { InlineQuestionCard } from './InlineQuestionCard';
 import { CampaignSetupSlider } from './CampaignSetupSlider';
-import { FacebookConnectCard } from './FacebookConnectCard';
+import { FacebookAccountCard } from './FacebookAccountCard';
 
 interface ChatMessageProps {
   message: Message;
   onQuestionAnswer?: (questionId: string, answerId: string) => void;
   onCampaignConfigComplete?: (config: Record<string, string>) => void;
   onFacebookConnect?: () => void;
+  onFacebookUseExisting?: () => void;
   selectedAnswers?: Record<string, string>;
   isFacebookConnected?: boolean;
 }
@@ -19,6 +20,7 @@ export const ChatMessage = ({
   onQuestionAnswer, 
   onCampaignConfigComplete,
   onFacebookConnect,
+  onFacebookUseExisting,
   selectedAnswers = {},
   isFacebookConnected
 }: ChatMessageProps) => {
@@ -76,7 +78,11 @@ export const ChatMessage = ({
           <CampaignSetupSlider onComplete={onCampaignConfigComplete} />
         )}
         {message.showFacebookConnect && onFacebookConnect && (
-          <FacebookConnectCard onConnect={onFacebookConnect} isConnected={isFacebookConnected} />
+          <FacebookAccountCard 
+            onConnect={onFacebookConnect} 
+            onUseExisting={onFacebookUseExisting || onFacebookConnect}
+            isConnected={isFacebookConnected} 
+          />
         )}
       </div>
     </div>

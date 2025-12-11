@@ -274,6 +274,37 @@ export const useCampaignFlow = () => {
     }
   }, [addMessage, simulateTyping, handleError]);
 
+  // Handler for using existing Facebook account from login
+  const handleFacebookUseExisting = useCallback(async () => {
+    try {
+      addMessage('user', "Using my signed-in Facebook account");
+      setState(prev => ({ ...prev, facebookConnected: true, isStepLoading: true }));
+      
+      await simulateTyping("Using your connected Facebook account...", {}, 500);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (!mockAdAccounts || mockAdAccounts.length === 0) {
+        throw new Error('No ad accounts found. Please ensure you have at least one Facebook Ad Account.');
+      }
+      
+      const accountQuestion: InlineQuestion = {
+        id: 'ad-account-selection',
+        question: 'Which ad account should we use?',
+        options: mockAdAccounts.map(a => ({ id: a.id, label: a.name, description: `Status: ${a.status}` }))
+      };
+      
+      await simulateTyping(
+        `Perfect! Your Facebook account is ready. 🔗\n\nI found ${mockAdAccounts.length} ad accounts. Select one to continue:`,
+        { inlineQuestion: accountQuestion, stepId: 'ad-account-selection' },
+        800
+      );
+      setState(prev => ({ ...prev, step: 'ad-account-selection', stepHistory: [...prev.stepHistory, 'ad-account-selection'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Connecting to Facebook');
+      setState(prev => ({ ...prev, facebookConnected: false }));
+    }
+  }, [addMessage, simulateTyping, handleError]);
+
   const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
     try {
       if (!questionId || !answerId) {
@@ -723,6 +754,7 @@ export const useCampaignFlow = () => {
     handleQuestionAnswer,
     handleCampaignConfigComplete,
     handleFacebookConnect,
+    handleFacebookUseExisting,
     resetFlow,
     goToStep,
     getCompletedSteps,

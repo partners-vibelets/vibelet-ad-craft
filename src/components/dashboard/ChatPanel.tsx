@@ -17,6 +17,7 @@ interface ChatPanelProps {
   onQuestionAnswer: (questionId: string, answerId: string) => void;
   onCampaignConfigComplete?: (config: Record<string, string>) => void;
   onFacebookConnect?: () => void;
+  onFacebookUseExisting?: () => void;
   isFacebookConnected?: boolean;
   disabled?: boolean;
 }
@@ -28,6 +29,7 @@ export const ChatPanel = ({
   onQuestionAnswer,
   onCampaignConfigComplete,
   onFacebookConnect,
+  onFacebookUseExisting,
   isFacebookConnected,
   disabled 
 }: ChatPanelProps) => {
@@ -114,6 +116,7 @@ export const ChatPanel = ({
               onQuestionAnswer={onQuestionAnswer}
               onCampaignConfigComplete={onCampaignConfigComplete}
               onFacebookConnect={onFacebookConnect}
+              onFacebookUseExisting={onFacebookUseExisting}
               selectedAnswers={{}}
               isFacebookConnected={isFacebookConnected}
             />
