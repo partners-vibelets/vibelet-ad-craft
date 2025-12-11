@@ -90,22 +90,22 @@
   }
 
   .dark {
-    /* Background & Foreground - Enhanced readability */
-    --background: 240 15% 6%;
+    /* Background & Foreground - Pure Black */
+    --background: 0 0% 0%;
     --foreground: 0 0% 95%;
 
-    /* Card - Slightly lighter for better contrast */
-    --card: 240 15% 10%;
+    /* Card - Very dark grey for contrast */
+    --card: 0 0% 6%;
     --card-foreground: 0 0% 95%;
 
     /* Popover */
-    --popover: 240 15% 10%;
+    --popover: 0 0% 6%;
     --popover-foreground: 0 0% 95%;
 
     /* Primary - Blue Palette (brighter for dark mode visibility) */
     --primary: 243 50% 65%;
-    --primary-foreground: 240 15% 6%;
-    --primary-light: 243 40% 18%;
+    --primary-foreground: 0 0% 0%;
+    --primary-light: 243 40% 12%;
     --primary-hover: 243 50% 70%;
     --primary-active: 243 50% 60%;
     --primary-dark: 243 40% 55%;
@@ -113,37 +113,37 @@
 
     /* Secondary - Green Palette (brighter for CTA visibility) */
     --secondary: 100 60% 50%;
-    --secondary-foreground: 240 15% 6%;
-    --secondary-light: 100 50% 15%;
+    --secondary-foreground: 0 0% 0%;
+    --secondary-light: 100 50% 10%;
     --secondary-hover: 100 60% 55%;
     --secondary-active: 100 60% 45%;
     --secondary-dark: 100 50% 40%;
 
-    /* Muted - Better contrast */
-    --muted: 240 12% 16%;
+    /* Muted - Neutral grey */
+    --muted: 0 0% 10%;
     --muted-foreground: 0 0% 70%;
 
     /* Accent */
-    --accent: 243 40% 18%;
+    --accent: 0 0% 12%;
     --accent-foreground: 243 50% 75%;
 
     /* Destructive */
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border & Input - More visible */
-    --border: 240 12% 22%;
-    --input: 240 12% 20%;
+    /* Border & Input - Neutral grey */
+    --border: 0 0% 18%;
+    --input: 0 0% 15%;
     --ring: 243 50% 65%;
 
-    /* Sidebar */
-    --sidebar-background: 240 15% 8%;
+    /* Sidebar - Near black */
+    --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 243 50% 65%;
-    --sidebar-primary-foreground: 240 15% 6%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 100 60% 50%;
-    --sidebar-accent-foreground: 240 15% 6%;
-    --sidebar-border: 240 12% 22%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 18%;
     --sidebar-ring: 243 50% 65%;
 
     /* Charts */
@@ -153,17 +153,17 @@
     --chart-4: 100 60% 60%;
     --chart-5: 0 0% 60%;
 
-    /* Glass Effects - Dark Mode - More prominent */
-    --glass-background: hsl(240 15% 10% / 0.75);
-    --glass-background-strong: hsl(240 15% 8% / 0.9);
+    /* Glass Effects - Pure Black Base */
+    --glass-background: hsl(0 0% 6% / 0.75);
+    --glass-background-strong: hsl(0 0% 3% / 0.9);
     --glass-border: hsl(243 50% 65% / 0.2);
-    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(243 50% 65% / 0.1);
+    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(243 50% 65% / 0.1);
 
     /* Shadows - Enhanced for dark mode */
-    --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 8px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 10px 20px hsl(0 0% 0% / 0.4);
-    --shadow-xl: 0 20px 40px hsl(0 0% 0% / 0.5);
+    --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 8px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0 10px 20px hsl(0 0% 0% / 0.5);
+    --shadow-xl: 0 20px 40px hsl(0 0% 0% / 0.6);
     --shadow-glow: 0 0 30px hsl(243 50% 65% / 0.3), 0 0 60px hsl(243 50% 65% / 0.15);
     --shadow-glow-green: 0 0 30px hsl(100 60% 50% / 0.35), 0 0 60px hsl(100 60% 50% / 0.2);
   }
