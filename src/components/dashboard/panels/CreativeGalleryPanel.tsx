@@ -2,7 +2,6 @@ import { CreativeOption } from '@/types/campaign';
 import { Image, Video, Check, Play, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ImageMagnifier } from '@/components/ui/image-magnifier';
 import { Badge } from '@/components/ui/badge';
 
 interface CreativeGalleryPanelProps {
@@ -60,13 +59,10 @@ export const CreativeGalleryPanel = ({ creatives, selectedCreative, isRegenerati
         
         {/* Creative image - consistent square container with object-cover */}
         <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-          <ImageMagnifier 
+          <img 
             src={creative.thumbnail} 
             alt={creative.name}
-            zoomLevel={2.5}
-            magnifierSize={100}
-            className="w-full h-full"
-            imageClassName="w-full h-full object-cover"
+            className="w-full h-full object-cover"
           />
           
           {/* Video play overlay */}

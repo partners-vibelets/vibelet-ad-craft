@@ -3,7 +3,6 @@ import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, U
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ImageMagnifier } from '@/components/ui/image-magnifier';
 import { cn } from '@/lib/utils';
 interface ProductAnalysisPanelProps {
   productData: ProductData | null;
@@ -115,12 +114,10 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
     <div className="p-6 space-y-6 animate-fade-in">
       {/* Page Screenshot Preview */}
       <div className="relative rounded-xl overflow-hidden border border-border">
-        <ImageMagnifier
+        <img
           src={productData.pageScreenshot || productData.images[0]} 
           alt="Product page preview" 
-          className="w-full h-48"
-          zoomLevel={2.5}
-          magnifierSize={150}
+          className="w-full h-48 object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
@@ -173,13 +170,11 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
             </div>
             <div className="grid grid-cols-3 gap-2">
               {productData.images.map((img, i) => (
-                <ImageMagnifier
+                <img
                   key={i}
                   src={img}
                   alt={`Product ${i + 1}`}
-                  className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all"
-                  zoomLevel={3}
-                  magnifierSize={120}
+                  className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all object-cover"
                 />
               ))}
             </div>
