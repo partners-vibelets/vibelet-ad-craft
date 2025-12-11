@@ -28,7 +28,7 @@ No marketing expertise required — just paste a product URL and let AI do the h
 
 🚀 **Campaign Launch** — Configure and publish your ads directly to Facebook
 
-💡 **Tip:** Start by pasting a product URL in the Campaign tab to create your first ad!`,
+💡 **Tip:** Start by pasting a product URL to create your first ad!`,
 
   'how does it work': `Vibelets works in 5 simple steps:
 
@@ -38,7 +38,7 @@ No marketing expertise required — just paste a product URL and let AI do the h
 4️⃣ **Select Creative** — Review generated ads and pick your favorite
 5️⃣ **Launch Campaign** — Connect Facebook and publish!
 
-The entire process takes about 5 minutes. Ready to try? Switch to the Campaign tab and paste a URL!`,
+The entire process takes about 5 minutes. Ready to try? Paste a product URL to get started!`,
 
   'pricing': `Vibelets offers flexible pricing:
 
@@ -63,7 +63,7 @@ I can help you with:
 • **Feature guidance** — "What can I do here?", "How to create a campaign?"
 • **Support** — Troubleshooting and general help
 
-💡 To create an ad campaign, switch to the **Campaign** tab and paste your product URL!`
+💡 To create an ad campaign, paste your product URL below!`
 };
 
 const QUERY_PATTERNS: { pattern: RegExp; key: string }[] = [
@@ -137,14 +137,9 @@ const createMessage = (role: 'user' | 'assistant', content: string): AssistantMe
 });
 
 export const useAssistantChat = () => {
-  const [messages, setMessages] = useState<AssistantMessage[]>([
-    createMessage('assistant', `Hey! 👋 I'm your Vibelets assistant.
-
-Ask me anything about the platform — how it works, features, pricing, or get help with any issues.
-
-💡 **Quick tip:** To create an ad campaign, switch to the **Campaign** tab and paste your product URL!`)
-  ]);
+  const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isAssistantMode, setIsAssistantMode] = useState(false);
 
   const sendMessage = useCallback(async (content: string) => {
     const sanitizedContent = content.trim();
@@ -164,11 +159,8 @@ Ask me anything about the platform — how it works, features, pricing, or get h
   }, []);
 
   const clearChat = useCallback(() => {
-    setMessages([
-      createMessage('assistant', `Chat cleared! How can I help you today?
-
-Ask me about Vibelets, features, or switch to the **Campaign** tab to start creating ads.`)
-    ]);
+    setMessages([]);
+    setIsAssistantMode(false);
   }, []);
 
   return {
@@ -176,5 +168,7 @@ Ask me about Vibelets, features, or switch to the **Campaign** tab to start crea
     isTyping,
     sendMessage,
     clearChat,
+    isAssistantMode,
+    setIsAssistantMode,
   };
 };
