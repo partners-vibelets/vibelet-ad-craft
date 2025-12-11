@@ -4,11 +4,12 @@ import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { AssistantDrawer } from './AssistantDrawer';
-import { AssistantFloatingButton } from './AssistantFloatingButton';
-import { useAssistantChat, isGeneralQuery } from '@/hooks/useAssistantChat';
+import { AssistantChatMessage } from './AssistantChatMessage';
+import { useAssistantChat } from '@/hooks/useAssistantChat';
 import vibeletsLogo from '@/assets/vibelets-logo-unified.png';
-import { toast } from 'sonner';
+import { MessageCircle, Sparkles, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ChatPanelProps {
   messages: Message[];
@@ -33,8 +34,7 @@ export const ChatPanel = ({
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [hasAssistantNotification, setHasAssistantNotification] = useState(false);
+  const [mode, setMode] = useState<'campaign' | 'assistant'>('campaign');
   
   const {
     messages: assistantMessages,
@@ -53,14 +53,7 @@ export const ChatPanel = ({
       }
     }, 100);
     return () => clearTimeout(timeoutId);
-  }, [messages, isTyping]);
-
-  // Clear notification when drawer opens
-  useEffect(() => {
-    if (isAssistantOpen) {
-      setHasAssistantNotification(false);
-    }
-  }, [isAssistantOpen]);
+  }, [messages, isTyping, assistantMessages, assistantIsTyping]);
 
   const handleQuestionAnswer = (questionId: string, answerId: string) => {
     setSelectedAnswers(prev => ({ ...prev, [questionId]: answerId }));
@@ -68,23 +61,15 @@ export const ChatPanel = ({
   };
 
   const handleSendMessage = useCallback((message: string) => {
-    // Intelligent routing based on message content
-    if (isGeneralQuery(message)) {
-      // Route to assistant drawer
-      setIsAssistantOpen(true);
+    if (mode === 'assistant') {
       sendAssistantMessage(message);
-      toast.info('Answering in Assistant', {
-        description: 'I detected a general question.',
-        duration: 2500,
-      });
     } else {
-      // Route to campaign flow
       onSendMessage(message);
     }
-  }, [onSendMessage, sendAssistantMessage]);
+  }, [mode, onSendMessage, sendAssistantMessage]);
 
-  const handleAssistantButtonClick = () => {
-    setIsAssistantOpen(true);
+  const toggleMode = () => {
+    setMode(prev => prev === 'campaign' ? 'assistant' : 'campaign');
   };
 
   return (
@@ -94,11 +79,42 @@ export const ChatPanel = ({
         <div className="flex items-center gap-3">
           <img src={vibeletsLogo} alt="Vibelets" className="h-7 w-auto flex-shrink-0" />
           <div className="min-w-0">
-            <h2 className="font-semibold text-sm text-foreground">Campaign Builder</h2>
-            <p className="text-xs text-muted-foreground">AI-powered ad creation</p>
+            <h2 className="font-semibold text-sm text-foreground">
+              {mode === 'campaign' ? 'Campaign Builder' : 'Assistant'}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {mode === 'campaign' ? 'AI-powered ad creation' : 'Ask me anything'}
+            </p>
           </div>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          {/* Chat Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleMode}
+            className={cn(
+              "h-8 px-3 gap-1.5 text-xs font-medium transition-all",
+              mode === 'assistant' 
+                ? "bg-secondary/20 text-secondary hover:bg-secondary/30" 
+                : "hover:bg-secondary/10 text-muted-foreground hover:text-secondary"
+            )}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Chat
+          </Button>
+          {mode === 'assistant' && assistantMessages.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearAssistantChat}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Messages */}
@@ -107,18 +123,29 @@ export const ChatPanel = ({
         className="flex-1 overflow-y-auto overflow-x-hidden"
       >
         <div className="flex flex-col">
-          {messages.map((message) => (
-            <ChatMessage 
-              key={message.id} 
-              message={message} 
-              onQuestionAnswer={handleQuestionAnswer}
-              onCampaignConfigComplete={onCampaignConfigComplete}
-              onFacebookConnect={onFacebookConnect}
-              selectedAnswers={selectedAnswers}
-              isFacebookConnected={isFacebookConnected}
-            />
-          ))}
-          {isTyping && <TypingIndicator />}
+          {mode === 'campaign' ? (
+            <>
+              {messages.map((message) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message} 
+                  onQuestionAnswer={handleQuestionAnswer}
+                  onCampaignConfigComplete={onCampaignConfigComplete}
+                  onFacebookConnect={onFacebookConnect}
+                  selectedAnswers={selectedAnswers}
+                  isFacebookConnected={isFacebookConnected}
+                />
+              ))}
+              {isTyping && <TypingIndicator />}
+            </>
+          ) : (
+            <>
+              {assistantMessages.map((message) => (
+                <AssistantChatMessage key={message.id} message={message} />
+              ))}
+              {assistantIsTyping && <TypingIndicator />}
+            </>
+          )}
         </div>
       </div>
 
@@ -126,28 +153,10 @@ export const ChatPanel = ({
       <div className="flex-shrink-0 border-t border-border/50 bg-background/30">
         <ChatInput 
           onSend={handleSendMessage} 
-          disabled={disabled || isTyping} 
-          placeholder="Paste product URL or ask a question..."
+          disabled={mode === 'campaign' ? (disabled || isTyping) : assistantIsTyping} 
+          placeholder={mode === 'campaign' ? "Paste product URL or ask a question..." : "Ask me anything about Vibelets..."}
         />
       </div>
-
-      {/* Floating Assistant Button */}
-      <div className="absolute bottom-28 right-3">
-        <AssistantFloatingButton 
-          onClick={handleAssistantButtonClick}
-          hasNotification={hasAssistantNotification}
-        />
-      </div>
-
-      {/* Assistant Drawer */}
-      <AssistantDrawer
-        open={isAssistantOpen}
-        onOpenChange={setIsAssistantOpen}
-        messages={assistantMessages}
-        isTyping={assistantIsTyping}
-        onSendMessage={sendAssistantMessage}
-        onClearChat={clearAssistantChat}
-      />
     </div>
   );
 };
