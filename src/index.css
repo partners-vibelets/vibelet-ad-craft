@@ -131,8 +131,8 @@
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border & Input - White tinted for dark mode */
-    --border: 0 0% 100% / 0.12;
+    /* Border & Input - Neutral grey */
+    --border: 0 0% 18%;
     --input: 0 0% 15%;
     --ring: 243 50% 65%;
 
@@ -156,8 +156,8 @@
     /* Glass Effects - Pure Black Base with White Borders */
     --glass-background: hsl(0 0% 6% / 0.75);
     --glass-background-strong: hsl(0 0% 3% / 0.9);
-    --glass-border: hsl(0 0% 100% / 0.2);
-    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.6), 0 0 0 1px hsl(0 0% 100% / 0.15), 0 0 30px hsl(0 0% 100% / 0.08);
+    --glass-border: hsl(0 0% 100% / 0.15);
+    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(0 0% 100% / 0.1), 0 0 20px hsl(0 0% 100% / 0.05);
 
     /* Shadows - Enhanced for dark mode */
     --shadow-sm: 0 1px 3px hsl(0 0% 0% / 0.4);
@@ -270,24 +270,5 @@
 /* Dark mode - brighten the logo */
 .dark .logo-adaptive {
   filter: brightness(1.3) contrast(1.1);
-}
-
-/* Dark mode glass hover effects */
-.dark .glass:hover,
-.dark .glass-card:hover,
-.dark .glass-strong:hover,
-.dark .glass-panel:hover {
-  border-color: hsl(0 0% 100% / 0.3);
-  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.6), 0 0 0 1px hsl(0 0% 100% / 0.2), 0 0 40px hsl(0 0% 100% / 0.12);
-}
-
-/* Glass hover utility for interactive elements */
-.glass-hover {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.dark .glass-hover:hover {
-  border-color: hsl(0 0% 100% / 0.35) !important;
-  box-shadow: 0 0 25px hsl(0 0% 100% / 0.1);
 }
 }
