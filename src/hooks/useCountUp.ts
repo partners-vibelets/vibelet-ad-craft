@@ -12,10 +12,15 @@ export const useCountUp = (
 ): number => {
   const { duration = 1500, delay = 0, decimals = 0 } = options;
   const [count, setCount] = useState(0);
+  const previousTarget = useRef(target);
   const startTime = useRef<number | null>(null);
   const animationFrame = useRef<number | null>(null);
 
   useEffect(() => {
+    const startValue = previousTarget.current;
+    previousTarget.current = target;
+    startTime.current = null;
+
     const timeout = setTimeout(() => {
       const animate = (timestamp: number) => {
         if (!startTime.current) startTime.current = timestamp;
@@ -23,7 +28,7 @@ export const useCountUp = (
         
         // Ease out cubic
         const easeOut = 1 - Math.pow(1 - progress, 3);
-        const currentValue = easeOut * target;
+        const currentValue = startValue + (target - startValue) * easeOut;
         
         setCount(Number(currentValue.toFixed(decimals)));
 
