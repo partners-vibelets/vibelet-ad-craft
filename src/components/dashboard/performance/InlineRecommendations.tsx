@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { AIRecommendation, PublishedCampaign } from '@/types/campaign';
-import { Sparkles, Info, Check, X, TrendingUp, Copy, Play, Pause, DollarSign } from 'lucide-react';
+import { Sparkles, Info, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface InlineRecommendationsProps {
   recommendations: AIRecommendation[];
@@ -49,11 +55,13 @@ const TypeIcon = ({ type }: { type: AIRecommendation['type'] }) => {
 const RecommendationCard = ({ 
   recommendation, 
   onAction,
-  onCloneCreative 
+  onCloneCreative,
+  isExpanded = false
 }: { 
   recommendation: AIRecommendation; 
   onAction: (recommendationId: string, action: string, value?: number) => void;
   onCloneCreative?: (recommendation: AIRecommendation) => void;
+  isExpanded?: boolean;
 }) => {
   const [customBudget, setCustomBudget] = useState(recommendation.recommendedValue || 0);
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -153,8 +161,14 @@ const RecommendationCard = ({
       {/* Content */}
       <div className="flex-1 min-h-0">
         <p className="text-xs text-muted-foreground mb-1 truncate">{recommendation.campaignName}</p>
-        <h4 className="text-sm font-semibold text-foreground line-clamp-1">{recommendation.title}</h4>
-        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{recommendation.reasoning}</p>
+        <h4 className={cn(
+          "text-sm font-semibold text-foreground",
+          isExpanded ? "" : "line-clamp-1"
+        )}>{recommendation.title}</h4>
+        <p className={cn(
+          "text-xs text-muted-foreground mt-1",
+          isExpanded ? "" : "line-clamp-2"
+        )}>{recommendation.reasoning}</p>
       </div>
 
       {/* Creative preview for creative-related recommendations */}
@@ -244,6 +258,7 @@ export const InlineRecommendations = ({
   onAction,
   onCloneCreative 
 }: InlineRecommendationsProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (recommendations.length === 0) {
     return (
@@ -264,33 +279,77 @@ export const InlineRecommendations = ({
   }
 
   return (
-    <div className="p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-primary" />
+    <>
+      <div className="p-4">
+        {/* Header with expand button */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
+              <p className="text-xs text-muted-foreground">
+                {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
-            <p className="text-xs text-muted-foreground">
-              {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
-            </p>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(true)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 2x2 Grid of recommendations - free flowing, no scroll constraint */}
+        <div className="grid grid-cols-2 gap-3">
+          {recommendations.map((rec) => (
+            <RecommendationCard 
+              key={rec.id} 
+              recommendation={rec} 
+              onAction={onAction}
+              onCloneCreative={onCloneCreative}
+            />
+          ))}
         </div>
       </div>
 
-      {/* 2x2 Grid of recommendations */}
-      <div className="grid grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-1">
-        {recommendations.map((rec) => (
-          <RecommendationCard 
-            key={rec.id} 
-            recommendation={rec} 
-            onAction={onAction}
-            onCloneCreative={onCloneCreative}
-          />
-        ))}
-      </div>
-    </div>
+      {/* Expanded Dialog View */}
+      <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <span>AI Recommendations</span>
+                <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                  {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="grid grid-cols-2 gap-4">
+              {recommendations.map((rec) => (
+                <RecommendationCard 
+                  key={rec.id} 
+                  recommendation={rec} 
+                  onAction={(id, action, value) => {
+                    onAction(id, action, value);
+                  }}
+                  onCloneCreative={onCloneCreative}
+                  isExpanded
+                />
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
