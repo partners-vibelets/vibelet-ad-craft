@@ -176,24 +176,20 @@ const WhatChangedSection = ({ changes }: { changes: PerformanceChange[] }) => {
 export const CampaignStageAndChanges = ({ selectedCampaign }: CampaignStageAndChangesProps) => {
   if (!selectedCampaign) {
     return (
-      <div className="px-4 pb-4">
-        <div className="glass-card rounded-xl">
-          <EmptyState />
-        </div>
+      <div className="glass-card rounded-xl p-4">
+        <EmptyState />
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-4">
-      <div className="flex gap-4">
-        <LifecycleMeter 
-          stage={selectedCampaign.lifecycleStage}
-          progress={selectedCampaign.stageProgress}
-          description={selectedCampaign.stageDescription}
-        />
-        <WhatChangedSection changes={selectedCampaign.changes} />
-      </div>
+    <div className="flex gap-4">
+      <LifecycleMeter 
+        stage={selectedCampaign.lifecycleStage}
+        progress={selectedCampaign.stageProgress}
+        description={selectedCampaign.stageDescription}
+      />
+      <WhatChangedSection changes={selectedCampaign.changes} />
     </div>
   );
 };

@@ -4,9 +4,12 @@ import { MetricsGrid } from '../performance/MetricsGrid';
 import { CampaignFilter } from '../performance/CampaignFilter';
 import { CampaignStageAndChanges } from '../performance/CampaignStageAndChanges';
 import { InlineRecommendations } from '../performance/InlineRecommendations';
+import { ActionRequiredBanner } from '../performance/ActionRequiredBanner';
 import { Button } from '@/components/ui/button';
 import { Plus, BarChart3, RefreshCw } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 interface PerformanceDashboardPanelProps {
   dashboard: PerformanceDashboardState;
@@ -34,9 +37,15 @@ export const PerformanceDashboardPanel = ({
   onCloneCreative
 }: PerformanceDashboardPanelProps) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const recommendationsRef = useRef<HTMLDivElement>(null);
   
   // Auto-select the latest campaign if none selected
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  
+  const scrollToRecommendations = () => {
+    recommendationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   
   useEffect(() => {
     if (!hasAutoSelected && dashboard.publishedCampaigns.length > 0 && !dashboard.selectedCampaignId) {
@@ -105,33 +114,50 @@ export const PerformanceDashboardPanel = ({
         </div>
       </div>
 
-      {/* Overall Performance - Single row metrics */}
+      {/* Compact Metrics */}
       <MetricsGrid metrics={dashboard.unifiedMetrics} isRefreshing={isRefreshing} />
-      
-      <Separator className="mx-4" />
 
-      {/* Campaign Filter with selected campaign indicator */}
-      <div className="px-4 pt-4 pb-2">
-        <CampaignFilter
+      {/* Action Required Banner - Only shows if high priority recommendations */}
+      <ActionRequiredBanner 
+        recommendations={dashboard.recommendations}
+        onScrollToRecommendations={scrollToRecommendations}
+      />
+
+      {/* AI Recommendations - Prominent position, always visible */}
+      <div ref={recommendationsRef}>
+        <InlineRecommendations
+          recommendations={dashboard.recommendations}
           campaigns={dashboard.publishedCampaigns}
-          selectedCampaignId={dashboard.selectedCampaignId}
-          onSelect={onCampaignFilterChange}
-          showSelectedLabel
+          onAction={onRecommendationAction}
+          onCloneCreative={onCloneCreative}
         />
       </div>
 
-      {/* Campaign Stage and What Changed - Side by side */}
-      <CampaignStageAndChanges selectedCampaign={selectedCampaign || null} />
-
-      <Separator className="mx-4" />
-
-      {/* AI Recommendations - Inline, always visible */}
-      <InlineRecommendations
-        recommendations={dashboard.recommendations}
-        campaigns={dashboard.publishedCampaigns}
-        onAction={onRecommendationAction}
-        onCloneCreative={onCloneCreative}
-      />
+      {/* Campaign Details - Collapsible section */}
+      <div className="px-4 pb-4">
+        <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="glass-card rounded-xl p-3 flex items-center justify-between hover:bg-accent/50 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-medium text-muted-foreground">Campaign Details</span>
+                <CampaignFilter
+                  campaigns={dashboard.publishedCampaigns}
+                  selectedCampaignId={dashboard.selectedCampaignId}
+                  onSelect={(id) => {
+                    onCampaignFilterChange(id);
+                    if (!isDetailsOpen) setIsDetailsOpen(true);
+                  }}
+                  compact
+                />
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isDetailsOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <CampaignStageAndChanges selectedCampaign={selectedCampaign || null} />
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
   );
 };
