@@ -38,9 +38,10 @@ const STEP_GROUPS: {
 interface StepIndicatorProps {
   currentStep: CampaignStep;
   onStepClick: (step: CampaignStep) => void;
+  disabled?: boolean;
 }
 
-export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) => {
+export const StepIndicator = ({ currentStep, onStepClick, disabled = false }: StepIndicatorProps) => {
   // Find which group the current step belongs to
   const getCurrentGroupIndex = () => {
     for (let i = 0; i < STEP_GROUPS.length; i++) {
@@ -58,6 +59,36 @@ export const StepIndicator = ({ currentStep, onStepClick }: StepIndicatorProps) 
   const getFirstStepOfGroup = (groupIndex: number): CampaignStep => {
     return STEP_GROUPS[groupIndex].steps[0];
   };
+
+  // If disabled, show muted/inactive state
+  if (disabled) {
+    return (
+      <div className="px-6 py-4 border-b border-border bg-muted/30 opacity-50 pointer-events-none">
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
+            Campaign Published
+          </span>
+          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-full bg-secondary rounded-full w-full" />
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-3 overflow-x-auto pb-1">
+          {STEP_GROUPS.map((group) => {
+            const Icon = group.icon;
+            return (
+              <div
+                key={group.id}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium bg-secondary/15 text-secondary border border-secondary/30"
+              >
+                <Check className="w-4 h-4" />
+                <span>{group.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-4 border-b border-border bg-background">

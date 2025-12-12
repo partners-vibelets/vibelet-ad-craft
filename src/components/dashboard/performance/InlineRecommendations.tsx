@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { AIRecommendation, PublishedCampaign } from '@/types/campaign';
-import { Sparkles, AlertCircle, Info, ChevronRight, Check, X, TrendingUp, Copy, Play, Pause, DollarSign } from 'lucide-react';
+import { Sparkles, Info, Check, X, TrendingUp, Copy, Play, Pause, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -14,19 +15,18 @@ interface InlineRecommendationsProps {
   onCloneCreative?: (recommendation: AIRecommendation) => void;
 }
 
-// Priority badge component
+// Priority badge component - using amber for high priority instead of red
 const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] }) => {
   const config = {
-    high: { label: 'High Priority', variant: 'destructive' as const, icon: AlertCircle },
-    medium: { label: 'Medium', variant: 'secondary' as const, icon: null },
-    suggestion: { label: 'Tip', variant: 'outline' as const, icon: Info }
+    high: { label: 'Urgent', className: 'bg-amber-500/20 text-amber-600 border-amber-500/30' },
+    medium: { label: 'Medium', className: 'bg-primary/20 text-primary border-primary/30' },
+    suggestion: { label: 'Tip', className: 'bg-muted text-muted-foreground border-border' }
   };
 
-  const { label, variant, icon: Icon } = config[priority];
+  const { label, className } = config[priority];
 
   return (
-    <Badge variant={variant} className="text-[10px] px-1.5 py-0 h-5">
-      {Icon && <Icon className="h-3 w-3 mr-1" />}
+    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", className)}>
       {label}
     </Badge>
   );
@@ -45,7 +45,7 @@ const TypeIcon = ({ type }: { type: AIRecommendation['type'] }) => {
   return <Icon className="h-4 w-4" />;
 };
 
-// Individual recommendation card
+// Individual recommendation card - compact for 2x2 grid
 const RecommendationCard = ({ 
   recommendation, 
   onAction,
@@ -56,17 +56,21 @@ const RecommendationCard = ({
   onCloneCreative?: (recommendation: AIRecommendation) => void;
 }) => {
   const [customBudget, setCustomBudget] = useState(recommendation.recommendedValue || 0);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customInputValue, setCustomInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleQuickAction = async () => {
+  const isBudgetRecommendation = recommendation.type === 'budget-increase' || recommendation.type === 'budget-decrease';
+
+  const handleQuickAction = async (budgetValue?: number) => {
     setIsProcessing(true);
+    const valueToApply = budgetValue ?? customBudget;
     
-    // Determine the quick action based on type
     switch (recommendation.type) {
       case 'budget-increase':
       case 'budget-decrease':
-        onAction(recommendation.id, 'apply', recommendation.recommendedValue);
-        toast.success(`Budget updated to $${recommendation.recommendedValue}/day`);
+        onAction(recommendation.id, 'apply', valueToApply);
+        toast.success(`Budget updated to $${valueToApply}/day`);
         break;
       case 'pause-creative':
         onAction(recommendation.id, 'pause');
@@ -89,6 +93,17 @@ const RecommendationCard = ({
     setTimeout(() => setIsProcessing(false), 500);
   };
 
+  const handleCustomBudgetApply = () => {
+    const value = parseFloat(customInputValue);
+    if (!isNaN(value) && value > 0) {
+      handleQuickAction(value);
+      setShowCustomInput(false);
+      setCustomInputValue('');
+    } else {
+      toast.error('Please enter a valid budget amount');
+    }
+  };
+
   const handleDismiss = () => {
     onAction(recommendation.id, 'dismiss');
     toast.info('Recommendation dismissed');
@@ -97,106 +112,110 @@ const RecommendationCard = ({
   const getQuickActionLabel = () => {
     switch (recommendation.type) {
       case 'budget-increase':
-        return `Apply $${recommendation.recommendedValue}/day`;
+        return `$${recommendation.recommendedValue}/day`;
       case 'budget-decrease':
-        return `Reduce to $${recommendation.recommendedValue}/day`;
+        return `$${recommendation.recommendedValue}/day`;
       case 'pause-creative':
-        return 'Pause Creative';
+        return 'Pause';
       case 'resume-campaign':
-        return 'Resume Campaign';
+        return 'Resume';
       case 'clone-creative':
-        return 'Clone to New Campaign';
+        return 'Clone';
     }
   };
 
   return (
     <div className={cn(
-      "glass-card p-4 rounded-xl animate-fade-in transition-all",
-      recommendation.priority === 'high' && "border-destructive/30 bg-destructive/5"
+      "glass-card p-3 rounded-xl animate-fade-in transition-all h-full flex flex-col",
+      recommendation.priority === 'high' && "border-amber-500/30 bg-amber-500/5"
     )}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-start gap-3 flex-1">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
           <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-            recommendation.priority === 'high' ? "bg-destructive/20 text-destructive" : "bg-primary/20 text-primary"
+            "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0",
+            recommendation.priority === 'high' ? "bg-amber-500/20 text-amber-600" : "bg-primary/20 text-primary"
           )}>
             <TypeIcon type={recommendation.type} />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <PriorityBadge priority={recommendation.priority} />
-              <span className="text-xs text-muted-foreground">{recommendation.campaignName}</span>
-            </div>
-            <h4 className="text-sm font-semibold text-foreground">{recommendation.title}</h4>
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{recommendation.reasoning}</p>
-          </div>
+          <PriorityBadge priority={recommendation.priority} />
         </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleDismiss}
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-h-0">
+        <p className="text-xs text-muted-foreground mb-1 truncate">{recommendation.campaignName}</p>
+        <h4 className="text-sm font-semibold text-foreground line-clamp-1">{recommendation.title}</h4>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{recommendation.reasoning}</p>
       </div>
 
       {/* Creative preview for creative-related recommendations */}
       {recommendation.creative && (
-        <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-muted/30">
+        <div className="flex items-center gap-2 my-2 p-2 rounded-lg bg-muted/30">
           <img 
             src={recommendation.creative.thumbnail} 
             alt={recommendation.creative.name}
-            className="w-12 h-12 rounded object-cover"
+            className="w-10 h-10 rounded object-cover"
           />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-foreground truncate">{recommendation.creative.name}</p>
-            <div className="flex gap-3 mt-1">
-              {recommendation.creative.metrics.slice(0, 3).map((m, i) => (
-                <span key={i} className="text-[10px] text-muted-foreground">
-                  {m.label}: <span className="font-medium text-foreground">{m.value}</span>
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       )}
 
-      {/* Budget slider for budget recommendations */}
-      {(recommendation.type === 'budget-increase' || recommendation.type === 'budget-decrease') && (
-        <div className="mb-3 p-2 rounded-lg bg-muted/30">
-          <div className="flex items-center justify-between text-xs mb-2">
+      {/* Budget controls for budget recommendations */}
+      {isBudgetRecommendation && (
+        <div className="my-2 p-2 rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between text-[10px] mb-1">
             <span className="text-muted-foreground">Current: ${recommendation.currentValue}/day</span>
-            <span className="text-primary font-medium">New: ${customBudget}/day</span>
           </div>
-          <Slider
-            value={[customBudget]}
-            onValueChange={(v) => setCustomBudget(v[0])}
-            min={recommendation.type === 'budget-decrease' ? 10 : recommendation.currentValue || 10}
-            max={recommendation.type === 'budget-increase' ? (recommendation.recommendedValue || 50) * 1.5 : recommendation.currentValue || 100}
-            step={5}
-            className="w-full"
-          />
-        </div>
-      )}
-
-      {/* Projected impact */}
-      {recommendation.projectedImpact && recommendation.projectedImpact.length > 0 && (
-        <div className="flex gap-4 mb-3">
-          {recommendation.projectedImpact.slice(0, 3).map((impact, i) => (
-            <div key={i} className="text-center">
-              <p className="text-[10px] text-muted-foreground">{impact.label}</p>
-              <p className="text-xs font-semibold text-secondary">{impact.value}</p>
+          {showCustomInput ? (
+            <div className="flex items-center gap-1 mt-2">
+              <Input
+                type="number"
+                value={customInputValue}
+                onChange={(e) => setCustomInputValue(e.target.value)}
+                placeholder="Enter amount"
+                className="h-7 text-xs"
+              />
+              <Button size="sm" className="h-7 px-2" onClick={handleCustomBudgetApply}>
+                <Check className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setShowCustomInput(false)}>
+                <X className="h-3 w-3" />
+              </Button>
             </div>
-          ))}
+          ) : (
+            <Slider
+              value={[customBudget]}
+              onValueChange={(v) => setCustomBudget(v[0])}
+              min={10}
+              max={Math.max((recommendation.recommendedValue || 50) * 2, 200)}
+              step={5}
+              className="w-full mt-1"
+            />
+          )}
         </div>
       )}
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 mt-2">
         <Button 
           size="sm" 
-          onClick={handleQuickAction}
+          onClick={() => handleQuickAction()}
           disabled={isProcessing}
-          className="flex-1 h-8 text-xs"
+          className="flex-1 h-7 text-xs"
         >
           {isProcessing ? (
-            <span className="flex items-center gap-1">
-              <span className="animate-spin">⏳</span> Applying...
-            </span>
+            <span className="flex items-center gap-1">Applying...</span>
           ) : (
             <>
               <Check className="h-3 w-3 mr-1" />
@@ -204,14 +223,16 @@ const RecommendationCard = ({
             </>
           )}
         </Button>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleDismiss}
-          className="h-8 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-3 w-3" />
-        </Button>
+        {isBudgetRecommendation && !showCustomInput && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowCustomInput(true)}
+            className="h-7 text-xs px-2"
+          >
+            Custom
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -223,7 +244,6 @@ export const InlineRecommendations = ({
   onAction,
   onCloneCreative 
 }: InlineRecommendationsProps) => {
-  const highPriority = recommendations.filter(r => r.priority === 'high').length;
 
   if (recommendations.length === 0) {
     return (
@@ -248,14 +268,8 @@ export const InlineRecommendations = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center",
-            highPriority > 0 ? "bg-destructive/20 animate-pulse" : "bg-secondary/20"
-          )}>
-            <Sparkles className={cn(
-              "h-4 w-4",
-              highPriority > 0 ? "text-destructive" : "text-secondary"
-            )} />
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
@@ -266,8 +280,8 @@ export const InlineRecommendations = ({
         </div>
       </div>
 
-      {/* Recommendations list */}
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      {/* 2x2 Grid of recommendations */}
+      <div className="grid grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-1">
         {recommendations.map((rec) => (
           <RecommendationCard 
             key={rec.id} 

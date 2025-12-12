@@ -70,7 +70,7 @@ const LifecycleMeter = ({ stage, progress, description }: { stage: CampaignLifec
             <div key={s.id} className="flex flex-col items-center flex-1">
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
-                isActive && "bg-primary shadow-glow animate-pulse",
+                isActive && "bg-primary shadow-md",
                 isPast && "bg-secondary",
                 !isActive && !isPast && "bg-muted"
               )}>
@@ -94,10 +94,10 @@ const LifecycleMeter = ({ stage, progress, description }: { stage: CampaignLifec
         })}
       </div>
 
-      {/* Progress bar */}
+      {/* Progress bar - flat colors, no gradient */}
       <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-2">
         <div 
-          className="h-full bg-gradient-to-r from-primary to-secondary transition-all duration-1000 ease-out rounded-full"
+          className="h-full bg-primary transition-all duration-1000 ease-out rounded-full"
           style={{ width: `${progress}%` }}
         />
       </div>

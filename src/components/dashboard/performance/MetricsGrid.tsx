@@ -25,7 +25,7 @@ const MetricCell = ({ metric, icon: Icon, index }: MetricCellProps) => {
   const isNegative = metric.trend === 'down';
 
   return (
-    <div className="flex flex-col py-3 px-4 border-r border-border/30 last:border-r-0 animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
+    <div className="flex flex-col items-center text-center py-3 px-4 border-r border-border/30 last:border-r-0 animate-fade-in flex-1" style={{ animationDelay: `${index * 30}ms` }}>
       <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
         <Icon className="h-3.5 w-3.5" />
         <span className="text-xs font-medium">{metric.label}</span>
