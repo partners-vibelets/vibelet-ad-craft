@@ -78,7 +78,7 @@ export const PerformanceDashboardPanel = ({
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Campaign Performance</h2>
+              <h2 className="text-lg font-semibold text-foreground">Live Results</h2>
               <p className="text-sm text-muted-foreground">
                 {dashboard.publishedCampaigns.length} active campaign{dashboard.publishedCampaigns.length !== 1 ? 's' : ''}
               </p>

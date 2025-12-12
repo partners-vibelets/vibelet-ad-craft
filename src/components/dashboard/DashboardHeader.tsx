@@ -15,8 +15,7 @@ import {
   LogOut, 
   User, 
   Settings, 
-  ChevronDown,
-  Sparkles
+  ChevronDown
 } from 'lucide-react';
 import vibeLogo from '@/assets/vibelets-logo-unified.png';
 
@@ -50,16 +49,11 @@ export const DashboardHeader = () => {
         {/* Theme Toggle */}
         <ThemeToggle />
         
-        {/* Credits Badge with animated gradient border */}
-        <div className="relative p-[1px] rounded-full bg-gradient-to-r from-primary via-secondary to-primary bg-[length:200%_100%] animate-gradient-shift transition-all duration-300 hover:shadow-glow hover:scale-105 cursor-pointer">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background">
-            <div className="relative">
-              <Coins className="w-4 h-4 text-primary" />
-              <Sparkles className="w-2.5 h-2.5 text-secondary absolute -top-1 -right-1" />
-            </div>
-            <span className="font-semibold text-sm text-primary">{user.credits}</span>
-            <span className="text-xs text-muted-foreground">credits</span>
-          </div>
+        {/* Credits Badge - clean static design */}
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50 transition-all duration-300 hover:bg-muted cursor-pointer">
+          <Coins className="w-4 h-4 text-primary" />
+          <span className="font-semibold text-sm text-primary">{user.credits}</span>
+          <span className="text-xs text-muted-foreground">credits</span>
         </div>
 
         {/* Profile Dropdown */}

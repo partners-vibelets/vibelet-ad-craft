@@ -53,8 +53,11 @@ export const CampaignFilter = ({ campaigns, selectedCampaignId, onSelect, showSe
       </div>
       
       {showSelectedLabel && selectedCampaign && (
-        <div className="text-xs text-muted-foreground whitespace-nowrap">
-          Showing: <span className="font-medium text-foreground">{selectedCampaign.name}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
+          <span>Status:</span>
+          <Badge className={cn("text-[10px] h-4 px-1.5", statusColors[selectedCampaign.status])}>
+            {selectedCampaign.status}
+          </Badge>
         </div>
       )}
     </div>
