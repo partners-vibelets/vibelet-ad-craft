@@ -1,6 +1,6 @@
 import { UnifiedMetrics, PerformanceMetric } from '@/types/campaign';
 import { useCountUp, formatMetricValue, calculateTrendPercentage } from '@/hooks/useCountUp';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { DollarSign, TrendingUp, Percent, ShoppingCart, Receipt } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MetricsGridProps {
@@ -8,58 +8,77 @@ interface MetricsGridProps {
   isRefreshing?: boolean;
 }
 
-interface MetricCardProps {
+interface MetricCellProps {
   metric: PerformanceMetric;
+  icon: React.ElementType;
   index: number;
 }
 
-const MetricCard = ({ metric, index }: MetricCardProps) => {
+const MetricCell = ({ metric, icon: Icon, index }: MetricCellProps) => {
   const animatedValue = useCountUp(metric.value, { 
-    delay: index * 100, 
+    delay: index * 50, 
     decimals: metric.format === 'number' ? 0 : 2 
   });
 
   const trendPercentage = calculateTrendPercentage(metric.value, metric.previousValue);
-
-  const TrendIcon = metric.trend === 'up' ? TrendingUp : metric.trend === 'down' ? TrendingDown : Minus;
+  const isPositive = metric.trend === 'up';
+  const isNegative = metric.trend === 'down';
 
   return (
-    <div className="glass-card p-4 rounded-xl animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-      <p className="text-xs text-muted-foreground mb-1">{metric.label}</p>
-      <p className="text-2xl font-bold text-foreground">
-        {formatMetricValue(animatedValue, metric.format)}
-      </p>
-      <div className={cn(
-        "flex items-center gap-1 mt-1 text-xs",
-        metric.trend === 'up' && "text-secondary",
-        metric.trend === 'down' && "text-destructive",
-        metric.trend === 'neutral' && "text-muted-foreground"
-      )}>
-        <TrendIcon className="h-3 w-3" />
-        <span>{trendPercentage}</span>
-        <span className="text-muted-foreground">vs last 7 days</span>
+    <div className="flex flex-col py-3 px-4 border-r border-border/30 last:border-r-0 animate-fade-in" style={{ animationDelay: `${index * 30}ms` }}>
+      <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="text-xs font-medium">{metric.label}</span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-xl font-bold text-foreground">
+          {formatMetricValue(animatedValue, metric.format)}
+        </span>
+        <span className={cn(
+          "text-xs font-medium",
+          isPositive && "text-secondary",
+          isNegative && "text-destructive",
+          !isPositive && !isNegative && "text-muted-foreground"
+        )}>
+          {trendPercentage}
+        </span>
       </div>
     </div>
   );
 };
 
+// Icon mapping for each metric
+const metricIcons: Record<string, React.ElementType> = {
+  'total-spent': DollarSign,
+  'profit': TrendingUp,
+  'roi': Percent,
+  'conversions': ShoppingCart,
+  'aov': Receipt,
+};
+
 export const MetricsGrid = ({ metrics, isRefreshing }: MetricsGridProps) => {
+  // Show only 5 key metrics in single row (removed CTR to fit better)
   const metricsList = [
     metrics.totalSpent,
     metrics.profit,
     metrics.roi,
     metrics.conversions,
     metrics.aov,
-    metrics.ctr
   ];
 
   return (
     <div className={cn("p-4 transition-opacity duration-300", isRefreshing && "opacity-60")}>
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">Overall Performance</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {metricsList.map((metric, index) => (
-          <MetricCard key={metric.id} metric={metric} index={index} />
-        ))}
+      <div className="glass-card rounded-xl overflow-hidden">
+        <div className="flex divide-x divide-border/30">
+          {metricsList.map((metric, index) => (
+            <MetricCell 
+              key={metric.id} 
+              metric={metric} 
+              icon={metricIcons[metric.id] || DollarSign}
+              index={index} 
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

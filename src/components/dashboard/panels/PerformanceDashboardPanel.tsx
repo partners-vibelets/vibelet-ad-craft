@@ -1,13 +1,12 @@
-import { useEffect, useRef } from 'react';
-import { PerformanceDashboardState, PublishedCampaign } from '@/types/campaign';
+import { useEffect, useRef, useState } from 'react';
+import { PerformanceDashboardState, PublishedCampaign, AIRecommendation } from '@/types/campaign';
 import { MetricsGrid } from '../performance/MetricsGrid';
-import { AIActionsPreview } from '../performance/AIActionsPreview';
 import { CampaignFilter } from '../performance/CampaignFilter';
-import { CampaignLifecycleMeter } from '../performance/CampaignLifecycleMeter';
-import { WhatChangedWidget } from '../performance/WhatChangedWidget';
-import { AIActionCenter } from '../performance/AIActionCenter';
+import { CampaignStageAndChanges } from '../performance/CampaignStageAndChanges';
+import { InlineRecommendations } from '../performance/InlineRecommendations';
 import { Button } from '@/components/ui/button';
 import { Plus, BarChart3, RefreshCw } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 interface PerformanceDashboardPanelProps {
   dashboard: PerformanceDashboardState;
@@ -18,6 +17,7 @@ interface PerformanceDashboardPanelProps {
   onRecommendationAction: (recommendationId: string, action: string, value?: number) => void;
   onCreateAnother: () => void;
   onRefresh?: () => void;
+  onCloneCreative?: (recommendation: AIRecommendation) => void;
 }
 
 const POLLING_INTERVAL = 30000; // 30 seconds
@@ -30,9 +30,24 @@ export const PerformanceDashboardPanel = ({
   onCloseActionCenter,
   onRecommendationAction,
   onCreateAnother,
-  onRefresh
+  onRefresh,
+  onCloneCreative
 }: PerformanceDashboardPanelProps) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Auto-select the latest campaign if none selected
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  
+  useEffect(() => {
+    if (!hasAutoSelected && dashboard.publishedCampaigns.length > 0 && !dashboard.selectedCampaignId) {
+      // Sort by createdAt descending and select the latest
+      const sortedCampaigns = [...dashboard.publishedCampaigns].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      onCampaignFilterChange(sortedCampaigns[0].id);
+      setHasAutoSelected(true);
+    }
+  }, [dashboard.publishedCampaigns, dashboard.selectedCampaignId, hasAutoSelected, onCampaignFilterChange]);
 
   // Auto-polling every 30 seconds
   useEffect(() => {
@@ -53,19 +68,9 @@ export const PerformanceDashboardPanel = ({
     ? dashboard.publishedCampaigns.find(c => c.id === dashboard.selectedCampaignId)
     : null;
 
-  // For "All Campaigns" view, aggregate changes from all campaigns
-  const aggregatedChanges = selectedCampaign 
-    ? selectedCampaign.changes 
-    : dashboard.publishedCampaigns.flatMap(c => c.changes);
-
-  // Lifecycle data from selected campaign or default for "All Campaigns"
-  const lifecycleStage = selectedCampaign?.lifecycleStage || 'optimizing';
-  const stageProgress = selectedCampaign?.stageProgress || 60;
-  const stageDescription = selectedCampaign?.stageDescription || 'Your campaigns are being optimized by AI for best performance';
-
   return (
     <div className="animate-fade-in">
-      {/* Header */}
+      {/* Header - Campaign Performance with New Campaign button */}
       <div className="p-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -100,39 +105,32 @@ export const PerformanceDashboardPanel = ({
         </div>
       </div>
 
-      {/* Unified Section: Metrics + AI Actions */}
+      {/* Overall Performance - Single row metrics */}
       <MetricsGrid metrics={dashboard.unifiedMetrics} isRefreshing={isRefreshing} />
       
-      <AIActionsPreview 
-        recommendations={dashboard.recommendations}
-        onViewAll={onOpenActionCenter}
-      />
+      <Separator className="mx-4" />
 
-      {/* Separator */}
-      <div className="mx-4 border-t border-border/50" />
+      {/* Campaign Filter with selected campaign indicator */}
+      <div className="px-4 pt-4 pb-2">
+        <CampaignFilter
+          campaigns={dashboard.publishedCampaigns}
+          selectedCampaignId={dashboard.selectedCampaignId}
+          onSelect={onCampaignFilterChange}
+          showSelectedLabel
+        />
+      </div>
 
-      {/* Campaign-Specific Section */}
-      <CampaignFilter
-        campaigns={dashboard.publishedCampaigns}
-        selectedCampaignId={dashboard.selectedCampaignId}
-        onSelect={onCampaignFilterChange}
-      />
+      {/* Campaign Stage and What Changed - Side by side */}
+      <CampaignStageAndChanges selectedCampaign={selectedCampaign || null} />
 
-      <CampaignLifecycleMeter
-        stage={lifecycleStage}
-        progress={stageProgress}
-        description={stageDescription}
-      />
+      <Separator className="mx-4" />
 
-      <WhatChangedWidget changes={aggregatedChanges} />
-
-      {/* AI Action Center Slide-over */}
-      <AIActionCenter
-        isOpen={dashboard.isActionCenterOpen}
-        onClose={onCloseActionCenter}
+      {/* AI Recommendations - Inline, always visible */}
+      <InlineRecommendations
         recommendations={dashboard.recommendations}
         campaigns={dashboard.publishedCampaigns}
         onAction={onRecommendationAction}
+        onCloneCreative={onCloneCreative}
       />
     </div>
   );
