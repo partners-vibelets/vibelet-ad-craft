@@ -1,4 +1,4 @@
-import { CampaignState, CampaignStep, ScriptOption, CreativeOption } from '@/types/campaign';
+import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
 import { ScriptPreviewPanel } from './panels/ScriptPreviewPanel';
@@ -33,6 +33,7 @@ interface RightPanelProps {
   onCloseActionCenter?: () => void;
   onRecommendationAction?: (recommendationId: string, action: string, value?: number) => void;
   onRefreshDashboard?: () => void;
+  onCloneCreative?: (recommendation: AIRecommendation) => void;
 }
 
 export const RightPanel = ({
@@ -51,6 +52,7 @@ export const RightPanel = ({
   onCloseActionCenter,
   onRecommendationAction,
   onRefreshDashboard,
+  onCloneCreative,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -192,6 +194,7 @@ export const RightPanel = ({
               onRecommendationAction={onRecommendationAction}
               onCreateAnother={onReset}
               onRefresh={onRefreshDashboard}
+              onCloneCreative={onCloneCreative}
             />
           );
         }

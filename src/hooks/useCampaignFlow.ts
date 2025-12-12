@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion } from '@/types/campaign';
+import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
 import { createMockPerformanceDashboard } from '@/data/mockPerformanceData';
 import { toast } from 'sonner';
@@ -676,6 +676,67 @@ export const useCampaignFlow = () => {
     });
   }, [state.performanceDashboard]);
 
+  // Clone creative handler - triggers new campaign flow with cloned creative
+  const handleCloneCreative = useCallback(async (recommendation: AIRecommendation) => {
+    if (!recommendation.creative) {
+      toast.error('Creative not found');
+      return;
+    }
+
+    // Remove the recommendation
+    setState(prev => {
+      if (!prev.performanceDashboard) return prev;
+      return {
+        ...prev,
+        performanceDashboard: {
+          ...prev.performanceDashboard,
+          recommendations: prev.performanceDashboard.recommendations.filter(r => r.id !== recommendation.id)
+        }
+      };
+    });
+
+    toast.success('Starting new campaign with cloned creative', {
+      description: 'Using your winning creative to launch a new campaign',
+    });
+
+    // Notify user in chat
+    addMessage('assistant', `Great choice! Let's create a new campaign using your winning "${recommendation.creative.name}" creative. 🎯\n\nSince we're cloning from an existing campaign, the product is already set. Let's select a new script style:`, {
+      inlineQuestion: {
+        id: 'script-selection',
+        question: 'Choose a script style for your new campaign:',
+        options: [
+          ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+          { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+        ]
+      },
+      stepId: 'script-selection'
+    });
+
+    // Set up the flow for a cloned creative campaign
+    setState(prev => ({
+      ...prev,
+      step: 'script-selection',
+      stepHistory: ['welcome', 'product-url', 'product-analysis', 'script-selection'],
+      productUrl: 'https://cloned-from-campaign.com',
+      productData: mockProductData, // Reuse existing product data
+      selectedScript: null,
+      selectedAvatar: null,
+      creatives: [{
+        id: 'cloned-creative',
+        type: recommendation.creative!.thumbnail.includes('video') ? 'video' : 'image',
+        thumbnail: recommendation.creative!.thumbnail,
+        name: `${recommendation.creative!.name} (Cloned)`,
+        isCloned: true
+      }],
+      selectedCreative: null,
+      campaignConfig: null,
+      facebookConnected: prev.facebookConnected,
+      selectedAdAccount: prev.selectedAdAccount,
+      isStepLoading: false,
+      performanceDashboard: null, // Exit performance view
+    }));
+  }, [addMessage]);
+
   const getCompletedSteps = useCallback((): CampaignStep[] => {
     const currentIndex = STEP_ORDER.indexOf(state.step);
     return STEP_ORDER.slice(0, currentIndex);
@@ -886,5 +947,6 @@ export const useCampaignFlow = () => {
     handleCloseActionCenter,
     handleRecommendationAction,
     refreshPerformanceDashboard,
+    handleCloneCreative,
   };
 };
