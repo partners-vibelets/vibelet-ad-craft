@@ -205,14 +205,14 @@ export const RightPanel = ({
     }
   };
 
-  const showStepIndicator = state.step !== 'welcome' && state.step !== 'product-url';
-  const isPublished = state.step === 'published';
+  // Hide step indicator when published - show clean performance view
+  const showStepIndicator = state.step !== 'welcome' && state.step !== 'product-url' && state.step !== 'published';
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {showStepIndicator && (
         <div className="flex-shrink-0 bg-background/30 border-b border-border/50 animate-fade-in">
-          <StepIndicator currentStep={state.step} onStepClick={onStepClick} disabled={isPublished} />
+          <StepIndicator currentStep={state.step} onStepClick={onStepClick} />
         </div>
       )}
       <ScrollArea className="flex-1" viewportRef={viewportRef}>

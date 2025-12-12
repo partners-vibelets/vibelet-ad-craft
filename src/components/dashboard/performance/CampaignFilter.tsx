@@ -8,6 +8,7 @@ interface CampaignFilterProps {
   selectedCampaignId: string | null;
   onSelect: (campaignId: string | null) => void;
   showSelectedLabel?: boolean;
+  compact?: boolean;
 }
 
 const statusColors = {
@@ -16,8 +17,43 @@ const statusColors = {
   learning: 'bg-primary text-primary-foreground'
 };
 
-export const CampaignFilter = ({ campaigns, selectedCampaignId, onSelect, showSelectedLabel }: CampaignFilterProps) => {
+export const CampaignFilter = ({ campaigns, selectedCampaignId, onSelect, showSelectedLabel, compact }: CampaignFilterProps) => {
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
+
+  // Compact mode - just show campaign badge selector
+  if (compact) {
+    return (
+      <Select
+        value={selectedCampaignId || 'all'}
+        onValueChange={(value) => {
+          // Stop event propagation to prevent collapsible from toggling
+          onSelect(value === 'all' ? null : value);
+        }}
+      >
+        <SelectTrigger 
+          className="h-6 w-auto min-w-[120px] text-xs bg-muted/50 border-none px-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SelectValue placeholder="Select" />
+        </SelectTrigger>
+        <SelectContent className="bg-popover border border-border">
+          <SelectItem value="all" className="text-xs">
+            All ({campaigns.length})
+          </SelectItem>
+          {campaigns.map((campaign) => (
+            <SelectItem key={campaign.id} value={campaign.id} className="text-xs">
+              <span className="flex items-center gap-1.5">
+                {campaign.name}
+                <Badge className={cn("text-[9px] h-3.5 px-1", statusColors[campaign.status])}>
+                  {campaign.status}
+                </Badge>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3">
