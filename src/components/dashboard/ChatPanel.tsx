@@ -1,9 +1,10 @@
-import { useRef, useEffect, useCallback, useState } from 'react';
-import { Message } from '@/types/campaign';
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { Message, CampaignStep, InlineQuestion } from '@/types/campaign';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 import { AssistantChatMessage } from './AssistantChatMessage';
+import { SuggestionChips } from './SuggestionChips';
 import { useAssistantChat, isGeneralQuery } from '@/hooks/useAssistantChat';
 import { MessageCircle, X, Trash2, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ interface ChatPanelProps {
   disabled?: boolean;
   threadTitle?: string;
   onThreadTitleChange?: (title: string) => void;
+  currentStep?: CampaignStep;
+  selectedAnswers?: Record<string, string>;
 }
 
 export const ChatPanel = ({ 
@@ -34,7 +37,9 @@ export const ChatPanel = ({
   isFacebookConnected,
   disabled,
   threadTitle = 'New Campaign',
-  onThreadTitleChange
+  onThreadTitleChange,
+  currentStep = 'welcome',
+  selectedAnswers = {}
 }: ChatPanelProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const assistantScrollRef = useRef<HTMLDivElement>(null);
@@ -83,6 +88,28 @@ export const ChatPanel = ({
     }, 100);
     return () => clearTimeout(timeoutId);
   }, [assistantMessages, assistantIsTyping, isAssistantOpen]);
+
+  // Find the active question that needs chip selection (last unanswered question)
+  const activeQuestion: InlineQuestion | null = useMemo(() => {
+    const chipQuestionIds = ['product-continue', 'script-selection', 'avatar-selection', 'creative-selection', 'ad-account-selection'];
+    
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.inlineQuestion && chipQuestionIds.includes(msg.inlineQuestion.id)) {
+        // Check if already answered
+        if (!selectedAnswers[msg.inlineQuestion.id]) {
+          return msg.inlineQuestion;
+        }
+      }
+    }
+    return null;
+  }, [messages, selectedAnswers]);
+
+  const handleChipSelect = useCallback((optionId: string) => {
+    if (activeQuestion) {
+      onQuestionAnswer(activeQuestion.id, optionId);
+    }
+  }, [activeQuestion, onQuestionAnswer]);
 
   const handleSendMessage = useCallback((message: string) => {
     // Intelligently route based on message content
@@ -176,7 +203,7 @@ export const ChatPanel = ({
               onCampaignConfigComplete={onCampaignConfigComplete}
               onFacebookConnect={onFacebookConnect}
               onFacebookUseExisting={onFacebookUseExisting}
-              selectedAnswers={{}}
+              selectedAnswers={selectedAnswers}
               isFacebookConnected={isFacebookConnected}
             />
           ))}
@@ -247,7 +274,7 @@ export const ChatPanel = ({
         </div>
       )}
 
-      {/* Input Area with Chat Icon */}
+      {/* Suggestion Chips + Input Area */}
       <div className="flex-shrink-0 bg-background/30 relative">
         {/* Chat Icon Button */}
         <div className="absolute -top-12 right-4 z-20">
@@ -264,11 +291,19 @@ export const ChatPanel = ({
             <MessageCircle className={`h-4 w-4 ${isAssistantOpen ? '' : 'text-secondary'}`} />
           </Button>
         </div>
+
+        {/* Floating Suggestion Chips */}
+        <SuggestionChips
+          activeQuestion={activeQuestion}
+          onSelect={handleChipSelect}
+          currentStep={currentStep}
+          disabled={disabled || isTyping}
+        />
         
         <ChatInput 
           onSend={handleSendMessage} 
           disabled={disabled || isTyping || assistantIsTyping} 
-          placeholder="Paste product URL or ask a question..."
+          placeholder="Paste product URL or type your choice..."
         />
       </div>
     </div>

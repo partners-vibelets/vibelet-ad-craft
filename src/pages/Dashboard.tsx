@@ -15,6 +15,7 @@ const Dashboard = () => {
     state,
     messages,
     isTyping,
+    selectedAnswers,
     handleUserMessage,
     handleQuestionAnswer,
     handleCampaignConfigComplete,
@@ -84,6 +85,8 @@ const Dashboard = () => {
               isFacebookConnected={state.facebookConnected}
               threadTitle={threadTitle}
               onThreadTitleChange={setThreadTitle}
+              currentStep={state.step}
+              selectedAnswers={selectedAnswers}
             />
           </div>
         </div>
