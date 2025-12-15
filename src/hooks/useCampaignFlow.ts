@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
 import { createMockPerformanceDashboard } from '@/data/mockPerformanceData';
 import { toast } from 'sonner';
 import { isValidUrl, sanitizeInput, validateCampaignConfig, formatErrorMessage } from '@/lib/validation';
+import { matchUserInputToOption, looksLikeUrl } from '@/lib/nlpMatcher';
 
 const STEP_ORDER: CampaignStep[] = [
   'welcome',
@@ -60,6 +61,21 @@ export const useCampaignFlow = () => {
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+
+  // Find the active question that can receive natural language input
+  const activeQuestion: InlineQuestion | null = useMemo(() => {
+    const chipQuestionIds = ['product-continue', 'script-selection', 'avatar-selection', 'creative-selection', 'ad-account-selection', 'publish-confirm'];
+    
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (msg.inlineQuestion && chipQuestionIds.includes(msg.inlineQuestion.id)) {
+        if (!selectedAnswers[msg.inlineQuestion.id]) {
+          return msg.inlineQuestion;
+        }
+      }
+    }
+    return null;
+  }, [messages, selectedAnswers]);
 
   const addMessage = useCallback((role: 'user' | 'assistant', content: string, options?: { inlineQuestion?: InlineQuestion; stepId?: CampaignStep; showCampaignSlider?: boolean; showFacebookConnect?: boolean }) => {
     setMessages(prev => [...prev, createMessage(role, content, options)]);
@@ -153,6 +169,22 @@ export const useCampaignFlow = () => {
         return;
       }
       
+      // Try natural language matching first (before adding message to chat)
+      // Skip if it looks like a URL
+      if (!looksLikeUrl(sanitizedContent) && activeQuestion) {
+        const matchResult = matchUserInputToOption(sanitizedContent, activeQuestion);
+        
+        if (matchResult.matched && matchResult.optionId) {
+          // Found a match - handle it as a question answer
+          // Add a friendly user message based on what they typed
+          addMessage('user', sanitizedContent);
+          
+          // Process the selection
+          await handleQuestionAnswerInternal(activeQuestion.id, matchResult.optionId, true);
+          return;
+        }
+      }
+      
       addMessage('user', sanitizedContent);
       
       if (state.step === 'welcome' || state.step === 'product-url') {
@@ -192,8 +224,16 @@ export const useCampaignFlow = () => {
             1500
           );
         } else {
-          await simulateTyping("Please share your product URL (e.g., https://yourstore.com/product) and I'll analyze it for you.");
+          // Check if there's an active question they might be answering
+          if (activeQuestion) {
+            await simulateTyping(`I didn't quite catch that. You can type something like "the first one", "Script A", or click a suggestion below.`, {}, 800);
+          } else {
+            await simulateTyping("Please share your product URL (e.g., https://yourstore.com/product) and I'll analyze it for you.");
+          }
         }
+      } else if (activeQuestion) {
+        // There's an active question but we couldn't match - provide helpful guidance
+        await simulateTyping(`I didn't quite understand. Try typing the option name (like "${activeQuestion.options[0]?.label}") or use the suggestions below.`, {}, 800);
       }
     } catch (error) {
       handleError(error, 'Processing your message');
@@ -309,7 +349,8 @@ export const useCampaignFlow = () => {
     }
   }, [addMessage, simulateTyping, handleError]);
 
-  const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
+  // Internal handler that can skip adding user message (for NLP-matched inputs)
+  const handleQuestionAnswerInternal = useCallback(async (questionId: string, answerId: string, skipUserMessage = false) => {
     try {
       if (!questionId || !answerId) {
         toast.error('Invalid selection', { description: 'Please try again' });
@@ -321,7 +362,7 @@ export const useCampaignFlow = () => {
       
       if (questionId === 'product-continue') {
         if (answerId === 'continue') {
-          addMessage('user', "Let's continue!");
+          if (!skipUserMessage) addMessage('user', "Let's continue!");
           setState(prev => ({ ...prev, isStepLoading: true }));
           
           // Check if we have script options
@@ -345,14 +386,14 @@ export const useCampaignFlow = () => {
           );
           setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
         } else {
-          addMessage('user', "I want to change the product URL.");
+          if (!skipUserMessage) addMessage('user', "I want to change the product URL.");
           setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
           await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
         }
       } else if (questionId === 'script-selection') {
         if (answerId === 'custom-script') {
           setState(prev => ({ ...prev, isCustomScriptMode: true, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
-          addMessage('user', "I'll write my own script.");
+          if (!skipUserMessage) addMessage('user', "I'll write my own script.");
           await simulateTyping(
             `Great! You can write your own ad copy in the panel. I'll guide you with Facebook's best practices for character limits. ✍️`,
             { stepId: 'script-selection' },
@@ -366,7 +407,7 @@ export const useCampaignFlow = () => {
           }
           
           setState(prev => ({ ...prev, selectedScript: script, isStepLoading: true, isCustomScriptMode: false }));
-          addMessage('user', `I'll use the "${script.name}" script.`);
+          if (!skipUserMessage) addMessage('user', `I'll use the "${script.name}" script.`);
           
           // Check if we have avatar options
           if (!avatarOptions || avatarOptions.length === 0) {
@@ -394,7 +435,7 @@ export const useCampaignFlow = () => {
         }
         
         setState(prev => ({ ...prev, selectedAvatar: avatar, isStepLoading: true }));
-        addMessage('user', `${avatar.name} will be the presenter.`);
+        if (!skipUserMessage) addMessage('user', `${avatar.name} will be the presenter.`);
         
         await simulateTyping(
           `${avatar.name} is perfect! 🎥 Now generating your ad creatives...\n\nThis usually takes about 30 seconds.`,
@@ -434,7 +475,7 @@ export const useCampaignFlow = () => {
       } else if (questionId === 'creative-selection') {
         if (answerId === 'custom-creative') {
           setState(prev => ({ ...prev, isCustomCreativeMode: true, step: 'creative-review', stepHistory: [...prev.stepHistory, 'creative-review'] }));
-          addMessage('user', "I'll upload my own creative.");
+          if (!skipUserMessage) addMessage('user', "I'll upload my own creative.");
           await simulateTyping(
             `Perfect! Upload your image or video in the panel. I'll validate it against Facebook's ad specifications. 📤`,
             { stepId: 'creative-review' },
@@ -448,7 +489,7 @@ export const useCampaignFlow = () => {
           }
           
           setState(prev => ({ ...prev, selectedCreative: creative, isStepLoading: true, isCustomCreativeMode: false }));
-          addMessage('user', `I'll use the "${creative.name}" creative.`);
+          if (!skipUserMessage) addMessage('user', `I'll use the "${creative.name}" creative.`);
           
           await simulateTyping(
             `Excellent choice! Your ${creative.name} is ready. ⏳\n\nLet's quickly configure your campaign:`,
@@ -472,7 +513,7 @@ export const useCampaignFlow = () => {
         }
         
         setState(prev => ({ ...prev, selectedAdAccount: account, isStepLoading: true }));
-        addMessage('user', `Using "${account.name}" account.`);
+        if (!skipUserMessage) addMessage('user', `Using "${account.name}" account.`);
         
         const publishQuestion: InlineQuestion = {
           id: 'publish-confirm',
@@ -496,7 +537,7 @@ export const useCampaignFlow = () => {
             throw new Error('Campaign is incomplete. Please ensure all steps are completed.');
           }
           
-          addMessage('user', "Publish the campaign!");
+          if (!skipUserMessage) addMessage('user', "Publish the campaign!");
           setState(prev => ({ ...prev, step: 'publishing', stepHistory: [...prev.stepHistory, 'publishing'], isStepLoading: true }));
           
           await simulateTyping(`Publishing to Facebook... 🚀`, { stepId: 'publishing' }, 1000);
@@ -534,34 +575,39 @@ export const useCampaignFlow = () => {
     }
   }, [state.campaignConfig, state.selectedCreative, state.selectedAdAccount, addMessage, simulateTyping, handleError]);
 
+  // Public wrapper that always adds user message (used by chip clicks)
+  const handleQuestionAnswer = useCallback(async (questionId: string, answerId: string) => {
+    await handleQuestionAnswerInternal(questionId, answerId, false);
+  }, [handleQuestionAnswerInternal]);
+
   // Legacy functions for backward compatibility (now handled via inline questions)
   const selectScript = useCallback(async (script: ScriptOption) => {
-    await handleQuestionAnswer('script-selection', script.id);
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('script-selection', script.id, false);
+  }, [handleQuestionAnswerInternal]);
 
   const selectAvatar = useCallback(async (avatar: AvatarOption) => {
-    await handleQuestionAnswer('avatar-selection', avatar.id);
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('avatar-selection', avatar.id, false);
+  }, [handleQuestionAnswerInternal]);
 
   const selectCreative = useCallback(async (creative: CreativeOption) => {
-    await handleQuestionAnswer('creative-selection', creative.id);
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('creative-selection', creative.id, false);
+  }, [handleQuestionAnswerInternal]);
 
   const setCampaignConfig = useCallback(async (config: CampaignConfig) => {
     // Config is now set via inline questions step by step
   }, []);
 
   const connectFacebook = useCallback(async () => {
-    await handleQuestionAnswer('facebook-connect', 'connect');
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('facebook-connect', 'connect', false);
+  }, [handleQuestionAnswerInternal]);
 
   const selectAdAccount = useCallback(async (account: AdAccount) => {
-    await handleQuestionAnswer('ad-account-selection', account.id);
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('ad-account-selection', account.id, false);
+  }, [handleQuestionAnswerInternal]);
 
   const publishCampaign = useCallback(async () => {
-    await handleQuestionAnswer('publish-confirm', 'publish');
-  }, [handleQuestionAnswer]);
+    await handleQuestionAnswerInternal('publish-confirm', 'publish', false);
+  }, [handleQuestionAnswerInternal]);
 
   const resetFlow = useCallback(() => {
     setState(initialState);
