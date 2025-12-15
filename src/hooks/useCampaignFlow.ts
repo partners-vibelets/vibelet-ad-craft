@@ -59,6 +59,7 @@ export const useCampaignFlow = () => {
     createMessage('assistant', "Hey! 👋 I'm your Vibelets AI assistant. I'll help you create a high-converting ad campaign in minutes.\n\nJust paste your product URL below to get started.", { stepId: 'welcome' })
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
 
   const addMessage = useCallback((role: 'user' | 'assistant', content: string, options?: { inlineQuestion?: InlineQuestion; stepId?: CampaignStep; showCampaignSlider?: boolean; showFacebookConnect?: boolean }) => {
     setMessages(prev => [...prev, createMessage(role, content, options)]);
@@ -315,6 +316,9 @@ export const useCampaignFlow = () => {
         return;
       }
       
+      // Track the answer
+      setSelectedAnswers(prev => ({ ...prev, [questionId]: answerId }));
+      
       if (questionId === 'product-continue') {
         if (answerId === 'continue') {
           addMessage('user', "Let's continue!");
@@ -561,6 +565,7 @@ export const useCampaignFlow = () => {
 
   const resetFlow = useCallback(() => {
     setState(initialState);
+    setSelectedAnswers({});
     setMessages([
       createMessage('assistant', "Ready for your next campaign! 🚀 Paste a product URL to get started.", { stepId: 'welcome' })
     ]);
@@ -927,6 +932,7 @@ export const useCampaignFlow = () => {
     state,
     messages,
     isTyping,
+    selectedAnswers,
     handleUserMessage,
     handleQuestionAnswer,
     handleCampaignConfigComplete,

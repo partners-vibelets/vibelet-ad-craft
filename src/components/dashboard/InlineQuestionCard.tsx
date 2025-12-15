@@ -18,11 +18,14 @@ const iconMap: Record<string, LucideIcon> = {
   click: MousePointer,
 };
 
-// Questions that should use compact side-by-side layout
-const COMPACT_QUESTIONS = ['product-continue'];
-
-// Questions that should use conversational chip layout (many options, preview shows details)
-const CONVERSATIONAL_QUESTIONS = ['script-selection', 'avatar-selection', 'creative-selection', 'ad-account-selection'];
+// Questions where selection is handled via floating chips (no inline buttons)
+const CHIP_HANDLED_QUESTIONS = [
+  'product-continue',
+  'script-selection', 
+  'avatar-selection', 
+  'creative-selection', 
+  'ad-account-selection'
+];
 
 interface InlineQuestionCardProps {
   question: InlineQuestion;
@@ -31,82 +34,33 @@ interface InlineQuestionCardProps {
 }
 
 export const InlineQuestionCard = ({ question, onAnswer, selectedAnswer }: InlineQuestionCardProps) => {
-  const isCompact = COMPACT_QUESTIONS.includes(question.id);
-  const isConversational = CONVERSATIONAL_QUESTIONS.includes(question.id);
+  const isChipHandled = CHIP_HANDLED_QUESTIONS.includes(question.id);
 
-  // Compact side-by-side layout for binary choices
-  if (isCompact) {
+  // For chip-handled questions, show only a subtle hint (no buttons in chat)
+  if (isChipHandled && !selectedAnswer) {
     return (
-      <div className="mt-3 space-y-2 overflow-hidden animate-fade-in">
-        <p className="text-sm font-medium text-foreground break-words">{question.question}</p>
-        <div className="flex flex-wrap gap-2">
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === option.id;
-            
-            return (
-              <button
-                key={option.id}
-                onClick={() => onAnswer(question.id, option.id)}
-                disabled={!!selectedAnswer}
-                style={{ animationDelay: `${index * 50}ms` }}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-200 animate-fade-in",
-                  isSelected 
-                    ? "border-primary bg-primary/10 text-primary"
-                    : selectedAnswer
-                      ? "border-border/50 bg-muted/30 text-muted-foreground opacity-50 cursor-not-allowed"
-                      : "border-border bg-card hover:border-primary/60 hover:bg-primary/5 cursor-pointer text-foreground"
-                )}
-              >
-                {isSelected && <Check className="w-3.5 h-3.5" />}
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-2 animate-fade-in">
+        <p className="text-xs text-muted-foreground italic">
+          Use the suggestions below or type your choice...
+        </p>
       </div>
     );
   }
 
-  // Conversational chip layout - just names, details in preview panel
-  if (isConversational) {
+  // Show selected answer as confirmation
+  if (isChipHandled && selectedAnswer) {
+    const selectedOption = question.options.find(o => o.id === selectedAnswer);
     return (
-      <div className="mt-3 space-y-2 overflow-hidden animate-fade-in">
-        <p className="text-sm font-medium text-foreground break-words">{question.question}</p>
-        <p className="text-xs text-muted-foreground">Check the preview panel for details, then select:</p>
-        <div className="flex flex-wrap gap-1.5">
-          {question.options.map((option, index) => {
-            const isSelected = selectedAnswer === option.id;
-            const isCustomOption = option.id.includes('custom');
-            
-            return (
-              <button
-                key={option.id}
-                onClick={() => onAnswer(question.id, option.id)}
-                disabled={!!selectedAnswer}
-                style={{ animationDelay: `${index * 30}ms` }}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 animate-fade-in",
-                  isSelected 
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : selectedAnswer
-                      ? "bg-muted/50 text-muted-foreground/50 cursor-not-allowed"
-                      : isCustomOption
-                        ? "bg-secondary/20 text-secondary border border-secondary/30 hover:bg-secondary/30 cursor-pointer"
-                        : "bg-muted hover:bg-muted/80 text-foreground cursor-pointer hover:shadow-sm"
-                )}
-              >
-                {isSelected && <Check className="w-3 h-3 inline mr-1" />}
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-2 animate-fade-in">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+          <Check className="w-3 h-3" />
+          {selectedOption?.label || selectedAnswer}
+        </span>
       </div>
     );
   }
 
-  // Default: standard card layout for other questions
+  // Default: standard card layout for other questions (publish-confirm, etc.)
   return (
     <div className="mt-3 space-y-2 overflow-hidden animate-fade-in">
       <p className="text-sm font-medium text-foreground break-words">{question.question}</p>
