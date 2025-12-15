@@ -249,7 +249,7 @@ const RecommendationCard = ({
                 className="h-6 text-[10px] px-2"
                 disabled={actionState !== 'pending'}
               />
-              <Button size="sm" className="h-6 px-1.5 text-[10px]" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
+              <Button size="sm" variant="secondary" className="h-6 px-1.5 text-[10px]" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
                 <Check className="h-2.5 w-2.5" />
               </Button>
               <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => setShowCustomInput(false)} disabled={actionState !== 'pending'}>
@@ -275,6 +275,7 @@ const RecommendationCard = ({
         <div className="flex items-center gap-1 mt-1.5">
           <Button 
             size="sm" 
+            variant="secondary"
             onClick={() => handleQuickAction()}
             disabled={isProcessing}
             className="flex-1 h-6 text-[10px] px-2"
