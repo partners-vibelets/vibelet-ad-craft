@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { ProductData } from '@/types/campaign';
-import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, Sparkles, RefreshCw, Target, Zap, Lightbulb, Award, BadgeCheck } from 'lucide-react';
+import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, Sparkles, RefreshCw, Target, Zap, Lightbulb, Award, BadgeCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,68 @@ const insightIcons: Record<string, React.ElementType> = {
   'users': Users,
   'video': Video,
   'dollar-sign': CircleDollarSign,
+};
+
+const IMAGES_PER_PAGE = 3;
+
+const ProductImageCarousel = ({ images }: { images: string[] }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const totalPages = Math.ceil(images.length / IMAGES_PER_PAGE);
+  const hasNavigation = images.length > IMAGES_PER_PAGE;
+  
+  const visibleImages = images.slice(
+    currentPage * IMAGES_PER_PAGE,
+    (currentPage + 1) * IMAGES_PER_PAGE
+  );
+
+  const goToPrev = () => setCurrentPage(p => Math.max(0, p - 1));
+  const goToNext = () => setCurrentPage(p => Math.min(totalPages - 1, p + 1));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Image className="w-4 h-4" />
+          <span className="text-xs font-medium">Product Images ({images.length})</span>
+        </div>
+        {hasNavigation && (
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={goToPrev}
+              disabled={currentPage === 0}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground min-w-[40px] text-center">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={goToNext}
+              disabled={currentPage === totalPages - 1}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {visibleImages.map((img, i) => (
+          <ImageLightbox
+            key={currentPage * IMAGES_PER_PAGE + i}
+            src={img}
+            alt={`Product ${currentPage * IMAGES_PER_PAGE + i + 1}`}
+            className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all object-cover"
+          />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isRegenerating, onRegenerate }: ProductAnalysisPanelProps) => {
@@ -283,22 +346,7 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
       )}
 
       {/* Product Images - Moved to end */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Image className="w-4 h-4" />
-          <span className="text-xs font-medium">Product Images ({productData.images.length})</span>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {productData.images.map((img, i) => (
-            <ImageLightbox
-              key={i}
-              src={img}
-              alt={`Product ${i + 1}`}
-              className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all object-cover"
-            />
-          ))}
-        </div>
-      </div>
+      <ProductImageCarousel images={productData.images} />
     </div>
   );
 };
