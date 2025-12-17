@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
-import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, ExternalLink, ThumbsUp, ThumbsDown, Clock, Layers, Target, Image, Megaphone } from 'lucide-react';
+import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, ExternalLink, ThumbsUp, ThumbsDown, Clock, Layers, Target, Image, Megaphone, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -203,9 +204,10 @@ const RecommendationCard = ({
 
   return (
     <div className={cn(
-      "glass-card p-4 rounded-xl transition-all h-full flex flex-col",
+      "glass-card p-4 rounded-xl transition-all duration-300 h-full flex flex-col cursor-pointer",
+      "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:scale-[1.02]",
       recommendation.priority === 'high' && "border-amber-500/30 bg-amber-500/5",
-      actionState !== 'pending' && "opacity-60"
+      actionState !== 'pending' && "opacity-60 hover:scale-100"
     )}>
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -341,6 +343,8 @@ export const InlineRecommendations = ({
   onCloneCreative 
 }: InlineRecommendationsProps) => {
   const navigate = useNavigate();
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [levelFilter, setLevelFilter] = useState<string>('all');
 
   const handleOpenFullView = () => {
     // Store recommendations in sessionStorage for the full view page
@@ -348,6 +352,13 @@ export const InlineRecommendations = ({
     sessionStorage.setItem('vibelets_campaigns', JSON.stringify(campaigns));
     window.open('/recommendations', '_blank');
   };
+
+  // Filter recommendations
+  const filteredRecommendations = recommendations.filter(rec => {
+    const matchesPriority = priorityFilter === 'all' || rec.priority === priorityFilter;
+    const matchesLevel = levelFilter === 'all' || rec.level === levelFilter;
+    return matchesPriority && matchesLevel;
+  });
 
   if (recommendations.length === 0) {
     return (
@@ -378,7 +389,7 @@ export const InlineRecommendations = ({
           <div>
             <h3 className="text-base font-semibold text-foreground">AI Recommendations</h3>
             <p className="text-sm text-muted-foreground">
-              {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
+              {filteredRecommendations.length} of {recommendations.length} action{recommendations.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -393,17 +404,51 @@ export const InlineRecommendations = ({
         </Button>
       </div>
 
-      {/* 2x2 Grid of recommendations */}
-      <div className="grid grid-cols-2 gap-3">
-        {recommendations.map((rec) => (
-          <RecommendationCard 
-            key={rec.id} 
-            recommendation={rec} 
-            onAction={onAction}
-            onCloneCreative={onCloneCreative}
-          />
-        ))}
+      {/* Filters */}
+      <div className="flex items-center gap-2 mb-4">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="high">Urgent</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="suggestion">Tips</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={levelFilter} onValueChange={setLevelFilter}>
+          <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
+            <SelectValue placeholder="Level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="campaign">Campaign</SelectItem>
+            <SelectItem value="adset">Ad Set</SelectItem>
+            <SelectItem value="ad">Ad</SelectItem>
+            <SelectItem value="creative">Creative</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* 2x2 Grid of recommendations */}
+      {filteredRecommendations.length === 0 ? (
+        <div className="text-center py-6 glass-card rounded-xl">
+          <p className="text-sm text-muted-foreground">No recommendations match filters</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {filteredRecommendations.map((rec) => (
+            <RecommendationCard 
+              key={rec.id} 
+              recommendation={rec} 
+              onAction={onAction}
+              onCloneCreative={onCloneCreative}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

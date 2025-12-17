@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
-import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft, DollarSign as Spent, TrendingUp as Profit, Percent, ShoppingCart, Receipt } from 'lucide-react';
+import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft, DollarSign as Spent, TrendingUp as Profit, Percent, ShoppingCart, Receipt, ChevronDown, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { mockUnifiedMetrics } from '@/data/mockPerformanceData';
@@ -128,7 +129,7 @@ const FullRecommendationCard = ({
 
   return (
     <div className={cn(
-      "glass-card p-6 rounded-xl transition-all",
+      "glass-card p-6 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:scale-[1.01]",
       recommendation.priority === 'high' && "border-amber-500/30 bg-amber-500/5",
       isApplied && "opacity-60"
     )}>
@@ -291,6 +292,9 @@ const FullRecommendationCard = ({
 export default function Recommendations() {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [campaigns, setCampaigns] = useState<PublishedCampaign[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('all');
+  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [levelFilter, setLevelFilter] = useState<string>('all');
 
   useEffect(() => {
     // Load data from sessionStorage
@@ -308,6 +312,17 @@ export default function Recommendations() {
   const handleGoBack = () => {
     window.close();
   };
+
+  // Filter recommendations
+  const filteredRecommendations = recommendations.filter(rec => {
+    const matchesCampaign = selectedCampaign === 'all' || rec.campaignName === selectedCampaign;
+    const matchesPriority = priorityFilter === 'all' || rec.priority === priorityFilter;
+    const matchesLevel = levelFilter === 'all' || rec.level === levelFilter;
+    return matchesCampaign && matchesPriority && matchesLevel;
+  });
+
+  // Get unique campaign names for filter
+  const uniqueCampaigns = [...new Set(recommendations.map(r => r.campaignName))];
 
   return (
     <div className="min-h-screen bg-background">
@@ -336,6 +351,33 @@ export default function Recommendations() {
           </div>
         </div>
       </header>
+
+      {/* Campaign Filter Bar */}
+      <div className="border-b border-border/50 bg-background">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-4">
+            <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+              <SelectTrigger className="w-[320px] h-12 bg-muted/30 border-border/50">
+                <SelectValue placeholder="All Campaigns" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Campaigns</SelectItem>
+                {uniqueCampaigns.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedCampaign !== 'all' && (
+              <Badge className="bg-secondary/20 text-secondary border-secondary/30">
+                active
+              </Badge>
+            )}
+            <div className="ml-auto text-sm text-muted-foreground">
+              Status: <Badge className="bg-secondary/20 text-secondary border-secondary/30 ml-1">active</Badge>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -425,13 +467,53 @@ export default function Recommendations() {
             </div>
             
             {/* Right side - Recommendations */}
-            <div className="flex-1 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                {recommendations.length} recommendation{recommendations.length !== 1 ? 's' : ''} to review
-              </h3>
-              {recommendations.map((rec) => (
-                <FullRecommendationCard key={rec.id} recommendation={rec} />
-              ))}
+            <div className="flex-1">
+              {/* Recommendation Filters */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Filter className="h-4 w-4" />
+                  <span>Filter:</span>
+                </div>
+                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                  <SelectTrigger className="w-[140px] h-9 bg-muted/30 border-border/50">
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="high">Urgent</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="suggestion">Tips</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={levelFilter} onValueChange={setLevelFilter}>
+                  <SelectTrigger className="w-[140px] h-9 bg-muted/30 border-border/50">
+                    <SelectValue placeholder="Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Levels</SelectItem>
+                    <SelectItem value="campaign">Campaign</SelectItem>
+                    <SelectItem value="adset">Ad Set</SelectItem>
+                    <SelectItem value="ad">Ad</SelectItem>
+                    <SelectItem value="creative">Creative</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground ml-auto">
+                  {filteredRecommendations.length} of {recommendations.length} shown
+                </span>
+              </div>
+
+              {/* Recommendation Cards */}
+              <div className="space-y-4">
+                {filteredRecommendations.length === 0 ? (
+                  <div className="text-center py-8 glass-card rounded-xl">
+                    <p className="text-muted-foreground">No recommendations match your filters</p>
+                  </div>
+                ) : (
+                  filteredRecommendations.map((rec) => (
+                    <FullRecommendationCard key={rec.id} recommendation={rec} />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}
