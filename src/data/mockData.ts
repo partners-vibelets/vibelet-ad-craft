@@ -7,7 +7,10 @@ export const mockProductData: ProductData = {
   images: [
     "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400",
     "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400",
-    "https://images.unsplash.com/photo-1598331668826-20cecc596b86?w=400"
+    "https://images.unsplash.com/photo-1598331668826-20cecc596b86?w=400",
+    "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
+    "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=400",
+    "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400"
   ],
   sku: "EAR-PRO-001",
   category: "Electronics / Audio",
