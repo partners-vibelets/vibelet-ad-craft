@@ -1,10 +1,10 @@
 import { PublishedCampaign, PerformanceChange, CampaignLifecycleStage } from '@/types/campaign';
-import { FlaskConical, Settings, Rocket, TrendingUp, AlertTriangle, ArrowRight, CheckCircle, Inbox } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { FlaskConical, Settings, Rocket, TrendingUp, AlertTriangle, ArrowRight, CheckCircle, Inbox, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CampaignStageAndChangesProps {
   selectedCampaign: PublishedCampaign | null;
+  showGuidance?: boolean;
 }
 
 const stages: { id: CampaignLifecycleStage; label: string; icon: typeof FlaskConical }[] = [
@@ -40,14 +40,16 @@ const categoryConfig = {
   }
 };
 
-// Empty state when no campaign is selected
-const EmptyState = () => (
+// Guidance state when no campaign is selected
+const GuidanceState = () => (
   <div className="flex flex-col items-center justify-center py-8 text-center">
-    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-      <Inbox className="h-6 w-6 text-muted-foreground" />
+    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+      <Filter className="h-6 w-6 text-primary" />
     </div>
-    <p className="text-sm font-medium text-muted-foreground">Select a campaign</p>
-    <p className="text-xs text-muted-foreground/70 mt-1">Use the filter above to view campaign details</p>
+    <p className="text-sm font-medium text-foreground">Select a campaign to view details</p>
+    <p className="text-xs text-muted-foreground/70 mt-1 max-w-xs">
+      Use the campaign filter above to see stage progress and recent changes for a specific campaign
+    </p>
   </div>
 );
 
@@ -110,7 +112,7 @@ const LifecycleMeter = ({ stage, progress, description }: { stage: CampaignLifec
   );
 };
 
-// What Changed Widget Component
+// What Changed Widget Component - Always expanded
 const WhatChangedSection = ({ changes }: { changes: PerformanceChange[] }) => {
   const groupedChanges = [
     { category: 'good' as const, changes: changes.filter(c => c.category === 'good') },
@@ -129,55 +131,44 @@ const WhatChangedSection = ({ changes }: { changes: PerformanceChange[] }) => {
   }
 
   return (
-    <div className="glass-card rounded-xl flex-1 overflow-hidden">
-      <Accordion type="single" collapsible defaultValue="changes" className="w-full">
-        <AccordionItem value="changes" className="border-none">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent/50">
-            <div className="flex items-center gap-2 text-left">
-              <span className="text-sm font-medium text-muted-foreground">What Changed</span>
-              <span className="text-xs text-muted-foreground/70">
-                ({changes.length})
-              </span>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4">
-            <div className="space-y-2 max-h-[150px] overflow-y-auto">
-              {groupedChanges.map((group) => {
-                const config = categoryConfig[group.category];
-                const Icon = config.icon;
+    <div className="glass-card rounded-xl flex-1 p-4">
+      <h4 className="text-sm font-medium text-muted-foreground mb-3">
+        What Changed <span className="text-xs text-muted-foreground/70">({changes.length})</span>
+      </h4>
+      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+        {groupedChanges.map((group) => {
+          const config = categoryConfig[group.category];
+          const Icon = config.icon;
 
-                return (
-                  <div key={group.category} className="space-y-1.5">
-                    <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px]", config.bgColor)}>
-                      <Icon className={cn("h-3 w-3", config.color)} />
-                      <span className={cn("font-medium", config.color)}>{config.label}</span>
-                    </div>
-                    {group.changes.map((change, index) => (
-                      <div 
-                        key={change.id}
-                        className="pl-4 animate-fade-in"
-                        style={{ animationDelay: `${index * 30}ms` }}
-                      >
-                        <p className="text-xs font-medium text-foreground">{change.title}</p>
-                        <p className="text-[10px] text-muted-foreground line-clamp-1">{change.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
+          return (
+            <div key={group.category} className="space-y-1.5">
+              <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px]", config.bgColor)}>
+                <Icon className={cn("h-3 w-3", config.color)} />
+                <span className={cn("font-medium", config.color)}>{config.label}</span>
+              </div>
+              {group.changes.map((change, index) => (
+                <div 
+                  key={change.id}
+                  className="pl-4 animate-fade-in"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                >
+                  <p className="text-xs font-medium text-foreground">{change.title}</p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1">{change.description}</p>
+                </div>
+              ))}
             </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
-export const CampaignStageAndChanges = ({ selectedCampaign }: CampaignStageAndChangesProps) => {
-  if (!selectedCampaign) {
+export const CampaignStageAndChanges = ({ selectedCampaign, showGuidance = false }: CampaignStageAndChangesProps) => {
+  if (!selectedCampaign || showGuidance) {
     return (
       <div className="glass-card rounded-xl p-4">
-        <EmptyState />
+        <GuidanceState />
       </div>
     );
   }

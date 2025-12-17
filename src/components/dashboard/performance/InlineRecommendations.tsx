@@ -1,18 +1,14 @@
 import { useState } from 'react';
-import { AIRecommendation, PublishedCampaign } from '@/types/campaign';
-import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, Maximize2, ThumbsUp, ThumbsDown, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
+import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, ExternalLink, ThumbsUp, ThumbsDown, Clock, Layers, Target, Image, Megaphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface InlineRecommendationsProps {
   recommendations: AIRecommendation[];
@@ -41,6 +37,41 @@ const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] })
   );
 };
 
+// Level badge component to show what level the recommendation applies to
+const LevelBadge = ({ level }: { level: RecommendationLevel }) => {
+  const config = {
+    campaign: { label: 'Campaign', icon: Megaphone, className: 'bg-primary/10 text-primary border-primary/20' },
+    adset: { label: 'Ad Set', icon: Target, className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+    ad: { label: 'Ad', icon: Layers, className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+    creative: { label: 'Creative', icon: Image, className: 'bg-pink-500/10 text-pink-600 border-pink-500/20' }
+  };
+
+  const { label, icon: Icon, className } = config[level];
+
+  return (
+    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 gap-1", className)}>
+      <Icon className="h-2.5 w-2.5" />
+      {label}
+    </Badge>
+  );
+};
+
+// Confidence score indicator
+const ConfidenceScore = ({ score }: { score: number }) => {
+  const getColor = () => {
+    if (score >= 85) return 'text-secondary';
+    if (score >= 70) return 'text-amber-500';
+    return 'text-muted-foreground';
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Progress value={score} className="h-1 w-12" />
+      <span className={cn("text-[9px] font-medium", getColor())}>{score}%</span>
+    </div>
+  );
+};
+
 // Action state badge to show user's decision
 const ActionStateBadge = ({ state }: { state: ActionState }) => {
   if (state === 'pending') return null;
@@ -61,7 +92,7 @@ const ActionStateBadge = ({ state }: { state: ActionState }) => {
   );
 };
 
-// Type icon component - using muted colors, not purple
+// Type icon component - using muted colors
 const TypeIcon = ({ type, priority }: { type: AIRecommendation['type']; priority: AIRecommendation['priority'] }) => {
   const icons = {
     'budget-increase': TrendingUp,
@@ -152,22 +183,15 @@ const RecommendationCard = ({
     toast.info('Recommendation skipped');
   };
 
-  const handleDefer = () => {
-    onAction(recommendation.id, 'remind');
-    setActionState('deferred');
-    toast.info('Will remind you later');
-  };
-
   const getQuickActionLabel = () => {
-    // When custom mode is active, show "Apply Custom" instead of AI recommended value
     if (showCustomInput && isBudgetRecommendation) {
-      return 'Apply Custom';
+      return 'Apply';
     }
     
     switch (recommendation.type) {
       case 'budget-increase':
       case 'budget-decrease':
-        return `$${recommendation.recommendedValue}/day`;
+        return `$${recommendation.recommendedValue}`;
       case 'pause-creative':
         return 'Pause';
       case 'resume-campaign':
@@ -175,11 +199,6 @@ const RecommendationCard = ({
       case 'clone-creative':
         return 'Clone';
     }
-  };
-
-  const getCustomButtonLabel = () => {
-    // When custom mode is active, show "Use AI Recommended" instead of "Custom"
-    return showCustomInput ? 'AI Recommended' : 'Custom';
   };
 
   return (
@@ -190,9 +209,10 @@ const RecommendationCard = ({
     )}>
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <TypeIcon type={recommendation.type} priority={recommendation.priority} />
           <PriorityBadge priority={recommendation.priority} />
+          <LevelBadge level={recommendation.level} />
           <ActionStateBadge state={actionState} />
         </div>
         <Button 
@@ -206,9 +226,11 @@ const RecommendationCard = ({
         </Button>
       </div>
 
+      {/* Campaign name */}
+      <p className="text-[10px] text-primary font-medium mb-0.5 truncate">{recommendation.campaignName}</p>
+
       {/* Content */}
       <div className="flex-1 min-h-0">
-        <p className="text-[10px] text-muted-foreground mb-0.5 truncate">{recommendation.campaignName}</p>
         <h4 className={cn(
           "text-xs font-semibold text-foreground",
           isExpanded ? "" : "line-clamp-1"
@@ -217,6 +239,12 @@ const RecommendationCard = ({
           "text-[10px] text-muted-foreground mt-0.5",
           isExpanded ? "" : "line-clamp-2"
         )}>{recommendation.reasoning}</p>
+      </div>
+
+      {/* Confidence Score */}
+      <div className="flex items-center gap-2 my-1.5">
+        <span className="text-[9px] text-muted-foreground">Confidence:</span>
+        <ConfidenceScore score={recommendation.confidenceScore} />
       </div>
 
       {/* Creative preview for creative-related recommendations */}
@@ -270,35 +298,34 @@ const RecommendationCard = ({
         </div>
       )}
 
-      {/* Action buttons - smaller, refined */}
+      {/* Action buttons - shorter, thicker, bottom-right aligned, using primary color */}
       {actionState === 'pending' && (
-        <div className="flex items-center gap-1 mt-1.5">
+        <div className="flex items-center justify-end gap-1.5 mt-auto pt-2">
+          {isBudgetRecommendation && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowCustomInput(!showCustomInput)}
+              className="h-7 text-[10px] px-2 text-muted-foreground"
+            >
+              {showCustomInput ? 'AI Pick' : 'Custom'}
+            </Button>
+          )}
           <Button 
             size="sm" 
-            variant="secondary"
             onClick={() => handleQuickAction()}
             disabled={isProcessing}
-            className="flex-1 h-6 text-[10px] px-2"
+            className="h-7 text-[10px] px-3 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isProcessing ? (
-              <span>Applying...</span>
+              <span>...</span>
             ) : (
               <>
-                <Check className="h-2.5 w-2.5 mr-0.5" />
+                <Check className="h-3 w-3 mr-1" />
                 {getQuickActionLabel()}
               </>
             )}
           </Button>
-          {isBudgetRecommendation && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowCustomInput(!showCustomInput)}
-              className="h-6 text-[10px] px-2"
-            >
-              {getCustomButtonLabel()}
-            </Button>
-          )}
         </div>
       )}
     </div>
@@ -311,7 +338,14 @@ export const InlineRecommendations = ({
   onAction,
   onCloneCreative 
 }: InlineRecommendationsProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
+
+  const handleOpenFullView = () => {
+    // Store recommendations in sessionStorage for the full view page
+    sessionStorage.setItem('vibelets_recommendations', JSON.stringify(recommendations));
+    sessionStorage.setItem('vibelets_campaigns', JSON.stringify(campaigns));
+    window.open('/recommendations', '_blank');
+  };
 
   if (recommendations.length === 0) {
     return (
@@ -332,77 +366,42 @@ export const InlineRecommendations = ({
   }
 
   return (
-    <>
-      <div className="p-4">
-        {/* Header with expand button - removed purple */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
-              <p className="text-[10px] text-muted-foreground">
-                {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
-              </p>
-            </div>
+    <div className="p-4">
+      {/* Header with expand button */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+            <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(true)}
-            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-          </Button>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
+            <p className="text-[10px] text-muted-foreground">
+              {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
+            </p>
+          </div>
         </div>
-
-        {/* 2x2 Grid of recommendations */}
-        <div className="grid grid-cols-2 gap-2">
-          {recommendations.map((rec) => (
-            <RecommendationCard 
-              key={rec.id} 
-              recommendation={rec} 
-              onAction={onAction}
-              onCloneCreative={onCloneCreative}
-            />
-          ))}
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleOpenFullView}
+          className="h-7 text-[10px] px-2 text-muted-foreground hover:text-foreground gap-1"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Full View
+        </Button>
       </div>
 
-      {/* Expanded Dialog View */}
-      <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-                <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <div>
-                <span className="text-sm">AI Recommendations</span>
-                <p className="text-[10px] text-muted-foreground font-normal mt-0.5">
-                  {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
-                </p>
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-2">
-            <div className="grid grid-cols-2 gap-3">
-              {recommendations.map((rec) => (
-                <RecommendationCard 
-                  key={rec.id} 
-                  recommendation={rec} 
-                  onAction={(id, action, value) => {
-                    onAction(id, action, value);
-                  }}
-                  onCloneCreative={onCloneCreative}
-                  isExpanded
-                />
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      {/* 2x2 Grid of recommendations */}
+      <div className="grid grid-cols-2 gap-2">
+        {recommendations.map((rec) => (
+          <RecommendationCard 
+            key={rec.id} 
+            recommendation={rec} 
+            onAction={onAction}
+            onCloneCreative={onCloneCreative}
+          />
+        ))}
+      </div>
+    </div>
   );
 };

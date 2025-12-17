@@ -179,15 +179,18 @@ export interface PublishedCampaign {
 
 export type RecommendationPriority = 'high' | 'medium' | 'suggestion';
 export type RecommendationType = 'budget-increase' | 'budget-decrease' | 'pause-creative' | 'resume-campaign' | 'clone-creative';
+export type RecommendationLevel = 'campaign' | 'adset' | 'ad' | 'creative';
 
 export interface AIRecommendation {
   id: string;
   type: RecommendationType;
   priority: RecommendationPriority;
+  level: RecommendationLevel;
   campaignId: string;
   campaignName: string;
   title: string;
   reasoning: string;
+  confidenceScore: number; // 0-100
   currentValue?: number;
   recommendedValue?: number;
   projectedImpact?: {
