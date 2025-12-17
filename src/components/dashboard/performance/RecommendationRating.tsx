@@ -130,16 +130,16 @@ export const RecommendationRating = ({
 
   return (
     <div className={cn(
-      "flex items-center gap-3 transition-all duration-300",
-      compact ? "pt-2" : "pt-3 border-t border-border/30"
+      "flex items-center gap-2 transition-all duration-300 justify-end",
+      compact ? "pt-1.5" : "pt-3 border-t border-border/30"
     )}>
       <span className={cn(
         "text-muted-foreground",
-        compact ? "text-xs" : "text-sm"
+        compact ? "text-[10px]" : "text-xs"
       )}>
         Rate this
       </span>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0">
         {[1, 2, 3, 4, 5].map((value) => (
           <button
             key={value}
@@ -154,7 +154,7 @@ export const RecommendationRating = ({
             <Star
               className={cn(
                 "transition-all duration-200",
-                compact ? "w-4 h-4" : "w-5 h-5",
+                compact ? "w-3.5 h-3.5" : "w-4 h-4",
                 (hoveredRating || rating) >= value
                   ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.4)]"
                   : "text-muted-foreground/40 hover:text-amber-400/60"
