@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Loader2, Rocket, Check, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PublishFeedback } from './PublishFeedback';
 
 interface PublishingPanelProps {
   isPublished: boolean;
@@ -7,6 +9,14 @@ interface PublishingPanelProps {
 }
 
 export const PublishingPanel = ({ isPublished, onCreateAnother }: PublishingPanelProps) => {
+  const [showFeedback, setShowFeedback] = useState(true);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  const handleFeedbackSubmit = (rating: number, feedback?: string, tags?: string[]) => {
+    console.log('Campaign feedback:', { rating, feedback, tags });
+    setFeedbackSubmitted(true);
+  };
+
   if (!isPublished) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 animate-fade-in">
@@ -43,7 +53,7 @@ export const PublishingPanel = ({ isPublished, onCreateAnother }: PublishingPane
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 animate-fade-in">
+    <div className="flex flex-col items-center justify-center h-full p-8 animate-fade-in overflow-y-auto">
       <div className="relative mb-6">
         <div className="w-24 h-24 rounded-full bg-secondary/20 flex items-center justify-center shadow-lg shadow-secondary/20">
           <PartyPopper className="w-12 h-12 text-secondary" />
@@ -58,7 +68,7 @@ export const PublishingPanel = ({ isPublished, onCreateAnother }: PublishingPane
         Your ad has been submitted to Facebook for review. You'll be notified once it's approved.
       </p>
 
-      <div className="w-full max-w-sm space-y-3 mb-8">
+      <div className="w-full max-w-sm space-y-3 mb-6">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/10">
           <Check className="w-5 h-5 text-accent" />
           <span className="text-sm text-foreground">Campaign submitted successfully</span>
@@ -69,6 +79,16 @@ export const PublishingPanel = ({ isPublished, onCreateAnother }: PublishingPane
           </span>
         </div>
       </div>
+
+      {/* Feedback Section */}
+      {showFeedback && !feedbackSubmitted && (
+        <div className="w-full max-w-md mb-6">
+          <PublishFeedback 
+            onSubmit={handleFeedbackSubmit}
+            onDismiss={() => setShowFeedback(false)}
+          />
+        </div>
+      )}
 
       <div className="space-y-3 w-full max-w-sm">
         <Button variant="outline" className="w-full" disabled>

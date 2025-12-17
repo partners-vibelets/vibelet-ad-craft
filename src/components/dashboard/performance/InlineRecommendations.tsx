@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { RecommendationRating } from './RecommendationRating';
 
 interface InlineRecommendationsProps {
   recommendations: AIRecommendation[];
@@ -331,6 +332,17 @@ const RecommendationCard = ({
             )}
           </Button>
         </div>
+      )}
+
+      {/* Rating - subtle, at bottom */}
+      {actionState !== 'pending' && (
+        <RecommendationRating 
+          recommendationId={recommendation.id} 
+          compact={true}
+          onRate={(id, rating, feedback) => {
+            console.log('Rating:', { id, rating, feedback });
+          }}
+        />
       )}
     </div>
   );
