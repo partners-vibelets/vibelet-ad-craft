@@ -4,6 +4,7 @@ import { MetricsGrid } from '../performance/MetricsGrid';
 import { CampaignFilter } from '../performance/CampaignFilter';
 import { CampaignStageAndChanges } from '../performance/CampaignStageAndChanges';
 import { InlineRecommendations } from '../performance/InlineRecommendations';
+import { PublishFeedback } from './PublishFeedback';
 import { Button } from '@/components/ui/button';
 import { Plus, BarChart3, RefreshCw } from 'lucide-react';
 
@@ -37,6 +38,13 @@ export const PerformanceDashboardPanel = ({
   // Auto-select the latest campaign if none selected
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
   
+  // Feedback state - check if already submitted in this session
+  const [showFeedback, setShowFeedback] = useState(() => {
+    const submitted = sessionStorage.getItem('vibelets_publish_feedback_submitted');
+    return !submitted;
+  });
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  
   useEffect(() => {
     if (!hasAutoSelected && dashboard.publishedCampaigns.length > 0 && !dashboard.selectedCampaignId) {
       // Sort by createdAt descending and select the latest
@@ -66,6 +74,19 @@ export const PerformanceDashboardPanel = ({
   const selectedCampaign = dashboard.selectedCampaignId 
     ? dashboard.publishedCampaigns.find(c => c.id === dashboard.selectedCampaignId)
     : null;
+
+  const handleFeedbackSubmit = (rating: number, feedback?: string, tags?: string[]) => {
+    console.log('Campaign publish feedback:', { rating, feedback, tags });
+    setFeedbackSubmitted(true);
+    sessionStorage.setItem('vibelets_publish_feedback_submitted', 'true');
+    // Hide after a brief delay to show thank you message
+    setTimeout(() => setShowFeedback(false), 2000);
+  };
+
+  const handleFeedbackDismiss = () => {
+    setShowFeedback(false);
+    sessionStorage.setItem('vibelets_publish_feedback_submitted', 'skipped');
+  };
 
   return (
     <div className="animate-fade-in">
@@ -116,6 +137,16 @@ export const PerformanceDashboardPanel = ({
 
       {/* Compact Metrics */}
       <MetricsGrid metrics={dashboard.unifiedMetrics} isRefreshing={isRefreshing} />
+
+      {/* Campaign Experience Feedback - shown inline before recommendations */}
+      {showFeedback && !feedbackSubmitted && (
+        <div className="px-4 pb-4">
+          <PublishFeedback 
+            onSubmit={handleFeedbackSubmit}
+            onDismiss={handleFeedbackDismiss}
+          />
+        </div>
+      )}
 
       {/* AI Recommendations - Prominent position, always visible */}
       <div>
