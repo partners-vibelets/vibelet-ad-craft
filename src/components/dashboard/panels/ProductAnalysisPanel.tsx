@@ -81,6 +81,23 @@ const ProductImageCarousel = ({ images }: { images: string[] }) => {
           />
         ))}
       </div>
+      {hasNavigation && (
+        <div className="flex items-center justify-center gap-1.5 pt-1">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i)}
+              className={cn(
+                "w-2 h-2 rounded-full transition-all",
+                currentPage === i 
+                  ? "bg-primary w-4" 
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+              )}
+              aria-label={`Go to page ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
