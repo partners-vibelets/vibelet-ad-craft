@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
@@ -9,13 +10,13 @@ import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { PerformanceDashboardPanel } from './panels/PerformanceDashboardPanel';
+import { PostPublishFeedbackPanel } from './panels/PostPublishFeedbackPanel';
 import { CustomScriptInput } from './panels/CustomScriptInput';
 import { CustomCreativeUpload } from './panels/CustomCreativeUpload';
 import { StepIndicator } from './StepIndicator';
 import { StepLoadingAnimation } from './StepLoadingAnimation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { scriptOptions, avatarOptions } from '@/data/mockData';
-import { useEffect, useRef } from 'react';
 
 interface RightPanelProps {
   state: CampaignState;
@@ -58,6 +59,12 @@ export const RightPanel = ({
   const scriptSectionRef = useRef<HTMLDivElement>(null);
   const avatarSectionRef = useRef<HTMLDivElement>(null);
 
+  // Track whether feedback has been completed for post-publish flow
+  const [showFeedbackPanel, setShowFeedbackPanel] = useState(() => {
+    const submitted = sessionStorage.getItem('vibelets_publish_feedback_submitted');
+    return !submitted;
+  });
+
   // Auto-scroll to the relevant section when step changes
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -75,6 +82,10 @@ export const RightPanel = ({
     }, 150);
     return () => clearTimeout(timer);
   }, [state.step]);
+
+  const handleFeedbackComplete = () => {
+    setShowFeedbackPanel(false);
+  };
 
   const renderPanel = () => {
     // Show loading animation when transitioning between steps
@@ -183,6 +194,18 @@ export const RightPanel = ({
         return <PublishingPanel isPublished={false} onCreateAnother={onReset} />;
       
       case 'published':
+        // Show feedback panel first if user hasn't provided feedback
+        if (showFeedbackPanel) {
+          return (
+            <PostPublishFeedbackPanel
+              campaignName={state.campaignConfig?.campaignName || 'Your campaign'}
+              onComplete={handleFeedbackComplete}
+              onSkipToResults={handleFeedbackComplete}
+            />
+          );
+        }
+        
+        // Show performance dashboard after feedback
         if (state.performanceDashboard && onCampaignFilterChange && onOpenActionCenter && onCloseActionCenter && onRecommendationAction) {
           return (
             <PerformanceDashboardPanel
