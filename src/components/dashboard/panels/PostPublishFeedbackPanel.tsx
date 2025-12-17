@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Star, Sparkles, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { StarRating } from '@/components/ui/star-rating';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 
@@ -28,21 +28,12 @@ const quickTags = [
   { label: "Loved the creatives", icon: "🎨" }
 ];
 
-const ratingLabels: Record<number, string> = {
-  1: 'Poor',
-  2: 'Fair',
-  3: 'Good',
-  4: 'Great',
-  5: 'Excellent'
-};
-
 export const PostPublishFeedbackPanel = ({
   campaignName = "Your campaign",
   onComplete,
   onSkipToResults
 }: PostPublishFeedbackPanelProps) => {
   const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [feedback, setFeedback] = useState('');
@@ -199,33 +190,13 @@ export const PostPublishFeedbackPanel = ({
           </div>
 
           {/* Star Rating */}
-          <TooltipProvider delayDuration={200}>
-            <div className="flex justify-center gap-2 py-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Tooltip key={star}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => handleRatingClick(star)}
-                      onMouseEnter={() => setHoveredRating(star)}
-                      onMouseLeave={() => setHoveredRating(0)}
-                      className="transition-all duration-200 hover:scale-110 focus:outline-none"
-                    >
-                      <Star
-                        className={`h-10 w-10 transition-all duration-200 ${
-                          star <= (hoveredRating || rating)
-                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]'
-                            : 'text-muted-foreground/40 hover:text-muted-foreground'
-                        }`}
-                      />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {star} - {ratingLabels[star]}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          </TooltipProvider>
+          <div className="flex justify-center py-4">
+            <StarRating 
+              value={rating}
+              onChange={handleRatingClick}
+              size="lg"
+            />
+          </div>
           <p className="text-center text-sm text-muted-foreground mb-4">
             Tap a star to rate your campaign creation experience
           </p>
