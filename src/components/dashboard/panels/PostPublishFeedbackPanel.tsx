@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Star, Sparkles, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 
 interface PostPublishFeedbackPanelProps {
   campaignName?: string;
@@ -38,6 +39,45 @@ export const PostPublishFeedbackPanel = ({
   const [feedback, setFeedback] = useState('');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Trigger confetti celebration on mount
+  useEffect(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const colors = ['#6ebc46', '#5d58a6', '#fbbf24', '#60a5fa'];
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors: colors
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors: colors
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+
+    // Initial burst
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: colors
+    });
+
+    frame();
+  }, []);
 
   const handleRatingClick = (value: number) => {
     setRating(value);
