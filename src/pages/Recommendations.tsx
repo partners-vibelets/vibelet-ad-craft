@@ -280,21 +280,21 @@ const FullRecommendationCard = ({
         </div>
       )}
 
-      {isApplied && (
-        <>
-          <div className="flex items-center justify-center py-3 text-secondary">
-            <Check className="h-5 w-5 mr-2" />
-            <span className="font-medium">Applied</span>
-          </div>
-          <RecommendationRating 
-            recommendationId={recommendation.id}
-            compact={false}
-            onRate={(id, rating, feedback) => {
-              console.log('Rating:', { id, rating, feedback });
-            }}
-          />
-        </>
+{isApplied && (
+        <div className="flex items-center justify-center py-3 text-secondary">
+          <Check className="h-5 w-5 mr-2" />
+          <span className="font-medium">Applied</span>
+        </div>
       )}
+
+      {/* Rating - always visible */}
+      <RecommendationRating 
+        recommendationId={recommendation.id}
+        compact={false}
+        onRate={(id, rating, feedback, reasons) => {
+          console.log('Recommendation rating:', { id, rating, feedback, reasons });
+        }}
+      />
     </div>
   );
 };
