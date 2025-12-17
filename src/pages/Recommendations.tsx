@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { mockUnifiedMetrics } from '@/data/mockPerformanceData';
+import { RecommendationRating } from '@/components/dashboard/performance/RecommendationRating';
 
 // Priority badge component
 const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] }) => {
@@ -280,10 +281,19 @@ const FullRecommendationCard = ({
       )}
 
       {isApplied && (
-        <div className="flex items-center justify-center py-3 text-secondary">
-          <Check className="h-5 w-5 mr-2" />
-          <span className="font-medium">Applied</span>
-        </div>
+        <>
+          <div className="flex items-center justify-center py-3 text-secondary">
+            <Check className="h-5 w-5 mr-2" />
+            <span className="font-medium">Applied</span>
+          </div>
+          <RecommendationRating 
+            recommendationId={recommendation.id}
+            compact={false}
+            onRate={(id, rating, feedback) => {
+              console.log('Rating:', { id, rating, feedback });
+            }}
+          />
+        </>
       )}
     </div>
   );
