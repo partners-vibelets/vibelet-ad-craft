@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
-import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft } from 'lucide-react';
+import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft, DollarSign as Spent, TrendingUp as Profit, Percent, ShoppingCart, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { mockUnifiedMetrics } from '@/data/mockPerformanceData';
 
 // Priority badge component
 const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] }) => {
@@ -32,7 +32,7 @@ const LevelBadge = ({ level }: { level: RecommendationLevel }) => {
     campaign: { label: 'Campaign', icon: Megaphone, className: 'bg-primary/10 text-primary border-primary/20' },
     adset: { label: 'Ad Set', icon: Target, className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
     ad: { label: 'Ad', icon: Layers, className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-    creative: { label: 'Creative', icon: Image, className: 'bg-pink-500/10 text-pink-600 border-pink-500/20' }
+    creative: { label: 'Creative', icon: Image, className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' }
   };
 
   const { label, icon: Icon, className } = config[level];
@@ -184,26 +184,28 @@ const FullRecommendationCard = ({
       {/* Budget controls */}
       {isBudgetRecommendation && (
         <div className="mb-4 p-4 rounded-lg bg-muted/30">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Current: ${recommendation.currentValue}/day</span>
-            <span className="text-sm font-medium text-foreground">Recommended: ${recommendation.recommendedValue}/day</span>
-          </div>
           {showCustomInput ? (
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                value={customInputValue}
-                onChange={(e) => setCustomInputValue(e.target.value)}
-                placeholder="Enter custom amount"
-                className="flex-1"
-                disabled={isApplied}
-              />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Custom budget:</span>
+              <div className="flex items-center gap-2 flex-1 max-w-xs">
+                <span className="text-sm">$</span>
+                <Input
+                  type="number"
+                  value={customInputValue}
+                  onChange={(e) => setCustomInputValue(e.target.value)}
+                  placeholder="Enter amount"
+                  className="flex-1"
+                  disabled={isApplied}
+                />
+                <span className="text-sm text-muted-foreground">/day</span>
+              </div>
               <Button 
                 variant="secondary" 
                 onClick={() => handleApply(parseFloat(customInputValue))}
                 disabled={isApplied || isProcessing}
               >
-                <Check className="h-4 w-4" />
+                <Check className="h-4 w-4 mr-1" />
+                Apply
               </Button>
               <Button 
                 variant="ghost" 
@@ -214,15 +216,22 @@ const FullRecommendationCard = ({
               </Button>
             </div>
           ) : (
-            <Slider
-              value={[customBudget]}
-              onValueChange={(v) => setCustomBudget(v[0])}
-              min={10}
-              max={Math.max((recommendation.recommendedValue || 50) * 2, 200)}
-              step={5}
-              className="w-full"
-              disabled={isApplied}
-            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Current</p>
+                  <p className="text-lg font-semibold text-muted-foreground">${recommendation.currentValue}<span className="text-xs">/day</span></p>
+                </div>
+                <div className="flex items-center text-secondary">
+                  <TrendingUp className="h-5 w-5 mr-1" />
+                  <span className="text-sm font-medium">+{Math.round(((recommendation.recommendedValue || 0) - (recommendation.currentValue || 0)) / (recommendation.currentValue || 1) * 100)}%</span>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Recommended</p>
+                  <p className="text-lg font-semibold text-secondary">${recommendation.recommendedValue}<span className="text-xs">/day</span></p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -339,10 +348,91 @@ export default function Recommendations() {
             <p className="text-muted-foreground">No recommendations available at the moment.</p>
           </div>
         ) : (
-          <div className="space-y-4 max-w-4xl mx-auto">
-            {recommendations.map((rec) => (
-              <FullRecommendationCard key={rec.id} recommendation={rec} />
-            ))}
+          <div className="flex gap-6 max-w-7xl mx-auto">
+            {/* Left side - Campaign Performance Widget */}
+            <div className="w-80 flex-shrink-0">
+              <div className="glass-card rounded-xl p-5 sticky top-24">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Campaign Performance</h3>
+                
+                {/* Metrics Grid */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Spent className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Total Spent</span>
+                    </div>
+                    <span className="text-lg font-semibold text-foreground">${mockUnifiedMetrics.totalSpent.value.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                        <Profit className="h-4 w-4 text-secondary" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Profit</span>
+                    </div>
+                    <span className="text-lg font-semibold text-secondary">${mockUnifiedMetrics.profit.value.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <Percent className="h-4 w-4 text-amber-500" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">ROI</span>
+                    </div>
+                    <span className="text-lg font-semibold text-foreground">{mockUnifiedMetrics.roi.value}%</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <ShoppingCart className="h-4 w-4 text-blue-500" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Conversions</span>
+                    </div>
+                    <span className="text-lg font-semibold text-foreground">{mockUnifiedMetrics.conversions.value.toLocaleString()}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                        <Receipt className="h-4 w-4 text-purple-500" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Avg Order</span>
+                    </div>
+                    <span className="text-lg font-semibold text-foreground">${mockUnifiedMetrics.aov.value.toFixed(2)}</span>
+                  </div>
+                </div>
+                
+                {/* Campaigns summary */}
+                <div className="mt-4 pt-4 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2">Active Campaigns</p>
+                  <div className="space-y-2">
+                    {campaigns.slice(0, 3).map((campaign) => (
+                      <div key={campaign.id} className="flex items-center justify-between text-xs">
+                        <span className="text-foreground truncate max-w-[140px]">{campaign.name}</span>
+                        <Badge variant="outline" className="text-[10px] h-5 bg-secondary/10 text-secondary border-secondary/20">
+                          {campaign.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Right side - Recommendations */}
+            <div className="flex-1 space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                {recommendations.length} recommendation{recommendations.length !== 1 ? 's' : ''} to review
+              </h3>
+              {recommendations.map((rec) => (
+                <FullRecommendationCard key={rec.id} recommendation={rec} />
+              ))}
+            </div>
           </div>
         )}
       </main>

@@ -43,7 +43,7 @@ const LevelBadge = ({ level }: { level: RecommendationLevel }) => {
     campaign: { label: 'Campaign', icon: Megaphone, className: 'bg-primary/10 text-primary border-primary/20' },
     adset: { label: 'Ad Set', icon: Target, className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
     ad: { label: 'Ad', icon: Layers, className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-    creative: { label: 'Creative', icon: Image, className: 'bg-pink-500/10 text-pink-600 border-pink-500/20' }
+    creative: { label: 'Creative', icon: Image, className: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20' }
   };
 
   const { label, icon: Icon, className } = config[level];
@@ -191,7 +191,7 @@ const RecommendationCard = ({
     switch (recommendation.type) {
       case 'budget-increase':
       case 'budget-decrease':
-        return `$${recommendation.recommendedValue}`;
+        return `Apply $${recommendation.recommendedValue}`;
       case 'pause-creative':
         return 'Pause';
       case 'resume-campaign':
@@ -263,37 +263,39 @@ const RecommendationCard = ({
 
       {/* Budget controls for budget recommendations */}
       {isBudgetRecommendation && (
-        <div className="my-1.5 p-1.5 rounded-lg bg-muted/30">
-          <div className="flex items-center justify-between text-[9px] mb-0.5">
-            <span className="text-muted-foreground">Current: ${recommendation.currentValue}/day</span>
-          </div>
+        <div className="my-1.5 p-2 rounded-lg bg-muted/30">
           {showCustomInput ? (
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-muted-foreground">$</span>
               <Input
                 type="number"
                 value={customInputValue}
                 onChange={(e) => setCustomInputValue(e.target.value)}
-                placeholder="Enter amount"
-                className="h-6 text-[10px] px-2"
+                placeholder="Amount"
+                className="h-6 text-[10px] px-2 flex-1"
                 disabled={actionState !== 'pending'}
               />
-              <Button size="sm" variant="secondary" className="h-6 px-1.5 text-[10px]" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
-                <Check className="h-2.5 w-2.5" />
+              <Button size="sm" variant="secondary" className="h-6 px-2 text-[10px]" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
+                <Check className="h-2.5 w-2.5 mr-1" />
+                Apply
               </Button>
-              <Button size="sm" variant="ghost" className="h-6 px-1.5" onClick={() => setShowCustomInput(false)} disabled={actionState !== 'pending'}>
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCustomInput(false)} disabled={actionState !== 'pending'}>
                 <X className="h-2.5 w-2.5" />
               </Button>
             </div>
           ) : (
-            <Slider
-              value={[customBudget]}
-              onValueChange={(v) => setCustomBudget(v[0])}
-              min={10}
-              max={Math.max((recommendation.recommendedValue || 50) * 2, 200)}
-              step={5}
-              className="w-full mt-0.5"
-              disabled={actionState !== 'pending'}
-            />
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-[10px]">
+                <span className="text-muted-foreground">${recommendation.currentValue}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="font-semibold text-secondary">${recommendation.recommendedValue}</span>
+                <span className="text-[9px] text-muted-foreground">/day</span>
+              </div>
+              <div className="flex items-center gap-1 text-[9px] text-secondary">
+                <TrendingUp className="h-2.5 w-2.5" />
+                <span>+{Math.round(((recommendation.recommendedValue || 0) - (recommendation.currentValue || 0)) / (recommendation.currentValue || 1) * 100)}%</span>
+              </div>
+            </div>
           )}
         </div>
       )}
