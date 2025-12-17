@@ -18,6 +18,35 @@ export const mockProductData: ProductData = {
     { label: "Target Audience", value: "Tech Enthusiasts", icon: "users" },
     { label: "Best Format", value: "Video Ads", icon: "video" },
     { label: "Suggested Budget", value: "$50-100/day", icon: "dollar-sign" }
+  ],
+  marketPosition: {
+    positioning: "Premium Mid-Range",
+    pricePoint: "Competitive vs. AirPods Pro",
+    valueProposition: "Pro features at accessible price"
+  },
+  targetAudience: {
+    primary: "Tech-savvy millennials & Gen Z",
+    demographics: "Ages 22-40, urban professionals",
+    interests: ["Music", "Fitness", "Remote Work", "Podcasts"]
+  },
+  competitiveInsight: {
+    differentiator: "40hr battery beats most competitors",
+    brandStrength: "Growing social proof & reviews",
+    marketOpportunity: "Rising demand for WFH audio gear"
+  },
+  recommendations: [
+    "Highlight noise cancellation in ad creative",
+    "Use lifestyle imagery showing remote work",
+    "Target podcast listeners for higher intent",
+    "Consider bundle offers to increase AOV"
+  ],
+  keyHighlights: [
+    "Active Noise Cancellation",
+    "40-Hour Battery Life",
+    "Bluetooth 5.3",
+    "IPX5 Water Resistant",
+    "Touch Controls",
+    "Fast Charging (10min = 3hrs)"
   ]
 };
 
