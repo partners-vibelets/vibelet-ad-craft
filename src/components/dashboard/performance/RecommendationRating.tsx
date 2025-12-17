@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Star, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -18,6 +19,14 @@ const lowRatingReasons = [
   'Budget concern',
   'Unclear impact',
 ];
+
+const ratingLabels: Record<number, string> = {
+  1: 'Poor',
+  2: 'Fair',
+  3: 'Good',
+  4: 'Great',
+  5: 'Excellent'
+};
 
 export const RecommendationRating = ({ 
   recommendationId, 
@@ -139,30 +148,38 @@ export const RecommendationRating = ({
       )}>
         Rate this
       </span>
-      <div className="flex items-center gap-0">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            onClick={() => handleRatingClick(value)}
-            onMouseEnter={() => setHoveredRating(value)}
-            onMouseLeave={() => setHoveredRating(0)}
-            className={cn(
-              "p-0.5 transition-all duration-200 hover:scale-110",
-              "focus:outline-none rounded"
-            )}
-          >
-            <Star
-              className={cn(
-                "transition-all duration-200",
-                compact ? "w-3.5 h-3.5" : "w-4 h-4",
-                (hoveredRating || rating) >= value
-                  ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.4)]"
-                  : "text-muted-foreground/40 hover:text-amber-400/60"
-              )}
-            />
-          </button>
-        ))}
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="flex items-center gap-0">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <Tooltip key={value}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => handleRatingClick(value)}
+                  onMouseEnter={() => setHoveredRating(value)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  className={cn(
+                    "p-0.5 transition-all duration-200 hover:scale-110",
+                    "focus:outline-none rounded"
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      "transition-all duration-200",
+                      compact ? "w-3.5 h-3.5" : "w-4 h-4",
+                      (hoveredRating || rating) >= value
+                        ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.4)]"
+                        : "text-muted-foreground/40 hover:text-amber-400/60"
+                    )}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                {value} - {ratingLabels[value]}
+              </TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+      </TooltipProvider>
     </div>
   );
 };
