@@ -48,6 +48,24 @@ export interface ProductData {
   category: string;
   pageScreenshot?: string;
   insights?: ProductInsight[];
+  // Enhanced analysis sections
+  marketPosition?: {
+    positioning: string;
+    pricePoint: string;
+    valueProposition: string;
+  };
+  targetAudience?: {
+    primary: string;
+    demographics: string;
+    interests: string[];
+  };
+  competitiveInsight?: {
+    differentiator: string;
+    brandStrength: string;
+    marketOpportunity: string;
+  };
+  recommendations?: string[];
+  keyHighlights?: string[];
 }
 
 export interface ProductInsight {

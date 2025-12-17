@@ -1,10 +1,11 @@
 import { ProductData } from '@/types/campaign';
-import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, ExternalLink, Sparkles, RefreshCw } from 'lucide-react';
+import { Loader2, Package, DollarSign, Tag, FileText, Image, TrendingUp, Star, Users, Video, CircleDollarSign, Sparkles, RefreshCw, Target, Zap, Lightbulb, Award, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ImageLightbox } from '@/components/ui/image-lightbox';
 import { cn } from '@/lib/utils';
+
 interface ProductAnalysisPanelProps {
   productData: ProductData | null;
   productUrl: string | null;
@@ -25,26 +26,6 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
   if (isAnalyzing) {
     return (
       <div className="flex flex-col h-full p-6 animate-fade-in">
-        {/* Skeleton Page Screenshot */}
-        <div className="relative rounded-xl overflow-hidden border border-border bg-muted mb-6">
-          <div className="aspect-video bg-muted relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-muted via-muted-foreground/5 to-muted animate-[shimmer_2s_infinite]" 
-                 style={{ backgroundSize: '200% 100%', animation: 'shimmer 2s infinite linear' }} />
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto mb-3" />
-                <p className="text-sm font-medium text-muted-foreground">Capturing page screenshot...</p>
-              </div>
-            </div>
-          </div>
-          <div className="absolute bottom-4 left-4 right-4 z-20">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2">
-              <ExternalLink className="w-3 h-3" />
-              <span className="truncate">{productUrl}</span>
-            </div>
-          </div>
-        </div>
-
         {/* Skeleton Product Details */}
         <Card className="border-border mb-4">
           <CardHeader className="pb-3">
@@ -67,27 +48,32 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
               <div className="space-y-2">
                 <div className="h-4 w-full bg-muted rounded animate-pulse" />
                 <div className="h-4 w-5/6 bg-muted rounded animate-pulse" />
-                <div className="h-4 w-4/6 bg-muted rounded animate-pulse" />
-              </div>
-            </div>
-            <div>
-              <div className="h-3 w-24 bg-muted rounded animate-pulse mb-2" />
-              <div className="grid grid-cols-3 gap-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" style={{ animationDelay: `${i * 150}ms` }} />
-                ))}
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Skeleton Analysis Sections */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="p-4 rounded-lg bg-muted/30 border border-border" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="h-4 w-24 bg-muted rounded animate-pulse mb-3" />
+              <div className="space-y-2">
+                <div className="h-3 w-full bg-muted rounded animate-pulse" />
+                <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Analysis Progress */}
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           <h2 className="text-lg font-semibold text-foreground">Analyzing Your Product</h2>
           <div className="space-y-3">
             {[
               { label: 'Extracting product details', done: true },
-              { label: 'Analyzing images', done: true },
+              { label: 'Analyzing market position', done: true },
+              { label: 'Identifying target audience', done: false },
               { label: 'Generating insights', done: false },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${i * 200}ms` }}>
@@ -112,24 +98,8 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
   if (!productData) return null;
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Page Screenshot Preview */}
-      <div className="relative rounded-xl overflow-hidden border border-border">
-        <ImageLightbox
-          src={productData.pageScreenshot || productData.images[0]} 
-          alt="Product page preview" 
-          className="w-full h-48 object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent pointer-events-none" />
-        <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-          <Badge variant="secondary" className="bg-background/80 backdrop-blur-sm">
-            <Sparkles className="w-3 h-3 mr-1" />
-            AI Analyzed
-          </Badge>
-        </div>
-      </div>
-
-      {/* Product Info */}
+    <div className="p-6 space-y-5 animate-fade-in">
+      {/* Product Basic Info */}
       <Card className="border-primary/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
@@ -163,33 +133,127 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
             </div>
             <p className="text-sm text-foreground">{productData.description}</p>
           </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-2 text-muted-foreground">
-              <Image className="w-4 h-4" />
-              <span className="text-xs">Product Images ({productData.images.length})</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {productData.images.map((img, i) => (
-                <ImageLightbox
-                  key={i}
-                  src={img}
-                  alt={`Product ${i + 1}`}
-                  className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all object-cover"
-                />
-              ))}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
-      {/* AI Insights */}
-      {productData.insights && (
+      {/* Key Highlights */}
+      {productData.keyHighlights && productData.keyHighlights.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <BadgeCheck className="w-4 h-4 text-secondary" />
+            Key Highlights
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {productData.keyHighlights.map((highlight, i) => (
+              <Badge 
+                key={i} 
+                variant="secondary" 
+                className="bg-secondary/10 text-secondary border-secondary/20 font-normal"
+              >
+                {highlight}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Grid - 2x2 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Market Position */}
+        {productData.marketPosition && (
+          <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
+            <div className="flex items-center gap-2 text-foreground">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Market Position</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Positioning</span>
+                <span className="text-foreground font-medium">{productData.marketPosition.positioning}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Price Point</span>
+                <span className="text-foreground font-medium">{productData.marketPosition.pricePoint}</span>
+              </div>
+              <div className="pt-1">
+                <span className="text-muted-foreground">Value: </span>
+                <span className="text-foreground">{productData.marketPosition.valueProposition}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Target Audience */}
+        {productData.targetAudience && (
+          <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
+            <div className="flex items-center gap-2 text-foreground">
+              <Target className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Target Audience</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <p className="text-foreground font-medium">{productData.targetAudience.primary}</p>
+              <p className="text-muted-foreground">{productData.targetAudience.demographics}</p>
+              <div className="flex flex-wrap gap-1 pt-1">
+                {productData.targetAudience.interests.slice(0, 3).map((interest, i) => (
+                  <Badge key={i} variant="outline" className="text-[10px] py-0 px-1.5 h-5">
+                    {interest}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Competitive Insight */}
+        {productData.competitiveInsight && (
+          <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
+            <div className="flex items-center gap-2 text-foreground">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Competitive Edge</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <p className="text-foreground">
+                <span className="text-secondary font-medium">✓ </span>
+                {productData.competitiveInsight.differentiator}
+              </p>
+              <p className="text-muted-foreground">{productData.competitiveInsight.brandStrength}</p>
+              <p className="text-muted-foreground">{productData.competitiveInsight.marketOpportunity}</p>
+            </div>
+          </div>
+        )}
+
+        {/* AI Insights Summary */}
+        {productData.insights && (
+          <div className="p-4 rounded-lg bg-muted/30 border border-border space-y-2">
+            <div className="flex items-center gap-2 text-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">AI Analysis</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              {productData.insights.slice(0, 4).map((insight, i) => {
+                const Icon = insightIcons[insight.icon] || Star;
+                return (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Icon className="w-3 h-3" />
+                      {insight.label}
+                    </span>
+                    <span className="text-foreground font-medium">{insight.value}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recommendations */}
+      {productData.recommendations && productData.recommendations.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              AI Insights
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              AI Recommendations
             </h3>
             {onRegenerate && (
               <Button
@@ -200,31 +264,41 @@ export const ProductAnalysisPanel = ({ productData, productUrl, isAnalyzing, isR
                 className="h-7 text-xs text-muted-foreground hover:text-foreground"
               >
                 <RefreshCw className={cn("w-3 h-3 mr-1", isRegenerating && "animate-spin")} />
-                {isRegenerating ? 'Regenerating...' : 'Refresh insights'}
+                {isRegenerating ? 'Regenerating...' : 'Refresh'}
               </Button>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {productData.insights.map((insight, i) => {
-              const Icon = insightIcons[insight.icon] || Star;
-              return (
-                <div key={i} className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10",
-                  isRegenerating && "opacity-50"
-                )}>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">{insight.label}</p>
-                    <p className="text-sm font-medium text-foreground truncate">{insight.value}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className={cn("space-y-2", isRegenerating && "opacity-50")}>
+            {productData.recommendations.map((rec, i) => (
+              <div 
+                key={i} 
+                className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/10 text-sm"
+              >
+                <Award className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <span className="text-foreground">{rec}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
+
+      {/* Product Images - Moved to end */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Image className="w-4 h-4" />
+          <span className="text-xs font-medium">Product Images ({productData.images.length})</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {productData.images.map((img, i) => (
+            <ImageLightbox
+              key={i}
+              src={img}
+              alt={`Product ${i + 1}`}
+              className="aspect-square rounded-lg bg-muted ring-2 ring-transparent hover:ring-primary/50 transition-all object-cover"
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
