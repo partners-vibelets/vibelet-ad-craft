@@ -334,16 +334,14 @@ const RecommendationCard = ({
         </div>
       )}
 
-      {/* Rating - subtle, at bottom */}
-      {actionState !== 'pending' && (
-        <RecommendationRating 
-          recommendationId={recommendation.id} 
-          compact={true}
-          onRate={(id, rating, feedback) => {
-            console.log('Rating:', { id, rating, feedback });
-          }}
-        />
-      )}
+      {/* Rating - always visible at bottom */}
+      <RecommendationRating 
+        recommendationId={recommendation.id} 
+        compact={true}
+        onRate={(id, rating, feedback, reasons) => {
+          console.log('Recommendation rating:', { id, rating, feedback, reasons });
+        }}
+      />
     </div>
   );
 };
