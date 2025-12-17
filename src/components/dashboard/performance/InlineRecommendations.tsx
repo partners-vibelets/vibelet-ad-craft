@@ -31,7 +31,7 @@ const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] })
   const { label, className } = config[priority];
 
   return (
-    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", className)}>
+    <Badge variant="outline" className={cn("text-xs px-2 py-0.5 h-6", className)}>
       {label}
     </Badge>
   );
@@ -49,8 +49,8 @@ const LevelBadge = ({ level }: { level: RecommendationLevel }) => {
   const { label, icon: Icon, className } = config[level];
 
   return (
-    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 gap-1", className)}>
-      <Icon className="h-2.5 w-2.5" />
+    <Badge variant="outline" className={cn("text-xs px-2 py-0.5 h-6 gap-1", className)}>
+      <Icon className="h-3 w-3" />
       {label}
     </Badge>
   );
@@ -65,9 +65,9 @@ const ConfidenceScore = ({ score }: { score: number }) => {
   };
 
   return (
-    <div className="flex items-center gap-1.5">
-      <Progress value={score} className="h-1 w-12" />
-      <span className={cn("text-[9px] font-medium", getColor())}>{score}%</span>
+    <div className="flex items-center gap-2">
+      <Progress value={score} className="h-1.5 w-16" />
+      <span className={cn("text-xs font-medium", getColor())}>{score}%</span>
     </div>
   );
 };
@@ -85,8 +85,8 @@ const ActionStateBadge = ({ state }: { state: ActionState }) => {
   const { label, icon: Icon, className } = config[state];
 
   return (
-    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5 gap-1", className)}>
-      <Icon className="h-2.5 w-2.5" />
+    <Badge variant="outline" className={cn("text-xs px-2 py-0.5 h-6 gap-1", className)}>
+      <Icon className="h-3 w-3" />
       {label}
     </Badge>
   );
@@ -106,10 +106,10 @@ const TypeIcon = ({ type, priority }: { type: AIRecommendation['type']; priority
   
   return (
     <div className={cn(
-      "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0",
+      "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
       isUrgent ? "bg-amber-500/20 text-amber-600" : "bg-muted text-muted-foreground"
     )}>
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-4 w-4" />
     </div>
   );
 };
@@ -203,12 +203,12 @@ const RecommendationCard = ({
 
   return (
     <div className={cn(
-      "glass-card p-3 rounded-xl transition-all h-full flex flex-col",
+      "glass-card p-4 rounded-xl transition-all h-full flex flex-col",
       recommendation.priority === 'high' && "border-amber-500/30 bg-amber-500/5",
       actionState !== 'pending' && "opacity-60"
     )}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <TypeIcon type={recommendation.type} priority={recommendation.priority} />
           <PriorityBadge priority={recommendation.priority} />
@@ -220,79 +220,79 @@ const RecommendationCard = ({
           size="sm" 
           onClick={handleDismiss}
           disabled={actionState !== 'pending'}
-          className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
         >
-          <X className="h-3 w-3" />
+          <X className="h-4 w-4" />
         </Button>
       </div>
 
       {/* Campaign name */}
-      <p className="text-[10px] text-primary font-medium mb-0.5 truncate">{recommendation.campaignName}</p>
+      <p className="text-xs text-primary font-medium mb-1 truncate">{recommendation.campaignName}</p>
 
       {/* Content */}
       <div className="flex-1 min-h-0">
         <h4 className={cn(
-          "text-xs font-semibold text-foreground",
-          isExpanded ? "" : "line-clamp-1"
+          "text-sm font-semibold text-foreground leading-snug",
+          isExpanded ? "" : "line-clamp-2"
         )}>{recommendation.title}</h4>
         <p className={cn(
-          "text-[10px] text-muted-foreground mt-0.5",
-          isExpanded ? "" : "line-clamp-2"
+          "text-sm text-muted-foreground mt-1 leading-relaxed",
+          isExpanded ? "" : "line-clamp-3"
         )}>{recommendation.reasoning}</p>
       </div>
 
       {/* Confidence Score */}
-      <div className="flex items-center gap-2 my-1.5">
-        <span className="text-[9px] text-muted-foreground">Confidence:</span>
+      <div className="flex items-center gap-2 my-2">
+        <span className="text-xs text-muted-foreground">Confidence:</span>
         <ConfidenceScore score={recommendation.confidenceScore} />
       </div>
 
       {/* Creative preview for creative-related recommendations */}
       {recommendation.creative && (
-        <div className="flex items-center gap-2 my-1.5 p-1.5 rounded-lg bg-muted/30">
+        <div className="flex items-center gap-3 my-2 p-2 rounded-lg bg-muted/30">
           <img 
             src={recommendation.creative.thumbnail} 
             alt={recommendation.creative.name}
-            className="w-8 h-8 rounded object-cover"
+            className="w-10 h-10 rounded object-cover"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-medium text-foreground truncate">{recommendation.creative.name}</p>
+            <p className="text-sm font-medium text-foreground truncate">{recommendation.creative.name}</p>
           </div>
         </div>
       )}
 
       {/* Budget controls for budget recommendations */}
       {isBudgetRecommendation && (
-        <div className="my-1.5 p-2 rounded-lg bg-muted/30">
+        <div className="my-2 p-3 rounded-lg bg-muted/30">
           {showCustomInput ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-muted-foreground">$</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">$</span>
               <Input
                 type="number"
                 value={customInputValue}
                 onChange={(e) => setCustomInputValue(e.target.value)}
                 placeholder="Amount"
-                className="h-6 text-[10px] px-2 flex-1"
+                className="h-8 text-sm px-3 flex-1"
                 disabled={actionState !== 'pending'}
               />
-              <Button size="sm" variant="secondary" className="h-6 px-2 text-[10px]" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
-                <Check className="h-2.5 w-2.5 mr-1" />
+              <Button size="sm" variant="secondary" className="h-8 px-3 text-sm" onClick={handleCustomBudgetApply} disabled={actionState !== 'pending'}>
+                <Check className="h-3.5 w-3.5 mr-1" />
                 Apply
               </Button>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowCustomInput(false)} disabled={actionState !== 'pending'}>
-                <X className="h-2.5 w-2.5" />
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setShowCustomInput(false)} disabled={actionState !== 'pending'}>
+                <X className="h-3.5 w-3.5" />
               </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">${recommendation.currentValue}</span>
                 <span className="text-muted-foreground">→</span>
                 <span className="font-semibold text-secondary">${recommendation.recommendedValue}</span>
-                <span className="text-[9px] text-muted-foreground">/day</span>
+                <span className="text-xs text-muted-foreground">/day</span>
               </div>
-              <div className="flex items-center gap-1 text-[9px] text-secondary">
-                <TrendingUp className="h-2.5 w-2.5" />
+              <div className="flex items-center gap-1.5 text-sm text-secondary">
+                <TrendingUp className="h-3.5 w-3.5" />
                 <span>+{Math.round(((recommendation.recommendedValue || 0) - (recommendation.currentValue || 0)) / (recommendation.currentValue || 1) * 100)}%</span>
               </div>
             </div>
@@ -300,15 +300,15 @@ const RecommendationCard = ({
         </div>
       )}
 
-      {/* Action buttons - shorter, thicker, bottom-right aligned, using primary color */}
+      {/* Action buttons - bottom-right aligned, using primary color */}
       {actionState === 'pending' && (
-        <div className="flex items-center justify-end gap-1.5 mt-auto pt-2">
+        <div className="flex items-center justify-end gap-2 mt-auto pt-3">
           {isBudgetRecommendation && (
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => setShowCustomInput(!showCustomInput)}
-              className="h-7 text-[10px] px-2 text-muted-foreground"
+              className="h-9 text-sm px-3 text-muted-foreground"
             >
               {showCustomInput ? 'AI Pick' : 'Custom'}
             </Button>
@@ -317,13 +317,13 @@ const RecommendationCard = ({
             size="sm" 
             onClick={() => handleQuickAction()}
             disabled={isProcessing}
-            className="h-7 text-[10px] px-3 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="h-9 text-sm px-4 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isProcessing ? (
               <span>...</span>
             ) : (
               <>
-                <Check className="h-3 w-3 mr-1" />
+                <Check className="h-4 w-4 mr-1.5" />
                 {getQuickActionLabel()}
               </>
             )}
@@ -370,14 +370,14 @@ export const InlineRecommendations = ({
   return (
     <div className="p-4">
       {/* Header with expand button */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-            <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground">AI Recommendations</h3>
-            <p className="text-[10px] text-muted-foreground">
+            <h3 className="text-base font-semibold text-foreground">AI Recommendations</h3>
+            <p className="text-sm text-muted-foreground">
               {recommendations.length} action{recommendations.length !== 1 ? 's' : ''} to improve performance
             </p>
           </div>
@@ -386,15 +386,15 @@ export const InlineRecommendations = ({
           variant="ghost"
           size="sm"
           onClick={handleOpenFullView}
-          className="h-7 text-[10px] px-2 text-muted-foreground hover:text-foreground gap-1"
+          className="h-9 text-sm px-3 text-muted-foreground hover:text-foreground gap-1.5"
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-4 w-4" />
           Full View
         </Button>
       </div>
 
       {/* 2x2 Grid of recommendations */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         {recommendations.map((rec) => (
           <RecommendationCard 
             key={rec.id} 
