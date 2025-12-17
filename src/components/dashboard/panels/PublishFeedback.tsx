@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, Sparkles, Send, Check, MessageCircle, Heart, Zap, Rocket } from 'lucide-react';
+import { Star, Sparkles, Send, Check, Heart, Zap, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -17,13 +17,31 @@ const quickTags = [
   { label: 'Love it', icon: Heart },
 ];
 
+const lowRatingReasons = [
+  'Confusing flow',
+  'Too many steps',
+  'Slow performance',
+  'Missing features',
+  'AI suggestions unhelpful',
+  'Unexpected results',
+];
+
 export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+
+  const toggleReason = (reason: string) => {
+    setSelectedReasons(prev => 
+      prev.includes(reason) 
+        ? prev.filter(r => r !== reason)
+        : [...prev, reason]
+    );
+  };
 
   const handleRatingClick = (value: number) => {
     setRating(value);
@@ -154,18 +172,31 @@ export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) =
             </div>
           )}
 
-          {/* Text feedback for lower ratings */}
+          {/* Quick reason chips for lower ratings */}
           {rating < 4 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MessageCircle className="w-4 h-4" />
-                <span>What could we improve?</span>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center">What could we improve?</p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {lowRatingReasons.map((reason) => (
+                  <button
+                    key={reason}
+                    onClick={() => toggleReason(reason)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-sm transition-all duration-200 border",
+                      selectedReasons.includes(reason)
+                        ? "bg-primary/20 border-primary/50 text-primary"
+                        : "bg-muted/30 border-border/50 text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                    )}
+                  >
+                    {reason}
+                  </button>
+                ))}
               </div>
               <Textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="Share your thoughts..."
-                className="min-h-[80px] text-sm resize-none bg-muted/30"
+                placeholder="Anything else? (optional)"
+                className="min-h-[60px] text-sm resize-none bg-muted/30"
                 maxLength={500}
               />
             </div>
