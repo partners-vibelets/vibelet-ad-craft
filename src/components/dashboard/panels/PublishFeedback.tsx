@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Star, Sparkles, Send, Check, Heart, Zap, Rocket } from 'lucide-react';
+import { Sparkles, Send, Check, Heart, Zap, Rocket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { StarRating } from '@/components/ui/star-rating';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -28,7 +29,6 @@ const lowRatingReasons = [
 
 export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) => {
   const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
@@ -45,13 +45,7 @@ export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) =
 
   const handleRatingClick = (value: number) => {
     setRating(value);
-    if (value >= 4) {
-      // High rating - show quick tags
-      setShowFeedbackForm(true);
-    } else {
-      // Lower rating - show feedback form
-      setShowFeedbackForm(true);
-    }
+    setShowFeedbackForm(true);
   };
 
   const toggleTag = (tag: string) => {
@@ -109,41 +103,18 @@ export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) =
       </div>
 
       {/* Star Rating */}
-      <div className="flex items-center justify-center gap-2 py-4">
-        {[1, 2, 3, 4, 5].map((value) => (
-          <button
-            key={value}
-            onClick={() => handleRatingClick(value)}
-            onMouseEnter={() => setHoveredRating(value)}
-            onMouseLeave={() => setHoveredRating(0)}
-            className={cn(
-              "p-1 transition-all duration-200 hover:scale-125",
-              "focus:outline-none focus:ring-2 focus:ring-primary/20 rounded-full"
-            )}
-          >
-            <Star
-              className={cn(
-                "w-8 h-8 transition-all duration-200",
-                (hoveredRating || rating) >= value
-                  ? "fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-                  : "text-muted-foreground/40 hover:text-amber-400/60"
-              )}
-            />
-          </button>
-        ))}
+      <div className="flex justify-center py-4">
+        <StarRating
+          value={rating}
+          onChange={handleRatingClick}
+          size="lg"
+        />
       </div>
 
-      {/* Rating Label */}
-      {(hoveredRating || rating) > 0 && (
-        <p className={cn(
-          "text-center text-sm mb-4 transition-all duration-200",
-          (hoveredRating || rating) >= 4 ? "text-secondary" : "text-muted-foreground"
-        )}>
-          {(hoveredRating || rating) === 5 && "Amazing! 🎉"}
-          {(hoveredRating || rating) === 4 && "Great!"}
-          {(hoveredRating || rating) === 3 && "Good"}
-          {(hoveredRating || rating) === 2 && "Could be better"}
-          {(hoveredRating || rating) === 1 && "Needs work"}
+      {/* Initial prompt if not rated yet */}
+      {!showFeedbackForm && !rating && (
+        <p className="text-center text-sm text-muted-foreground">
+          Tap a star to rate your experience
         </p>
       )}
 
@@ -224,13 +195,6 @@ export const PublishFeedback = ({ onSubmit, onDismiss }: PublishFeedbackProps) =
             Send Feedback
           </Button>
         </div>
-      )}
-
-      {/* Initial prompt if not rated yet */}
-      {!showFeedbackForm && !rating && (
-        <p className="text-center text-sm text-muted-foreground">
-          Tap a star to rate your campaign creation experience
-        </p>
       )}
     </div>
   );
