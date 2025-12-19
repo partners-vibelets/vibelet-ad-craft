@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
-import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, ExternalLink, ThumbsUp, ThumbsDown, Clock, Layers, Target, Image, Megaphone, Filter } from 'lucide-react';
+import { Sparkles, Check, X, TrendingUp, Copy, Play, Pause, DollarSign, ExternalLink, ThumbsUp, ThumbsDown, Clock, Layers, Target, Image, Megaphone, Filter, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { RecommendationRating } from './RecommendationRating';
+import { formatNotificationTime } from '@/lib/timeUtils';
 
 interface InlineRecommendationsProps {
   recommendations: AIRecommendation[];
@@ -218,15 +219,20 @@ const RecommendationCard = ({
           <LevelBadge level={recommendation.level} />
           <ActionStateBadge state={actionState} />
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleDismiss}
-          disabled={actionState !== 'pending'}
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleDismiss}
+            disabled={actionState !== 'pending'}
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            {formatNotificationTime(recommendation.createdAt)}
+          </span>
+        </div>
       </div>
 
       {/* Campaign name */}
@@ -411,6 +417,15 @@ export const InlineRecommendations = ({
         >
           <ExternalLink className="h-4 w-4" />
           Full View
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/notifications')}
+          className="h-9 text-sm px-3 text-muted-foreground hover:text-foreground gap-1.5"
+        >
+          <Bell className="h-4 w-4" />
+          History
         </Button>
       </div>
 

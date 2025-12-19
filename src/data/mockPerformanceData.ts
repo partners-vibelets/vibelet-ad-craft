@@ -121,6 +121,7 @@ export const mockRecommendations: AIRecommendation[] = [
     type: 'budget-increase',
     priority: 'high',
     level: 'campaign',
+    status: 'pending',
     campaignId: 'camp-1',
     campaignName: 'Premium Earbuds - Sales',
     title: 'Increase budget to capture more sales',
@@ -133,13 +134,15 @@ export const mockRecommendations: AIRecommendation[] = [
       { label: 'Expected ROI', value: '280-320%' },
       { label: 'Reach Increase', value: '+50%' }
     ],
-    createdAt: new Date()
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   },
   {
     id: 'rec-2',
     type: 'pause-creative',
     priority: 'high',
     level: 'creative',
+    status: 'pending',
     campaignId: 'camp-1',
     campaignName: 'Premium Earbuds - Sales',
     title: 'Pause underperforming video ad',
@@ -159,13 +162,15 @@ export const mockRecommendations: AIRecommendation[] = [
       { label: 'Budget Saved', value: '$15/day' },
       { label: 'Avg CTR Improvement', value: '+0.4%' }
     ],
-    createdAt: new Date(Date.now() - 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)
   },
   {
     id: 'rec-3',
     type: 'resume-campaign',
     priority: 'medium',
     level: 'campaign',
+    status: 'applied',
     campaignId: 'camp-3',
     campaignName: 'Holiday Special',
     title: 'Resume your paused campaign',
@@ -177,13 +182,15 @@ export const mockRecommendations: AIRecommendation[] = [
       { label: 'Estimated Daily Sales', value: '12-18' },
       { label: 'Expected ROI', value: '310-340%' }
     ],
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    actionTakenAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
   },
   {
     id: 'rec-4',
     type: 'clone-creative',
     priority: 'suggestion',
     level: 'creative',
+    status: 'pending',
     campaignId: 'camp-1',
     campaignName: 'Premium Earbuds - Sales',
     title: 'Use winning creative in other campaigns',
@@ -203,13 +210,15 @@ export const mockRecommendations: AIRecommendation[] = [
       { id: 'camp-2', name: 'Earbuds Pro - Awareness', recommended: true },
       { id: 'camp-3', name: 'Holiday Special' }
     ],
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
   },
   {
     id: 'rec-5',
     type: 'budget-decrease',
     priority: 'suggestion',
     level: 'adset',
+    status: 'dismissed',
     campaignId: 'camp-2',
     campaignName: 'Earbuds Pro - Awareness',
     title: 'Consider reducing budget during learning',
@@ -221,7 +230,54 @@ export const mockRecommendations: AIRecommendation[] = [
       { label: 'Daily Savings', value: '$10' },
       { label: 'Learning Period', value: 'Same' }
     ],
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000)
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    actionTakenAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
+  },
+  {
+    id: 'rec-6',
+    type: 'budget-increase',
+    priority: 'medium',
+    level: 'adset',
+    status: 'expired',
+    campaignId: 'camp-1',
+    campaignName: 'Premium Earbuds - Sales',
+    title: 'Scale high-performing ad set',
+    reasoning: 'Your 25-34 age group ad set is converting at 2x the average rate. Consider increasing budget for this segment.',
+    confidenceScore: 82,
+    currentValue: 25,
+    recommendedValue: 40,
+    projectedImpact: [
+      { label: 'Additional Conversions', value: '+5-8/day' },
+      { label: 'Expected CPA', value: '$22' }
+    ],
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+  },
+  {
+    id: 'rec-7',
+    type: 'pause-creative',
+    priority: 'high',
+    level: 'ad',
+    status: 'deferred',
+    campaignId: 'camp-2',
+    campaignName: 'Earbuds Pro - Awareness',
+    title: 'Review low engagement ad',
+    reasoning: 'This ad has shown declining engagement over the past 48 hours. Consider pausing to preserve budget.',
+    confidenceScore: 75,
+    creative: {
+      id: 'creative-5',
+      name: 'Product Showcase',
+      thumbnail: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+      metrics: [
+        { label: 'CTR', value: '0.8%' },
+        { label: 'Spend', value: '$45' },
+        { label: 'Conversions', value: '1' }
+      ]
+    },
+    projectedImpact: [
+      { label: 'Budget Saved', value: '$20/day' }
+    ],
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
   }
 ];
 

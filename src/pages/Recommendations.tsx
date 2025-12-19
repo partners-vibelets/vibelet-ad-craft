@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AIRecommendation, PublishedCampaign, RecommendationLevel } from '@/types/campaign';
-import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft, DollarSign as Spent, TrendingUp as Profit, Percent, ShoppingCart, Receipt, ChevronDown, Filter } from 'lucide-react';
+import { Sparkles, TrendingUp, Copy, Play, Pause, DollarSign, Check, X, Layers, Target, Image, Megaphone, ArrowLeft, DollarSign as Spent, TrendingUp as Profit, Percent, ShoppingCart, Receipt, ChevronDown, Filter, Clock, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { mockUnifiedMetrics } from '@/data/mockPerformanceData';
 import { RecommendationRating } from '@/components/dashboard/performance/RecommendationRating';
+import { formatNotificationTime, formatFullDate } from '@/lib/timeUtils';
 
 // Priority badge component
 const PriorityBadge = ({ priority }: { priority: AIRecommendation['priority'] }) => {
@@ -142,6 +144,10 @@ const FullRecommendationCard = ({
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <PriorityBadge priority={recommendation.priority} />
               <LevelBadge level={recommendation.level} />
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatNotificationTime(recommendation.createdAt)}
+              </span>
             </div>
             <p className="text-sm text-primary font-medium">{recommendation.campaignName}</p>
             <h3 className="text-lg font-semibold text-foreground mt-1">{recommendation.title}</h3>
