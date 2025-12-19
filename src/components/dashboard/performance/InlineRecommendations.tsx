@@ -454,10 +454,18 @@ export const InlineRecommendations = ({
           variant="ghost"
           size="sm"
           onClick={() => navigate('/notifications')}
-          className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+          className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5 relative"
         >
           <Bell className="h-4 w-4" />
           History
+          {recommendations.filter(r => r.status === 'pending').length > 0 && (
+            <Badge 
+              variant="default" 
+              className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground rounded-full flex items-center justify-center"
+            >
+              {recommendations.filter(r => r.status === 'pending').length}
+            </Badge>
+          )}
         </Button>
       </div>
 

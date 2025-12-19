@@ -144,7 +144,7 @@ const FullRecommendationCard = ({
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <PriorityBadge priority={recommendation.priority} />
               <LevelBadge level={recommendation.level} />
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="text-xs font-medium text-primary/70 flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {formatNotificationTime(recommendation.createdAt)}
               </span>
