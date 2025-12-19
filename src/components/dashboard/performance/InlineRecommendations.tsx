@@ -229,7 +229,7 @@ const RecommendationCard = ({
           >
             <X className="h-4 w-4" />
           </Button>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+          <span className="text-xs font-medium text-primary/70 whitespace-nowrap">
             {formatNotificationTime(recommendation.createdAt)}
           </span>
         </div>
@@ -340,14 +340,16 @@ const RecommendationCard = ({
         </div>
       )}
 
-      {/* Rating - always visible at bottom */}
-      <RecommendationRating 
-        recommendationId={recommendation.id} 
-        compact={true}
-        onRate={(id, rating, feedback, reasons) => {
-          console.log('Recommendation rating:', { id, rating, feedback, reasons });
-        }}
-      />
+      {/* Rating - with spacing from CTA buttons */}
+      <div className="mt-4 pt-3 border-t border-border/30">
+        <RecommendationRating 
+          recommendationId={recommendation.id} 
+          compact={true}
+          onRate={(id, rating, feedback, reasons) => {
+            console.log('Recommendation rating:', { id, rating, feedback, reasons });
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -418,43 +420,45 @@ export const InlineRecommendations = ({
           <ExternalLink className="h-4 w-4" />
           Full View
         </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="high">Urgent</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="suggestion">Tips</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
+              <SelectValue placeholder="Level" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="campaign">Campaign</SelectItem>
+              <SelectItem value="adset">Ad Set</SelectItem>
+              <SelectItem value="ad">Ad</SelectItem>
+              <SelectItem value="creative">Creative</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate('/notifications')}
-          className="h-9 text-sm px-3 text-muted-foreground hover:text-foreground gap-1.5"
+          className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
         >
           <Bell className="h-4 w-4" />
           History
         </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-4">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="high">Urgent</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="suggestion">Tips</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={levelFilter} onValueChange={setLevelFilter}>
-          <SelectTrigger className="w-[110px] h-8 text-xs bg-muted/30 border-border/50">
-            <SelectValue placeholder="Level" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="campaign">Campaign</SelectItem>
-            <SelectItem value="adset">Ad Set</SelectItem>
-            <SelectItem value="ad">Ad</SelectItem>
-            <SelectItem value="creative">Creative</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* 2x2 Grid of recommendations */}
