@@ -180,12 +180,14 @@ export interface PublishedCampaign {
 export type RecommendationPriority = 'high' | 'medium' | 'suggestion';
 export type RecommendationType = 'budget-increase' | 'budget-decrease' | 'pause-creative' | 'resume-campaign' | 'clone-creative';
 export type RecommendationLevel = 'campaign' | 'adset' | 'ad' | 'creative';
+export type RecommendationStatus = 'pending' | 'applied' | 'dismissed' | 'deferred' | 'expired';
 
 export interface AIRecommendation {
   id: string;
   type: RecommendationType;
   priority: RecommendationPriority;
   level: RecommendationLevel;
+  status: RecommendationStatus;
   campaignId: string;
   campaignName: string;
   title: string;
@@ -205,6 +207,8 @@ export interface AIRecommendation {
   };
   targetCampaigns?: { id: string; name: string; recommended?: boolean }[];
   createdAt: Date;
+  actionTakenAt?: Date;
+  expiresAt?: Date;
 }
 
 export interface UnifiedMetrics {
