@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { getChatAssistantService } from '@/services/ai';
 
 export interface AssistantMessage {
   id: string;
@@ -141,27 +142,61 @@ export const useAssistantChat = () => {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isAssistantMode, setIsAssistantMode] = useState(false);
+  const conversationHistory = useRef<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, userId?: string) => {
     const sanitizedContent = content.trim();
     if (!sanitizedContent) return;
 
-    // Add user message
-    setMessages(prev => [...prev, createMessage('user', sanitizedContent)]);
-    
-    // Simulate typing
-    setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
-    setIsTyping(false);
+    const userMessage = createMessage('user', sanitizedContent);
+    setMessages(prev => [...prev, userMessage]);
+    conversationHistory.current.push({ role: 'user', content: sanitizedContent });
 
-    // Get RAG response
-    const response = getRAGResponse(sanitizedContent);
-    setMessages(prev => [...prev, createMessage('assistant', response)]);
+    setIsTyping(true);
+
+    try {
+      if (isGeneralQuery(sanitizedContent) || !userId) {
+        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 700));
+        const ragResponse = getRAGResponse(sanitizedContent);
+        const assistantMessage = createMessage('assistant', ragResponse);
+        setMessages(prev => [...prev, assistantMessage]);
+        conversationHistory.current.push({ role: 'assistant', content: ragResponse });
+      } else {
+        const chatService = getChatAssistantService();
+        const response = await chatService.chat(
+          {
+            message: sanitizedContent,
+            conversationHistory: conversationHistory.current,
+          },
+          userId
+        );
+
+        if (response.success && response.data) {
+          const assistantMessage = createMessage('assistant', response.data.message);
+          setMessages(prev => [...prev, assistantMessage]);
+          conversationHistory.current.push({ role: 'assistant', content: response.data.message });
+        } else {
+          const fallbackResponse = getRAGResponse(sanitizedContent);
+          const assistantMessage = createMessage('assistant', fallbackResponse);
+          setMessages(prev => [...prev, assistantMessage]);
+          conversationHistory.current.push({ role: 'assistant', content: fallbackResponse });
+        }
+      }
+    } catch (error) {
+      console.error('Error in chat:', error);
+      const fallbackResponse = getRAGResponse(sanitizedContent);
+      const assistantMessage = createMessage('assistant', fallbackResponse);
+      setMessages(prev => [...prev, assistantMessage]);
+      conversationHistory.current.push({ role: 'assistant', content: fallbackResponse });
+    } finally {
+      setIsTyping(false);
+    }
   }, []);
 
   const clearChat = useCallback(() => {
     setMessages([]);
     setIsAssistantMode(false);
+    conversationHistory.current = [];
   }, []);
 
   return {
