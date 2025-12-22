@@ -6,7 +6,7 @@ import { CampaignStageAndChanges } from '../performance/CampaignStageAndChanges'
 import { InlineRecommendations } from '../performance/InlineRecommendations';
 import { Button } from '@/components/ui/button';
 import { Plus, BarChart3, RefreshCw } from 'lucide-react';
-
+import { useNotifications } from '@/hooks/useNotifications';
 interface PerformanceDashboardPanelProps {
   dashboard: PerformanceDashboardState;
   isRefreshing?: boolean;
@@ -33,9 +33,20 @@ export const PerformanceDashboardPanel = ({
   onCloneCreative
 }: PerformanceDashboardPanelProps) => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const { notifyNewRecommendations, requestBrowserPermission } = useNotifications();
   
   // Auto-select the latest campaign if none selected
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
+
+  // Request browser notification permission on mount
+  useEffect(() => {
+    requestBrowserPermission();
+  }, [requestBrowserPermission]);
+
+  // Notify when new recommendations arrive
+  useEffect(() => {
+    notifyNewRecommendations(dashboard.recommendations);
+  }, [dashboard.recommendations, notifyNewRecommendations]);
   
   useEffect(() => {
     if (!hasAutoSelected && dashboard.publishedCampaigns.length > 0 && !dashboard.selectedCampaignId) {
