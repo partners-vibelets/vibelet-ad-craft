@@ -1,4 +1,75 @@
-import { ScriptOption, AvatarOption, CreativeOption, AdAccount, ProductData } from '@/types/campaign';
+import { ScriptOption, AvatarOption, CreativeOption, AdAccount, ProductData, ProductVariant } from '@/types/campaign';
+
+// Mock product variants for multi-variant products
+export const mockProductVariants: ProductVariant[] = [
+  {
+    id: 'v1',
+    name: 'Black - Standard',
+    sku: 'EAR-PRO-BLK-STD',
+    price: '$149.99',
+    attributes: [
+      { name: 'Color', value: 'Black' },
+      { name: 'Edition', value: 'Standard' }
+    ],
+    image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400',
+    inStock: true,
+    isRecommended: true,
+    recommendationReason: 'Best seller - 45% of sales'
+  },
+  {
+    id: 'v2',
+    name: 'White - Standard',
+    sku: 'EAR-PRO-WHT-STD',
+    price: '$149.99',
+    attributes: [
+      { name: 'Color', value: 'White' },
+      { name: 'Edition', value: 'Standard' }
+    ],
+    image: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400',
+    inStock: true,
+    isRecommended: true,
+    recommendationReason: 'Trending - 30% growth'
+  },
+  {
+    id: 'v3',
+    name: 'Black - Pro Edition',
+    sku: 'EAR-PRO-BLK-PRO',
+    price: '$199.99',
+    attributes: [
+      { name: 'Color', value: 'Black' },
+      { name: 'Edition', value: 'Pro' }
+    ],
+    image: 'https://images.unsplash.com/photo-1598331668826-20cecc596b86?w=400',
+    inStock: true,
+    isRecommended: false
+  },
+  {
+    id: 'v4',
+    name: 'White - Pro Edition',
+    sku: 'EAR-PRO-WHT-PRO',
+    price: '$199.99',
+    attributes: [
+      { name: 'Color', value: 'White' },
+      { name: 'Edition', value: 'Pro' }
+    ],
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
+    inStock: true,
+    isRecommended: false
+  },
+  {
+    id: 'v5',
+    name: 'Rose Gold - Limited',
+    sku: 'EAR-PRO-RSG-LTD',
+    price: '$229.99',
+    attributes: [
+      { name: 'Color', value: 'Rose Gold' },
+      { name: 'Edition', value: 'Limited' }
+    ],
+    image: 'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=400',
+    inStock: false,
+    isRecommended: false
+  }
+];
 
 export const mockProductData: ProductData = {
   title: "Premium Wireless Earbuds Pro",
@@ -50,7 +121,11 @@ export const mockProductData: ProductData = {
     "IPX5 Water Resistant",
     "Touch Controls",
     "Fast Charging (10min = 3hrs)"
-  ]
+  ],
+  // Multi-variant support
+  hasVariants: true,
+  variantAttributes: ['Color', 'Edition'],
+  variants: mockProductVariants
 };
 
 export const scriptOptions: ScriptOption[] = [
