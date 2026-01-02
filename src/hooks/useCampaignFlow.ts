@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation } from '@/types/campaign';
+import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
 import { createMockPerformanceDashboard } from '@/data/mockPerformanceData';
 import { toast } from 'sonner';
@@ -10,10 +10,13 @@ const STEP_ORDER: CampaignStep[] = [
   'welcome',
   'product-url',
   'product-analysis',
+  'variant-detection',
+  'ad-strategy',
   'script-selection',
   'avatar-selection',
   'creative-generation',
   'creative-review',
+  'creative-assignment',
   'campaign-setup',
   'facebook-integration',
   'ad-account-selection',
@@ -40,6 +43,11 @@ const initialState: CampaignState = {
   isCustomCreativeMode: false,
   performanceDashboard: null,
   isRefreshingDashboard: false,
+  // Multi-variant support
+  selectedVariants: [],
+  adStrategy: 'single',
+  campaignStructure: null,
+  variantCreativeAssignments: [],
 };
 
 const createMessage = (
@@ -147,10 +155,13 @@ export const useCampaignFlow = () => {
       'welcome': "Paste your product URL to begin.",
       'product-url': "Paste a new product URL.",
       'product-analysis': "Analyzing your product...",
+      'variant-detection': "Let's check if your product has variants.",
+      'ad-strategy': "Choose how you want to create ads.",
       'script-selection': "Choose a script style for your ad.",
       'avatar-selection': "Select an AI presenter.",
       'creative-generation': "Generating your creatives...",
       'creative-review': "Review and select a creative.",
+      'creative-assignment': "Assign creatives to your variants.",
       'campaign-setup': "Configure your campaign settings.",
       'facebook-integration': "Connect your Facebook account.",
       'ad-account-selection': "Select your ad account.",
@@ -617,6 +628,19 @@ export const useCampaignFlow = () => {
     ]);
   }, []);
 
+  // Multi-variant handlers
+  const handleVariantsChange = useCallback((variants: ProductVariant[]) => {
+    setState(prev => ({ ...prev, selectedVariants: variants }));
+  }, []);
+
+  const handleAdStrategyChange = useCallback((strategy: AdStrategy) => {
+    setState(prev => ({ ...prev, adStrategy: strategy }));
+  }, []);
+
+  const handleCreativeAssignmentsChange = useCallback((assignments: VariantCreativeAssignment[]) => {
+    setState(prev => ({ ...prev, variantCreativeAssignments: assignments }));
+  }, []);
+
   // Performance dashboard handlers
   const handleCampaignFilterChange = useCallback((campaignId: string | null) => {
     setState(prev => {
@@ -1000,5 +1024,9 @@ export const useCampaignFlow = () => {
     handleRecommendationAction,
     refreshPerformanceDashboard,
     handleCloneCreative,
+    // Multi-variant handlers
+    handleVariantsChange,
+    handleAdStrategyChange,
+    handleCreativeAssignmentsChange,
   };
 };

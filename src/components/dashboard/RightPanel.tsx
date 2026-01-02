@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation } from '@/types/campaign';
+import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
+import { VariantSelectorPanel } from './panels/VariantSelectorPanel';
+import { AdStrategyPanel } from './panels/AdStrategyPanel';
 import { ScriptPreviewPanel } from './panels/ScriptPreviewPanel';
 import { AvatarPreviewPanel } from './panels/AvatarPreviewPanel';
 import { CreativeGenerationPanel } from './panels/CreativeGenerationPanel';
 import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
+import { CreativeAssignmentPanel } from './panels/CreativeAssignmentPanel';
 import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
@@ -35,6 +38,9 @@ interface RightPanelProps {
   onRecommendationAction?: (recommendationId: string, action: string, value?: number) => void;
   onRefreshDashboard?: () => void;
   onCloneCreative?: (recommendation: AIRecommendation) => void;
+  onVariantsChange?: (variants: ProductVariant[]) => void;
+  onAdStrategyChange?: (strategy: AdStrategy) => void;
+  onCreativeAssignmentsChange?: (assignments: VariantCreativeAssignment[]) => void;
 }
 
 export const RightPanel = ({
@@ -54,6 +60,9 @@ export const RightPanel = ({
   onRecommendationAction,
   onRefreshDashboard,
   onCloneCreative,
+  onVariantsChange,
+  onAdStrategyChange,
+  onCreativeAssignmentsChange,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -108,6 +117,31 @@ export const RightPanel = ({
             onRegenerate={onRegenerateProduct}
           />
         );
+      
+      case 'variant-detection':
+        return state.productData?.variants && onVariantsChange ? (
+          <VariantSelectorPanel
+            variants={state.productData.variants}
+            selectedVariants={state.selectedVariants}
+            onVariantsChange={onVariantsChange}
+            variantAttributes={state.productData.variantAttributes}
+          />
+        ) : (
+          <ProductAnalysisPanel 
+            productData={state.productData} 
+            productUrl={state.productUrl} 
+            isAnalyzing={!state.productData}
+          />
+        );
+      
+      case 'ad-strategy':
+        return onAdStrategyChange ? (
+          <AdStrategyPanel
+            selectedStrategy={state.adStrategy}
+            onStrategyChange={onAdStrategyChange}
+            selectedVariants={state.selectedVariants}
+          />
+        ) : null;
       
       case 'script-selection':
         return (
@@ -174,6 +208,16 @@ export const RightPanel = ({
             onRegenerate={onRegenerateCreatives}
           />
         );
+      
+      case 'creative-assignment':
+        return onCreativeAssignmentsChange ? (
+          <CreativeAssignmentPanel
+            variants={state.selectedVariants}
+            creatives={state.creatives}
+            assignments={state.variantCreativeAssignments}
+            onAssignmentsChange={onCreativeAssignmentsChange}
+          />
+        ) : null;
       
       case 'campaign-setup':
       case 'facebook-integration':

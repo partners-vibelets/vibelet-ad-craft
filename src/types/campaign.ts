@@ -2,10 +2,13 @@ export type CampaignStep =
   | 'welcome'
   | 'product-url'
   | 'product-analysis'
+  | 'variant-detection'
+  | 'ad-strategy'
   | 'script-selection'
   | 'avatar-selection'
   | 'creative-generation'
   | 'creative-review'
+  | 'creative-assignment'
   | 'campaign-setup'
   | 'facebook-integration'
   | 'ad-account-selection'
@@ -39,6 +42,24 @@ export interface Message {
   showFacebookConnect?: boolean;
 }
 
+// Product Variant types for multi-variant support
+export interface VariantAttribute {
+  name: string;
+  value: string;
+}
+
+export interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string;
+  price: string;
+  attributes: VariantAttribute[];
+  image?: string;
+  inStock: boolean;
+  isRecommended?: boolean;
+  recommendationReason?: string;
+}
+
 export interface ProductData {
   title: string;
   price: string;
@@ -66,6 +87,10 @@ export interface ProductData {
   };
   recommendations?: string[];
   keyHighlights?: string[];
+  // Multi-variant support
+  hasVariants?: boolean;
+  variantAttributes?: string[];
+  variants?: ProductVariant[];
 }
 
 export interface ProductInsight {
@@ -126,6 +151,40 @@ export interface CampaignConfig {
   primaryText: string;
   cta: string;
   websiteUrl: string;
+}
+
+// Multi-Ad Campaign Structure types
+export type AdStrategy = 'single' | 'per-variant' | 'ab-test';
+
+export interface AdConfig {
+  id: string;
+  name: string;
+  creative: CreativeOption;
+  primaryText: string;
+  headline: string;
+  cta: string;
+  targetVariant?: ProductVariant;
+}
+
+export interface AdSetConfig {
+  id: string;
+  name: string;
+  budget: string;
+  duration: string;
+  ads: AdConfig[];
+}
+
+export interface CampaignStructure {
+  campaignName: string;
+  objective: string;
+  budgetType: 'daily' | 'lifetime';
+  totalBudget: string;
+  adSets: AdSetConfig[];
+}
+
+export interface VariantCreativeAssignment {
+  variantId: string;
+  creativeIds: string[];
 }
 
 export interface AdAccount {
@@ -246,4 +305,9 @@ export interface CampaignState {
   isCustomCreativeMode: boolean;
   performanceDashboard: PerformanceDashboardState | null;
   isRefreshingDashboard: boolean;
+  // Multi-variant campaign support
+  selectedVariants: ProductVariant[];
+  adStrategy: AdStrategy;
+  campaignStructure: CampaignStructure | null;
+  variantCreativeAssignments: VariantCreativeAssignment[];
 }
