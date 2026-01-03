@@ -1,8 +1,8 @@
 import { CampaignStep } from '@/types/campaign';
 import { cn } from '@/lib/utils';
-import { Check, Link, Sparkles, Settings, Rocket } from 'lucide-react';
+import { Check, Link, Sparkles, Settings, Rocket, Layers } from 'lucide-react';
 
-// Grouped step configuration - 4 main steps instead of 8
+// Grouped step configuration - now includes variant detection
 const STEP_GROUPS: { 
   id: string; 
   label: string; 
@@ -13,13 +13,13 @@ const STEP_GROUPS: {
     id: 'product', 
     label: 'Product', 
     icon: Link,
-    steps: ['product-analysis']
+    steps: ['product-analysis', 'variant-detection', 'ad-strategy']
   },
   { 
     id: 'content', 
     label: 'Content', 
     icon: Sparkles,
-    steps: ['script-selection', 'avatar-selection', 'creative-generation', 'creative-review']
+    steps: ['script-selection', 'avatar-selection', 'creative-generation', 'creative-review', 'creative-assignment']
   },
   { 
     id: 'campaign', 
