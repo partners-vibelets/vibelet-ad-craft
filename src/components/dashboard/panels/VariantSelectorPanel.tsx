@@ -20,6 +20,7 @@ interface VariantSelectorPanelProps {
   variants: ProductVariant[];
   selectedVariants: ProductVariant[];
   onVariantsChange: (variants: ProductVariant[]) => void;
+  onContinue?: () => void;
   variantAttributes?: string[];
 }
 
@@ -27,6 +28,7 @@ export const VariantSelectorPanel = ({
   variants,
   selectedVariants,
   onVariantsChange,
+  onContinue,
   variantAttributes = []
 }: VariantSelectorPanelProps) => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -275,6 +277,19 @@ export const VariantSelectorPanel = ({
           ))}
         </div>
       </ScrollArea>
+
+      {/* Continue Button */}
+      {onContinue && selectedVariants.length > 0 && (
+        <div className="pt-4 border-t border-border">
+          <Button 
+            size="lg" 
+            className="w-full"
+            onClick={onContinue}
+          >
+            Continue with {selectedVariants.length} variant{selectedVariants.length !== 1 ? 's' : ''}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -376,10 +376,60 @@ export const useCampaignFlow = () => {
           if (!skipUserMessage) addMessage('user', "Let's continue!");
           setState(prev => ({ ...prev, isStepLoading: true }));
           
-          // Check if we have script options
-          if (!scriptOptions || scriptOptions.length === 0) {
-            throw new Error('Script options not available');
+          // Check if product has variants - route to variant detection flow
+          if (state.productData?.hasVariants && state.productData.variants && state.productData.variants.length > 0) {
+            const variantCount = state.productData.variants.length;
+            const attributes = state.productData.variantAttributes?.join(' and ') || 'options';
+            
+            const variantQuestion: InlineQuestion = {
+              id: 'variant-strategy',
+              question: `How would you like to handle the ${variantCount} product variants?`,
+              options: [
+                { id: 'select-variants', label: 'Select Specific Variants', description: 'Choose which variants to advertise' },
+                { id: 'all-variants', label: 'Use All Variants', description: 'Create ads for all variants' },
+                { id: 'single-ad', label: 'Single Ad Only', description: 'Ignore variants, create one ad' }
+              ]
+            };
+            
+            await simulateTyping(
+              `I noticed your product has **${variantCount} variants** (${attributes}). 🎯\n\nThis is great for creating targeted ads! Would you like to create separate ads for different variants?`,
+              { inlineQuestion: variantQuestion, stepId: 'variant-detection' },
+              1200
+            );
+            setState(prev => ({ ...prev, step: 'variant-detection', stepHistory: [...prev.stepHistory, 'variant-detection'], isStepLoading: false }));
+          } else {
+            // No variants - proceed directly to script selection
+            if (!scriptOptions || scriptOptions.length === 0) {
+              throw new Error('Script options not available');
+            }
+            
+            const scriptQuestion: InlineQuestion = {
+              id: 'script-selection',
+              question: 'Choose a script style that matches your brand voice:',
+              options: [
+                ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+                { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+              ]
+            };
+            
+            await simulateTyping(
+              `Great! Now let's choose how to tell your product's story:`,
+              { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+              800
+            );
+            setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
           }
+        } else {
+          if (!skipUserMessage) addMessage('user', "I want to change the product URL.");
+          setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
+          await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
+        }
+      } else if (questionId === 'variant-strategy') {
+        // Handle variant strategy selection
+        if (answerId === 'single-ad') {
+          // Skip variant flow, go directly to script selection
+          if (!skipUserMessage) addMessage('user', "I'll create a single ad.");
+          setState(prev => ({ ...prev, adStrategy: 'single', isStepLoading: true }));
           
           const scriptQuestion: InlineQuestion = {
             id: 'script-selection',
@@ -391,16 +441,69 @@ export const useCampaignFlow = () => {
           };
           
           await simulateTyping(
-            `Great! Now let's choose how to tell your product's story:`,
+            `Perfect! Let's create one powerful ad for your product:`,
             { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
             800
           );
           setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
+        } else if (answerId === 'all-variants') {
+          // Select all variants automatically
+          const allVariants = state.productData?.variants || [];
+          if (!skipUserMessage) addMessage('user', "Let's use all variants!");
+          setState(prev => ({ 
+            ...prev, 
+            selectedVariants: allVariants, 
+            adStrategy: 'per-variant',
+            isStepLoading: true 
+          }));
+          
+          const strategyQuestion: InlineQuestion = {
+            id: 'ad-strategy-confirm',
+            question: 'How should we structure your campaign?',
+            options: [
+              { id: 'per-variant', label: 'Separate Ads Per Variant', description: `Create ${allVariants.length} targeted ads` },
+              { id: 'ab-test', label: 'A/B Test Top Variants', description: 'Test which variants perform best' }
+            ]
+          };
+          
+          await simulateTyping(
+            `Great! I've selected all **${allVariants.length} variants**. 🎯\n\nHow would you like to structure your ads?`,
+            { inlineQuestion: strategyQuestion, stepId: 'ad-strategy' },
+            1000
+          );
+          setState(prev => ({ ...prev, step: 'ad-strategy', stepHistory: [...prev.stepHistory, 'ad-strategy'], isStepLoading: false }));
         } else {
-          if (!skipUserMessage) addMessage('user', "I want to change the product URL.");
-          setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
-          await simulateTyping("No problem! Paste a new product URL to analyze.", { stepId: 'product-url' }, 500);
+          // Go to variant selector panel
+          if (!skipUserMessage) addMessage('user', "I'll select specific variants.");
+          
+          await simulateTyping(
+            `Perfect! Use the panel on the right to select which variants you want to advertise. I've highlighted the AI-recommended ones based on price point and potential. ✨`,
+            { stepId: 'variant-detection' },
+            1000
+          );
+          setState(prev => ({ ...prev, isStepLoading: false }));
         }
+      } else if (questionId === 'ad-strategy-confirm') {
+        // Handle ad strategy confirmation
+        const strategy = answerId as AdStrategy;
+        if (!skipUserMessage) addMessage('user', answerId === 'per-variant' ? "Separate ads per variant." : "Let's A/B test!");
+        setState(prev => ({ ...prev, adStrategy: strategy, isStepLoading: true }));
+        
+        const scriptQuestion: InlineQuestion = {
+          id: 'script-selection',
+          question: 'Choose a script style that matches your brand voice:',
+          options: [
+            ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+            { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+          ]
+        };
+        
+        await simulateTyping(
+          `${strategy === 'per-variant' ? 'Creating separate ads for each variant!' : 'Setting up A/B testing!'} 🎯\n\nNow let's choose how to tell your product's story:`,
+          { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+          1000
+        );
+        setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
       } else if (questionId === 'script-selection') {
         if (answerId === 'custom-script') {
           setState(prev => ({ ...prev, isCustomScriptMode: true, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'] }));
@@ -632,6 +735,36 @@ export const useCampaignFlow = () => {
   const handleVariantsChange = useCallback((variants: ProductVariant[]) => {
     setState(prev => ({ ...prev, selectedVariants: variants }));
   }, []);
+
+  const handleVariantsContinue = useCallback(async () => {
+    try {
+      if (state.selectedVariants.length === 0) {
+        toast.error('No variants selected', { description: 'Please select at least one variant to continue' });
+        return;
+      }
+
+      setState(prev => ({ ...prev, isStepLoading: true }));
+      addMessage('user', `Selected ${state.selectedVariants.length} variant${state.selectedVariants.length !== 1 ? 's' : ''} to advertise.`);
+
+      const strategyQuestion: InlineQuestion = {
+        id: 'ad-strategy-confirm',
+        question: 'How should we structure your campaign?',
+        options: [
+          { id: 'per-variant', label: 'Separate Ads Per Variant', description: `Create ${state.selectedVariants.length} targeted ads` },
+          { id: 'ab-test', label: 'A/B Test Variants', description: 'Test which variants perform best' }
+        ]
+      };
+
+      await simulateTyping(
+        `Great choices! You selected **${state.selectedVariants.length} variant${state.selectedVariants.length !== 1 ? 's' : ''}**. 🎯\n\nHow would you like to structure your ads?`,
+        { inlineQuestion: strategyQuestion, stepId: 'ad-strategy' },
+        1000
+      );
+      setState(prev => ({ ...prev, step: 'ad-strategy', stepHistory: [...prev.stepHistory, 'ad-strategy'], isStepLoading: false }));
+    } catch (error) {
+      handleError(error, 'Processing variant selection');
+    }
+  }, [state.selectedVariants, addMessage, simulateTyping, handleError]);
 
   const handleAdStrategyChange = useCallback((strategy: AdStrategy) => {
     setState(prev => ({ ...prev, adStrategy: strategy }));
@@ -1026,6 +1159,7 @@ export const useCampaignFlow = () => {
     handleCloneCreative,
     // Multi-variant handlers
     handleVariantsChange,
+    handleVariantsContinue,
     handleAdStrategyChange,
     handleCreativeAssignmentsChange,
   };

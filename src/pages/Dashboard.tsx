@@ -36,6 +36,10 @@ const Dashboard = () => {
     handleRecommendationAction,
     refreshPerformanceDashboard,
     handleCloneCreative,
+    handleVariantsChange,
+    handleVariantsContinue,
+    handleAdStrategyChange,
+    handleCreativeAssignmentsChange,
   } = useCampaignFlow();
 
   // Redirect to auth if not authenticated
@@ -111,6 +115,10 @@ const Dashboard = () => {
               onRecommendationAction={handleRecommendationAction}
               onRefreshDashboard={refreshPerformanceDashboard}
               onCloneCreative={handleCloneCreative}
+              onVariantsChange={handleVariantsChange}
+              onVariantsContinue={handleVariantsContinue}
+              onAdStrategyChange={handleAdStrategyChange}
+              onCreativeAssignmentsChange={handleCreativeAssignmentsChange}
             />
           </div>
         </div>

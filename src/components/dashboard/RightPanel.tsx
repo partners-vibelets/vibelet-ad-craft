@@ -39,6 +39,7 @@ interface RightPanelProps {
   onRefreshDashboard?: () => void;
   onCloneCreative?: (recommendation: AIRecommendation) => void;
   onVariantsChange?: (variants: ProductVariant[]) => void;
+  onVariantsContinue?: () => void;
   onAdStrategyChange?: (strategy: AdStrategy) => void;
   onCreativeAssignmentsChange?: (assignments: VariantCreativeAssignment[]) => void;
 }
@@ -61,6 +62,7 @@ export const RightPanel = ({
   onRefreshDashboard,
   onCloneCreative,
   onVariantsChange,
+  onVariantsContinue,
   onAdStrategyChange,
   onCreativeAssignmentsChange,
 }: RightPanelProps) => {
@@ -124,6 +126,7 @@ export const RightPanel = ({
             variants={state.productData.variants}
             selectedVariants={state.selectedVariants}
             onVariantsChange={onVariantsChange}
+            onContinue={onVariantsContinue}
             variantAttributes={state.productData.variantAttributes}
           />
         ) : (
