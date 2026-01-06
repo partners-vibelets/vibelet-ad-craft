@@ -72,7 +72,7 @@ export const useCampaignFlow = () => {
 
   // Find the active question that can receive natural language input
   const activeQuestion: InlineQuestion | null = useMemo(() => {
-    const chipQuestionIds = ['product-continue', 'script-selection', 'avatar-selection', 'creative-selection', 'ad-account-selection', 'publish-confirm'];
+    const chipQuestionIds = ['product-continue', 'variant-strategy', 'ad-strategy-confirm', 'script-selection', 'avatar-selection', 'creative-selection', 'ad-account-selection', 'publish-confirm'];
     
     for (let i = messages.length - 1; i >= 0; i--) {
       const msg = messages[i];
@@ -218,22 +218,46 @@ export const useCampaignFlow = () => {
             throw new Error('Failed to fetch product data. The page may be unavailable or blocking our requests.');
           }
           
-          setState(prev => ({ ...prev, productData: mockProductData, isStepLoading: false }));
+        setState(prev => ({ ...prev, productData: mockProductData, isStepLoading: false }));
           
-          const continueQuestion: InlineQuestion = {
-            id: 'product-continue',
-            question: 'Ready to create your ad?',
-            options: [
-              { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
-              { id: 'change', label: 'Change URL', description: 'Use a different product' }
-            ]
-          };
-          
-          await simulateTyping(
-            `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
-            { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
-            1500
-          );
+          // Check for variants DURING product analysis - before showing continue
+          if (mockProductData.hasVariants && mockProductData.variants && mockProductData.variants.length > 0) {
+            const variantCount = mockProductData.variants.length;
+            const attributes = mockProductData.variantAttributes?.join(' and ') || 'options';
+            
+            const variantQuestion: InlineQuestion = {
+              id: 'variant-strategy',
+              question: `How would you like to handle the ${variantCount} product variants?`,
+              options: [
+                { id: 'select-variants', label: 'Select Specific Variants', description: 'Choose which variants to advertise' },
+                { id: 'all-variants', label: 'Use All Variants', description: 'Create ads for all variants' },
+                { id: 'single-ad', label: 'Single Ad Only', description: 'Ignore variants, create one ad' }
+              ]
+            };
+            
+            await simulateTyping(
+              `I've analyzed your product and found **${variantCount} variants** (${attributes})! 🎯\n\n**${mockProductData.title}** looks perfect for video ads. I found ${mockProductData.images.length} high-quality images.\n\nWould you like to create separate ads for different variants?`,
+              { inlineQuestion: variantQuestion, stepId: 'variant-detection' },
+              1500
+            );
+            setState(prev => ({ ...prev, step: 'variant-detection', stepHistory: [...prev.stepHistory, 'variant-detection'] }));
+          } else {
+            // No variants - show regular continue prompt
+            const continueQuestion: InlineQuestion = {
+              id: 'product-continue',
+              question: 'Ready to create your ad?',
+              options: [
+                { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
+                { id: 'change', label: 'Change URL', description: 'Use a different product' }
+              ]
+            };
+            
+            await simulateTyping(
+              `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
+              { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
+              1500
+            );
+          }
         } else {
           // Check if there's an active question they might be answering
           if (activeQuestion) {
@@ -376,49 +400,26 @@ export const useCampaignFlow = () => {
           if (!skipUserMessage) addMessage('user', "Let's continue!");
           setState(prev => ({ ...prev, isStepLoading: true }));
           
-          // Check if product has variants - route to variant detection flow
-          if (state.productData?.hasVariants && state.productData.variants && state.productData.variants.length > 0) {
-            const variantCount = state.productData.variants.length;
-            const attributes = state.productData.variantAttributes?.join(' and ') || 'options';
-            
-            const variantQuestion: InlineQuestion = {
-              id: 'variant-strategy',
-              question: `How would you like to handle the ${variantCount} product variants?`,
-              options: [
-                { id: 'select-variants', label: 'Select Specific Variants', description: 'Choose which variants to advertise' },
-                { id: 'all-variants', label: 'Use All Variants', description: 'Create ads for all variants' },
-                { id: 'single-ad', label: 'Single Ad Only', description: 'Ignore variants, create one ad' }
-              ]
-            };
-            
-            await simulateTyping(
-              `I noticed your product has **${variantCount} variants** (${attributes}). 🎯\n\nThis is great for creating targeted ads! Would you like to create separate ads for different variants?`,
-              { inlineQuestion: variantQuestion, stepId: 'variant-detection' },
-              1200
-            );
-            setState(prev => ({ ...prev, step: 'variant-detection', stepHistory: [...prev.stepHistory, 'variant-detection'], isStepLoading: false }));
-          } else {
-            // No variants - proceed directly to script selection
-            if (!scriptOptions || scriptOptions.length === 0) {
-              throw new Error('Script options not available');
-            }
-            
-            const scriptQuestion: InlineQuestion = {
-              id: 'script-selection',
-              question: 'Choose a script style that matches your brand voice:',
-              options: [
-                ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
-                { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
-              ]
-            };
-            
-            await simulateTyping(
-              `Great! Now let's choose how to tell your product's story:`,
-              { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
-              800
-            );
-            setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
+          // No variants case - proceed directly to script selection
+          if (!scriptOptions || scriptOptions.length === 0) {
+            throw new Error('Script options not available');
           }
+          
+          const scriptQuestion: InlineQuestion = {
+            id: 'script-selection',
+            question: 'Choose a script style that matches your brand voice:',
+            options: [
+              ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+              { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+            ]
+          };
+          
+          await simulateTyping(
+            `Great! Now let's choose how to tell your product's story:`,
+            { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+            800
+          );
+          setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
         } else {
           if (!skipUserMessage) addMessage('user', "I want to change the product URL.");
           setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
