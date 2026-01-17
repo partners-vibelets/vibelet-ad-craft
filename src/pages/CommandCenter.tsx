@@ -316,7 +316,7 @@ const WhySection = () => {
           <Sparkles className="w-4 h-4 text-primary" />
           Why This Is Happening
         </h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 items-start">
           {mockReasons.map((reason) => {
             const config = reasonConfig[reason.icon];
             const IconComponent = config.icon;
@@ -329,14 +329,14 @@ const WhySection = () => {
                 onOpenChange={() => toggleItem(reason.id)}
               >
                 <div className={cn(
-                  "rounded-xl border transition-all duration-300 h-full",
+                  "rounded-xl border transition-all duration-300",
                   config.borderColor,
                   isOpen 
                     ? `${config.bgColor} shadow-lg ${config.glowColor}` 
                     : "bg-card/50 hover:bg-card/80"
                 )}>
-                  <CollapsibleTrigger className="w-full h-full group">
-                    <div className="flex flex-col p-5 h-full min-h-[160px]">
+                  <CollapsibleTrigger className="w-full group">
+                    <div className="flex flex-col p-5">
                       <div className="flex items-start justify-between mb-4">
                         <div className={cn(
                           "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
@@ -347,7 +347,7 @@ const WhySection = () => {
                         </div>
                         <ConfidenceBadge value={reason.confidence} />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-left flex-1 leading-relaxed">
+                      <p className="text-sm font-medium text-foreground text-left leading-relaxed min-h-[48px]">
                         {reason.title}
                       </p>
                       <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
