@@ -329,11 +329,10 @@ const WhySection = () => {
                 onOpenChange={() => toggleItem(reason.id)}
               >
                 <div className={cn(
-                  "rounded-xl border transition-all duration-300",
-                  config.borderColor,
+                  "rounded-xl border transition-all duration-300 group/reason",
                   isOpen 
-                    ? `${config.bgColor} shadow-lg ${config.glowColor}` 
-                    : "bg-card/50 hover:bg-card/80"
+                    ? cn(config.bgColor, config.borderColor, "shadow-lg", config.glowColor, "scale-[1.02]")
+                    : cn("bg-card/50", config.borderColor, "hover:bg-card/80 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-lg")
                 )}>
                   <CollapsibleTrigger className="w-full group">
                     <div className="flex flex-col p-5">
