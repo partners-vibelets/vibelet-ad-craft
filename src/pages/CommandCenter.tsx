@@ -704,13 +704,12 @@ const CommandCenter = () => {
       {/* Sticky Verdict Bar */}
       <VerdictBar />
 
-      {/* Main Content */}
       <main>
         <WhySection />
         <ActionStack />
-        <MoneyMap />
         <WasteSection />
         <AccountHealth />
+        <MoneyMap />
       </main>
 
       {/* Live Intelligence Strip */}
