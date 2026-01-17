@@ -785,17 +785,17 @@ const LiveAlertCard = ({ alert }: { alert: LiveAlert }) => {
           )} />
         </button>
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2">
+      <CollapsibleContent className="mt-2 animate-fade-in">
         <div className={cn(
-          "rounded-xl border p-4 space-y-4",
+          "rounded-xl border p-4 space-y-4 transition-all duration-300",
           alert.type === 'positive' 
             ? "bg-emerald-500/5 border-emerald-500/20" 
             : "bg-amber-500/5 border-amber-500/20"
         )}>
           {/* Metric Change */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 animate-fade-in" style={{ animationDelay: '50ms' }}>
             <div className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-lg",
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-transform duration-200 hover:scale-105",
               alert.type === 'positive' ? "bg-emerald-500/10" : "bg-amber-500/10"
             )}>
               <span className="text-xs text-muted-foreground">{alert.metric}</span>
@@ -807,24 +807,24 @@ const LiveAlertCard = ({ alert }: { alert: LiveAlert }) => {
               </span>
             </div>
             {alert.type === 'positive' ? (
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <TrendingUp className="w-4 h-4 text-emerald-400 animate-fade-in" style={{ animationDelay: '100ms' }} />
             ) : (
-              <TrendingDown className="w-4 h-4 text-amber-400" />
+              <TrendingDown className="w-4 h-4 text-amber-400 animate-fade-in" style={{ animationDelay: '100ms' }} />
             )}
           </div>
           
           {/* Details */}
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed animate-fade-in" style={{ animationDelay: '100ms' }}>
             {alert.details}
           </p>
           
           {/* Suggested Action */}
           <div className={cn(
-            "rounded-lg border p-4",
+            "rounded-lg border p-4 animate-fade-in transition-all duration-200 hover:shadow-lg",
             alert.type === 'positive' 
-              ? "bg-emerald-500/10 border-emerald-500/30" 
-              : "bg-amber-500/10 border-amber-500/30"
-          )}>
+              ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50" 
+              : "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/50"
+          )} style={{ animationDelay: '150ms' }}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
