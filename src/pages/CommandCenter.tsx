@@ -755,9 +755,9 @@ const CommandCenter = () => {
 
       <main>
         <WhySection />
-        <ActionStack />
         <WasteSection />
         <AccountHealth />
+        <ActionStack />
         <MoneyMap />
       </main>
 
