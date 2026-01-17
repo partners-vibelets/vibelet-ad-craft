@@ -351,25 +351,27 @@ const ActionStack = () => {
               onOpenChange={() => toggleItem(action.id)}
             >
               <div className={cn(
-                "rounded-xl border transition-all duration-300",
+                "rounded-xl border transition-all duration-300 group/card",
                 openItems.includes(action.id) 
-                  ? "bg-card border-primary/30 shadow-lg shadow-primary/5" 
-                  : "bg-card/50 border-border/50 hover:border-border"
+                  ? "bg-card border-primary/30 shadow-lg shadow-primary/10 scale-[1.01]" 
+                  : "bg-card/50 border-border/50 hover:border-primary/20 hover:bg-card/80 hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5 hover:scale-[1.005]"
               )}>
                 <CollapsibleTrigger className="w-full">
                   <div className="flex items-center justify-between p-5">
                     <div className="flex items-center gap-4">
                       <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm",
-                        index === 0 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-all duration-300",
+                        index === 0 
+                          ? "bg-primary/20 text-primary group-hover/card:bg-primary/30 group-hover/card:shadow-sm group-hover/card:shadow-primary/20" 
+                          : "bg-muted text-muted-foreground group-hover/card:bg-muted/80"
                       )}>
                         {index + 1}
                       </div>
                       <div className="text-left">
                         <h3 className="text-base font-semibold text-foreground mb-1">{action.title}</h3>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-emerald-400 flex items-center gap-1">
-                            <TrendingUp className="w-3.5 h-3.5" />
+                          <span className="text-sm font-medium text-emerald-400 flex items-center gap-1 transition-all duration-300 group-hover/card:text-emerald-300">
+                            <TrendingUp className="w-3.5 h-3.5 transition-transform duration-300 group-hover/card:scale-110" />
                             {action.impact}
                           </span>
                           <RiskBadge risk={action.risk} />
