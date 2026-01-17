@@ -227,34 +227,43 @@ const DataMeta = ({ dataWindow, updated }: { dataWindow: string; updated?: strin
 
 // Sticky Verdict Bar
 const VerdictBar = () => (
-  <div className="sticky top-0 z-50 bg-gradient-to-r from-background via-background/95 to-background border-b border-border/50 backdrop-blur-xl">
-    <div className="max-w-5xl mx-auto px-6 py-5">
+  <div className="sticky top-0 z-50 bg-gradient-to-r from-primary/5 via-background to-primary/5 border-b border-primary/20 backdrop-blur-xl shadow-lg shadow-primary/5">
+    <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent opacity-50" />
+    <div className="max-w-5xl mx-auto px-6 py-6 relative">
       <div className="flex items-start justify-between gap-6">
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground leading-tight mb-2">
-            You're missing <span className="text-primary">~18% ROAS</span> due to fixable budget and fatigue issues
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 shadow-lg shadow-primary/20">
+              <AlertTriangle className="w-5 h-5 text-primary" />
+            </div>
+            <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
+              Action Required
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-foreground leading-tight mb-3">
+            You're missing <span className="text-primary font-extrabold">~18% ROAS</span> due to fixable budget and fatigue issues
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Eye className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
+              <Eye className="w-3.5 h-3.5 text-primary/70" />
               Data: Last 30 days
             </span>
-            <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
+              <Shield className="w-3.5 h-3.5 text-emerald-400/70" />
               Confidence: 87%
             </span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
+              <Clock className="w-3.5 h-3.5 text-amber-400/70" />
               Updated: 14 mins ago
             </span>
           </div>
         </div>
         <a 
           href="#actions" 
-          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors whitespace-nowrap pt-1"
+          className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-all px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 hover:bg-primary/20 hover:border-primary/40 whitespace-nowrap group"
         >
           See what to fix
-          <ArrowDownRight className="w-4 h-4" />
+          <ArrowDownRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:translate-y-0.5" />
         </a>
       </div>
     </div>
