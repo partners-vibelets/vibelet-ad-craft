@@ -355,7 +355,7 @@ const ActionStack = () => {
                 openItems.includes(action.id) 
                   ? "bg-card border-primary/30 shadow-lg shadow-primary/10 scale-[1.01]" 
                   : "bg-card/50 border-border/50 hover:border-primary/20 hover:bg-card/80 hover:shadow-md hover:shadow-primary/5 hover:-translate-y-0.5 hover:scale-[1.005]",
-                index === 0 && !openItems.includes(action.id) && "animate-pulse-glow border-primary/40 shadow-lg shadow-primary/20"
+                index === 0 && "border-primary/40 shadow-[0_0_20px_-5px] shadow-primary/30"
               )}>
                 <CollapsibleTrigger className="w-full">
                   <div className="flex items-center justify-between p-5">
