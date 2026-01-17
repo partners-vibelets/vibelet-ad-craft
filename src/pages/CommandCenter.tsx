@@ -717,7 +717,7 @@ const AccountHealthHero = () => {
   return (
     <section className="border-b border-border/30 bg-gradient-to-b from-emerald-500/5 to-transparent">
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           {/* Left: Health Score */}
           <div className="flex items-center gap-6">
             <div className="relative">
@@ -785,6 +785,34 @@ const AccountHealthHero = () => {
             ))}
           </div>
         </div>
+        
+        {/* Live Anomalies - Prominent Inline Display */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span className="font-medium uppercase tracking-wider">Live Alerts</span>
+          </div>
+          <div className="flex-1 flex items-center gap-3 overflow-x-auto pb-1">
+            {mockLiveAlerts.map((alert) => (
+              <div 
+                key={alert.id}
+                className={cn(
+                  "flex items-center gap-2.5 px-4 py-2.5 rounded-lg border whitespace-nowrap transition-all hover:scale-[1.02]",
+                  alert.type === 'positive' 
+                    ? "bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/15" 
+                    : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/15"
+                )}
+              >
+                <div className={cn(
+                  "w-2 h-2 rounded-full animate-pulse",
+                  alert.type === 'positive' ? "bg-emerald-400" : "bg-amber-400"
+                )} />
+                <span className="text-sm font-medium text-foreground">{alert.message}</span>
+                <span className="text-xs text-muted-foreground">{alert.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -821,9 +849,6 @@ const CommandCenter = () => {
         <ActionStack />
         <MoneyMap />
       </main>
-
-      {/* Live Intelligence Strip */}
-      <LiveIntelligence />
     </div>
   );
 };
