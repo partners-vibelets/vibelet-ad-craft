@@ -227,8 +227,9 @@ const DataMeta = ({ dataWindow, updated }: { dataWindow: string; updated?: strin
 
 // Sticky Verdict Bar
 const VerdictBar = () => (
-  <div className="sticky top-0 z-50 bg-gradient-to-r from-primary/5 via-background to-primary/5 border-b border-primary/20 backdrop-blur-xl shadow-lg shadow-primary/5">
+  <div className="sticky top-0 z-50 bg-gradient-to-r from-primary/5 via-background to-primary/5 border-b border-primary/20 backdrop-blur-xl shadow-lg shadow-primary/5 overflow-hidden">
     <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-transparent opacity-50" />
+    <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,hsl(var(--primary)/0.08)_50%,transparent_100%)] animate-shimmer" />
     <div className="max-w-5xl mx-auto px-6 py-6 relative">
       <div className="flex items-start justify-between gap-6">
         <div className="flex-1">
