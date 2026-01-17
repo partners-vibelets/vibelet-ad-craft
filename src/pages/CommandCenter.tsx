@@ -662,70 +662,74 @@ const LiveIntelligence = () => (
   </div>
 );
 
-// Account Health Section
-const AccountHealth = () => {
-  const [isOpen, setIsOpen] = useState(false);
+// Account Health Hero Section (Top of Page)
+const AccountHealthHero = () => {
   const overallHealth = 94;
-
+  const healthStatus = overallHealth >= 80 ? 'good' : overallHealth >= 50 ? 'warning' : 'critical';
+  
   return (
-    <section className="pb-24">
-      <div className="max-w-5xl mx-auto px-6 py-6">
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-4 rounded-lg bg-card/50 border border-border/50 hover:bg-card/80 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div className="text-left">
-                  <h3 className="text-base font-semibold text-foreground">
-                    Account Health: {overallHealth}%
-                  </h3>
-                  <p className="text-sm text-emerald-400">Stable</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-32">
-                  <Progress value={overallHealth} className="h-2" />
-                </div>
-                <ChevronDown className={cn(
-                  "w-5 h-5 text-muted-foreground transition-transform duration-200",
-                  isOpen ? "rotate-0" : "-rotate-90"
+    <section className="border-b border-border/30 bg-gradient-to-b from-emerald-500/5 to-transparent">
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between">
+          {/* Left: Health Score */}
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className={cn(
+                "w-20 h-20 rounded-2xl flex items-center justify-center border-2 transition-all",
+                healthStatus === 'good' && "bg-emerald-500/10 border-emerald-500/30",
+                healthStatus === 'warning' && "bg-amber-500/10 border-amber-500/30",
+                healthStatus === 'critical' && "bg-red-500/10 border-red-500/30"
+              )}>
+                <Shield className={cn(
+                  "w-10 h-10",
+                  healthStatus === 'good' && "text-emerald-400",
+                  healthStatus === 'warning' && "text-amber-400",
+                  healthStatus === 'critical' && "text-red-400"
                 )} />
               </div>
+              <div className={cn(
+                "absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background",
+                healthStatus === 'good' && "bg-emerald-500 text-white",
+                healthStatus === 'warning' && "bg-amber-500 text-white",
+                healthStatus === 'critical' && "bg-red-500 text-white"
+              )}>
+                ✓
+              </div>
             </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              {mockHealthMetrics.map((metric) => (
-                <div 
-                  key={metric.label}
-                  className="p-4 rounded-lg bg-card/50 border border-border/50"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-muted-foreground">{metric.label}</span>
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      metric.status === 'good' && "bg-emerald-400",
-                      metric.status === 'warning' && "bg-amber-400",
-                      metric.status === 'critical' && "bg-red-400"
-                    )} />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <span className="text-2xl font-bold text-foreground">{metric.value}%</span>
-                  </div>
-                  <Progress 
-                    value={metric.value} 
-                    className={cn(
-                      "h-1 mt-2",
-                      metric.status === 'warning' && "[&>div]:bg-amber-400"
-                    )} 
-                  />
+            <div>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-bold text-foreground">{overallHealth}%</span>
+                <span className={cn(
+                  "text-sm font-medium px-2 py-0.5 rounded-full",
+                  healthStatus === 'good' && "bg-emerald-500/10 text-emerald-400",
+                  healthStatus === 'warning' && "bg-amber-500/10 text-amber-400",
+                  healthStatus === 'critical' && "bg-red-500/10 text-red-400"
+                )}>
+                  {healthStatus === 'good' ? 'Healthy' : healthStatus === 'warning' ? 'Needs Attention' : 'Critical'}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">Ad Account Health Score</p>
+            </div>
+          </div>
+          
+          {/* Right: Mini Metrics */}
+          <div className="flex items-center gap-6">
+            {mockHealthMetrics.map((metric) => (
+              <div key={metric.label} className="text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    metric.status === 'good' && "bg-emerald-400",
+                    metric.status === 'warning' && "bg-amber-400",
+                    metric.status === 'critical' && "bg-red-400"
+                  )} />
+                  <span className="text-lg font-semibold text-foreground">{metric.value}%</span>
                 </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+                <p className="text-xs text-muted-foreground">{metric.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -750,11 +754,13 @@ const CommandCenter = () => {
         </Button>
       </div>
 
-      {/* Sticky Verdict Bar */}
+      {/* Account Health - Top of Page */}
+      <AccountHealthHero />
+
+      {/* Sticky Verdict Bar - Action Required */}
       <VerdictBar />
 
-      <main>
-        <AccountHealth />
+      <main className="pb-24">
         <WhySection />
         <WasteSection />
         <ActionStack />
