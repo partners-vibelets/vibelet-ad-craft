@@ -662,6 +662,53 @@ const LiveIntelligence = () => (
   </div>
 );
 
+// Circular Progress Ring Component
+const CircularProgress = ({ value, size = 96, strokeWidth = 4, status }: { 
+  value: number; 
+  size?: number; 
+  strokeWidth?: number;
+  status: 'good' | 'warning' | 'critical';
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (value / 100) * circumference;
+  
+  const strokeColor = status === 'good' 
+    ? 'stroke-emerald-400' 
+    : status === 'warning' 
+      ? 'stroke-amber-400' 
+      : 'stroke-red-400';
+  
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      {/* Background circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-muted/20"
+      />
+      {/* Progress circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        className={cn(strokeColor, "transition-all duration-700 ease-out")}
+        style={{
+          strokeDasharray: circumference,
+          strokeDashoffset: offset,
+        }}
+      />
+    </svg>
+  );
+};
+
 // Account Health Hero Section (Top of Page)
 const AccountHealthHero = () => {
   const overallHealth = 94;
@@ -674,19 +721,27 @@ const AccountHealthHero = () => {
           {/* Left: Health Score */}
           <div className="flex items-center gap-6">
             <div className="relative">
-              <div className={cn(
-                "w-20 h-20 rounded-2xl flex items-center justify-center border-2 transition-all",
-                healthStatus === 'good' && "bg-emerald-500/10 border-emerald-500/30",
-                healthStatus === 'warning' && "bg-amber-500/10 border-amber-500/30",
-                healthStatus === 'critical' && "bg-red-500/10 border-red-500/30"
-              )}>
-                <Shield className={cn(
-                  "w-10 h-10",
-                  healthStatus === 'good' && "text-emerald-400",
-                  healthStatus === 'warning' && "text-amber-400",
-                  healthStatus === 'critical' && "text-red-400"
-                )} />
+              {/* Circular Progress Ring */}
+              <div className="relative w-24 h-24">
+                <CircularProgress value={overallHealth} size={96} strokeWidth={4} status={healthStatus} />
+                {/* Center Icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={cn(
+                    "w-16 h-16 rounded-xl flex items-center justify-center transition-all",
+                    healthStatus === 'good' && "bg-emerald-500/10",
+                    healthStatus === 'warning' && "bg-amber-500/10",
+                    healthStatus === 'critical' && "bg-red-500/10"
+                  )}>
+                    <Shield className={cn(
+                      "w-8 h-8",
+                      healthStatus === 'good' && "text-emerald-400",
+                      healthStatus === 'warning' && "text-amber-400",
+                      healthStatus === 'critical' && "text-red-400"
+                    )} />
+                  </div>
+                </div>
               </div>
+              {/* Check badge */}
               <div className={cn(
                 "absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-background",
                 healthStatus === 'good' && "bg-emerald-500 text-white",
