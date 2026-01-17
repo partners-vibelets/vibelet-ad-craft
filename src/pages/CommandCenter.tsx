@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronDown, 
-  ChevronRight, 
   ArrowLeft,
   TrendingUp,
   TrendingDown,
@@ -17,7 +16,8 @@ import {
   Sparkles,
   Eye,
   Play,
-  BookmarkPlus
+  BookmarkPlus,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -295,11 +295,10 @@ const WhySection = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <ConfidenceBadge value={reason.confidence} />
-                    {openItems.includes(reason.id) ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
+                    <ChevronDown className={cn(
+                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                      openItems.includes(reason.id) ? "rotate-0" : "-rotate-90"
+                    )} />
                   </div>
                 </div>
               </CollapsibleTrigger>
@@ -379,11 +378,10 @@ const ActionStack = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <ConfidenceBadge value={action.confidence} />
-                      {openItems.includes(action.id) ? (
-                        <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      <ChevronDown className={cn(
+                        "w-5 h-5 text-muted-foreground transition-transform duration-200",
+                        openItems.includes(action.id) ? "rotate-0" : "-rotate-90"
+                      )} />
                     </div>
                   </div>
                 </CollapsibleTrigger>
@@ -536,11 +534,10 @@ const WasteSection = () => {
                   </p>
                 </div>
               </div>
-              {isOpen ? (
-                <ChevronDown className="w-5 h-5 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
-              )}
+              <ChevronDown className={cn(
+                "w-5 h-5 text-muted-foreground transition-transform duration-200",
+                isOpen ? "rotate-0" : "-rotate-90"
+              )} />
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -629,11 +626,10 @@ const AccountHealth = () => {
                 <div className="w-32">
                   <Progress value={overallHealth} className="h-2" />
                 </div>
-                {isOpen ? (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                )}
+                <ChevronDown className={cn(
+                  "w-5 h-5 text-muted-foreground transition-transform duration-200",
+                  isOpen ? "rotate-0" : "-rotate-90"
+                )} />
               </div>
             </div>
           </CollapsibleTrigger>
