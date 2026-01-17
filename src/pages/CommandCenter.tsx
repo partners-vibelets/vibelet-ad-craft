@@ -72,7 +72,7 @@ interface HealthMetric {
 }
 
 // Mock Data
-const mockReasons: Reason[] = [
+const mockReasons: (Reason & { icon: 'budget' | 'fatigue' | 'waste' })[] = [
   {
     id: '1',
     title: 'Budget skew in Evergreen Content campaign',
@@ -81,7 +81,8 @@ const mockReasons: Reason[] = [
       'Top-performing creatives receiving only 12% of total spend'
     ],
     dataWindow: 'Last 30 days',
-    confidence: 91
+    confidence: 91,
+    icon: 'budget'
   },
   {
     id: '2',
@@ -91,7 +92,8 @@ const mockReasons: Reason[] = [
       'Frequency now at 4.2x (threshold: 3.0x)'
     ],
     dataWindow: 'Last 14 days',
-    confidence: 88
+    confidence: 88,
+    icon: 'fatigue'
   },
   {
     id: '3',
@@ -101,7 +103,8 @@ const mockReasons: Reason[] = [
       'Geographic targeting includes low-performing regions'
     ],
     dataWindow: 'Last 7 days',
-    confidence: 79
+    confidence: 79,
+    icon: 'waste'
   }
 ];
 
@@ -271,6 +274,31 @@ const VerdictBar = () => (
   </div>
 );
 
+// Reason Card Icon & Color Config
+const reasonConfig = {
+  budget: {
+    icon: DollarSign,
+    bgColor: 'bg-blue-500/10',
+    borderColor: 'border-blue-500/30',
+    iconColor: 'text-blue-400',
+    glowColor: 'shadow-blue-500/10'
+  },
+  fatigue: {
+    icon: Activity,
+    bgColor: 'bg-amber-500/10',
+    borderColor: 'border-amber-500/30',
+    iconColor: 'text-amber-400',
+    glowColor: 'shadow-amber-500/10'
+  },
+  waste: {
+    icon: TrendingDown,
+    bgColor: 'bg-red-500/10',
+    borderColor: 'border-red-500/30',
+    iconColor: 'text-red-400',
+    glowColor: 'shadow-red-500/10'
+  }
+};
+
 // Why This Is Happening Section
 const WhySection = () => {
   const [openItems, setOpenItems] = useState<string[]>([]);
@@ -288,45 +316,67 @@ const WhySection = () => {
           <Sparkles className="w-4 h-4 text-primary" />
           Why This Is Happening
         </h2>
-        <div className="space-y-2">
-          {mockReasons.map((reason) => (
-            <Collapsible 
-              key={reason.id} 
-              open={openItems.includes(reason.id)}
-              onOpenChange={() => toggleItem(reason.id)}
-            >
-              <CollapsibleTrigger className="w-full group">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-card/50 border border-border/50 hover:bg-card/80 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+        <div className="grid grid-cols-3 gap-4">
+          {mockReasons.map((reason) => {
+            const config = reasonConfig[reason.icon];
+            const IconComponent = config.icon;
+            const isOpen = openItems.includes(reason.id);
+            
+            return (
+              <Collapsible 
+                key={reason.id} 
+                open={isOpen}
+                onOpenChange={() => toggleItem(reason.id)}
+              >
+                <div className={cn(
+                  "rounded-xl border transition-all duration-300 h-full",
+                  config.borderColor,
+                  isOpen 
+                    ? `${config.bgColor} shadow-lg ${config.glowColor}` 
+                    : "bg-card/50 hover:bg-card/80"
+                )}>
+                  <CollapsibleTrigger className="w-full h-full group">
+                    <div className="flex flex-col p-5 h-full min-h-[160px]">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className={cn(
+                          "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                          config.bgColor,
+                          `border ${config.borderColor}`
+                        )}>
+                          <IconComponent className={cn("w-6 h-6", config.iconColor)} />
+                        </div>
+                        <ConfidenceBadge value={reason.confidence} />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-left flex-1 leading-relaxed">
+                        {reason.title}
+                      </p>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/30">
+                        <span className="text-xs text-muted-foreground">{reason.dataWindow}</span>
+                        <ChevronDown className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          isOpen ? "rotate-180" : "rotate-0"
+                        )} />
+                      </div>
                     </div>
-                    <span className="text-sm font-medium text-foreground text-left">{reason.title}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <ConfidenceBadge value={reason.confidence} />
-                    <ChevronDown className={cn(
-                      "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                      openItems.includes(reason.id) ? "rotate-0" : "-rotate-90"
-                    )} />
-                  </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="px-5 pb-5">
+                      <div className="p-4 rounded-lg bg-muted/30 border border-border/30">
+                        <ul className="space-y-2">
+                          {reason.explanation.map((exp, idx) => (
+                            <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                              <span className={config.iconColor}>•</span>
+                              {exp}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
                 </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="mt-2 ml-11 p-4 rounded-lg bg-muted/30 border border-border/30">
-                  <ul className="space-y-2 mb-3">
-                    {reason.explanation.map((exp, idx) => (
-                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-primary mt-1">•</span>
-                        {exp}
-                      </li>
-                    ))}
-                  </ul>
-                  <DataMeta dataWindow={reason.dataWindow} />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
+              </Collapsible>
+            );
+          })}
         </div>
       </div>
     </section>
