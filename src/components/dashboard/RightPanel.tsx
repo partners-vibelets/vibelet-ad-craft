@@ -11,6 +11,7 @@ import { CreativeGalleryPanel } from './panels/CreativeGalleryPanel';
 import { CreativeAssignmentPanel } from './panels/CreativeAssignmentPanel';
 import { CampaignConfigPanel } from './panels/CampaignConfigPanel';
 import CampaignSummaryPanel from './panels/CampaignSummaryPanel';
+import { MultiCampaignSummaryPanel } from './panels/MultiCampaignSummaryPanel';
 import { PublishingPanel } from './panels/PublishingPanel';
 import { PerformanceDashboardPanel } from './panels/PerformanceDashboardPanel';
 import { PostPublishFeedbackPanel } from './panels/PostPublishFeedbackPanel';
@@ -49,6 +50,8 @@ interface RightPanelProps {
   onSelectCampaignDraft?: (campaignId: string) => void;
   onRemoveCampaignDraft?: (campaignId: string) => void;
   onMultiCampaignContinue?: () => void;
+  onEditCampaignDraft?: (campaignId: string) => void;
+  onPublishAllCampaigns?: () => void;
 }
 
 export const RightPanel = ({
@@ -76,6 +79,8 @@ export const RightPanel = ({
   onSelectCampaignDraft,
   onRemoveCampaignDraft,
   onMultiCampaignContinue,
+  onEditCampaignDraft,
+  onPublishAllCampaigns,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -260,6 +265,16 @@ export const RightPanel = ({
         );
       
       case 'campaign-preview':
+        // Show multi-campaign summary if in multi-campaign mode
+        if (state.multiCampaign.isMultiCampaignMode && state.multiCampaign.campaigns.length > 0) {
+          return (
+            <MultiCampaignSummaryPanel 
+              state={state} 
+              onEditCampaign={onEditCampaignDraft}
+              onPublishAll={onPublishAllCampaigns}
+            />
+          );
+        }
         return <CampaignSummaryPanel state={state} />;
       
       case 'publishing':
