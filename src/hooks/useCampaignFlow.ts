@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo } from 'react';
-import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment } from '@/types/campaign';
+import { CampaignState, CampaignStep, Message, ProductData, ScriptOption, AvatarOption, CreativeOption, CampaignConfig, AdAccount, InlineQuestion, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment, CampaignDraft } from '@/types/campaign';
 import { mockProductData, mockCreatives, scriptOptions, avatarOptions, mockAdAccounts, campaignObjectives, ctaOptions } from '@/data/mockData';
 import { createMockPerformanceDashboard } from '@/data/mockPerformanceData';
 import { toast } from 'sonner';
 import { isValidUrl, sanitizeInput, validateCampaignConfig, formatErrorMessage } from '@/lib/validation';
 import { matchUserInputToOption, looksLikeUrl } from '@/lib/nlpMatcher';
+import { createNewCampaignDraft, campaignObjectiveOptions } from '@/types/multiCampaign';
 
 const STEP_ORDER: CampaignStep[] = [
   'welcome',
@@ -48,6 +49,13 @@ const initialState: CampaignState = {
   adStrategy: 'single',
   campaignStructure: null,
   variantCreativeAssignments: [],
+  // Multi-campaign support
+  multiCampaign: {
+    isMultiCampaignMode: false,
+    campaigns: [],
+    activeCampaignId: null,
+    hasShownMultiCampaignPrompt: false
+  }
 };
 
 const createMessage = (
@@ -242,18 +250,19 @@ export const useCampaignFlow = () => {
             );
             setState(prev => ({ ...prev, step: 'variant-detection', stepHistory: [...prev.stepHistory, 'variant-detection'] }));
           } else {
-            // No variants - show regular continue prompt
+            // No variants - show multi-campaign option along with continue
             const continueQuestion: InlineQuestion = {
               id: 'product-continue',
-              question: 'Ready to create your ad?',
+              question: 'How would you like to proceed?',
               options: [
-                { id: 'continue', label: 'Continue', description: 'Proceed to script selection' },
+                { id: 'continue', label: 'Create Single Campaign', description: 'Quick setup for one goal' },
+                { id: 'multi-campaign', label: 'Create Multiple Campaigns', description: 'Different goals, one product' },
                 { id: 'change', label: 'Change URL', description: 'Use a different product' }
               ]
             };
             
             await simulateTyping(
-              `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nCheck the preview panel for full details. Ready to proceed?`,
+              `I've analyzed your product page and found some great insights!\n\n**${mockProductData.title}** looks perfect for video ads. I've identified ${mockProductData.images.length} high-quality images and extracted key product details.\n\nWould you like to create one campaign or multiple campaigns with different goals?`,
               { inlineQuestion: continueQuestion, stepId: 'product-analysis' },
               1500
             );
@@ -397,7 +406,7 @@ export const useCampaignFlow = () => {
       
       if (questionId === 'product-continue') {
         if (answerId === 'continue') {
-          if (!skipUserMessage) addMessage('user', "Let's continue!");
+          if (!skipUserMessage) addMessage('user', "Let's create a single campaign!");
           setState(prev => ({ ...prev, isStepLoading: true }));
           
           // No variants case - proceed directly to script selection
@@ -420,6 +429,24 @@ export const useCampaignFlow = () => {
             800
           );
           setState(prev => ({ ...prev, step: 'script-selection', stepHistory: [...prev.stepHistory, 'script-selection'], isStepLoading: false }));
+        } else if (answerId === 'multi-campaign') {
+          // Enable multi-campaign mode and show campaign hub
+          if (!skipUserMessage) addMessage('user', "I want to create multiple campaigns!");
+          
+          setState(prev => ({
+            ...prev,
+            multiCampaign: {
+              ...prev.multiCampaign,
+              isMultiCampaignMode: true,
+              hasShownMultiCampaignPrompt: true
+            }
+          }));
+          
+          await simulateTyping(
+            `Great choice! 🎯 Creating multiple campaigns lets you reach customers at different stages.\n\nUse the **Campaign Hub** on the right to:\n• Add campaigns with different goals (Sales, Awareness, etc.)\n• Configure each campaign independently\n• Publish them all together\n\nStart by picking your first campaign goal!`,
+            { stepId: 'product-analysis' },
+            1200
+          );
         } else {
           if (!skipUserMessage) addMessage('user', "I want to change the product URL.");
           setState(prev => ({ ...prev, step: 'product-url', productUrl: null, productData: null }));
@@ -1132,6 +1159,125 @@ export const useCampaignFlow = () => {
     addMessage('assistant', "No problem! Here are the AI-generated creative options:", { inlineQuestion: creativeQuestion, stepId: 'creative-review' });
   }, [addMessage]);
 
+  // Multi-campaign handlers
+  const handleEnableMultiCampaign = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      multiCampaign: {
+        ...prev.multiCampaign,
+        isMultiCampaignMode: true,
+        hasShownMultiCampaignPrompt: true
+      }
+    }));
+  }, []);
+
+  const handleAddCampaignDraft = useCallback((objective: string) => {
+    const productName = state.productData?.title || 'Campaign';
+    const newCampaign = createNewCampaignDraft(objective, productName);
+    
+    setState(prev => ({
+      ...prev,
+      multiCampaign: {
+        ...prev.multiCampaign,
+        campaigns: [...prev.multiCampaign.campaigns, newCampaign],
+        activeCampaignId: newCampaign.id
+      }
+    }));
+
+    addMessage('assistant', `Great! I've created a **${objective}** campaign. Let's configure it step by step. 🎯`);
+    toast.success(`${objective} campaign created`, { description: 'Configure your campaign settings' });
+  }, [state.productData, addMessage]);
+
+  const handleSelectCampaignDraft = useCallback((campaignId: string) => {
+    const campaign = state.multiCampaign.campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+
+    setState(prev => ({
+      ...prev,
+      multiCampaign: {
+        ...prev.multiCampaign,
+        activeCampaignId: campaignId
+      },
+      // Restore campaign-specific state
+      selectedScript: campaign.selectedScript,
+      selectedAvatar: campaign.selectedAvatar,
+      creatives: campaign.creatives,
+      selectedCreative: campaign.selectedCreative,
+      campaignConfig: campaign.config,
+      selectedVariants: campaign.selectedVariants,
+      adStrategy: campaign.adStrategy,
+      variantCreativeAssignments: campaign.variantCreativeAssignments
+    }));
+
+    toast.info(`Switched to ${campaign.name}`);
+  }, [state.multiCampaign.campaigns]);
+
+  const handleRemoveCampaignDraft = useCallback((campaignId: string) => {
+    setState(prev => {
+      const newCampaigns = prev.multiCampaign.campaigns.filter(c => c.id !== campaignId);
+      const newActiveId = prev.multiCampaign.activeCampaignId === campaignId 
+        ? (newCampaigns[0]?.id || null)
+        : prev.multiCampaign.activeCampaignId;
+
+      return {
+        ...prev,
+        multiCampaign: {
+          ...prev.multiCampaign,
+          campaigns: newCampaigns,
+          activeCampaignId: newActiveId
+        }
+      };
+    });
+    toast.success('Campaign removed');
+  }, []);
+
+  const handleUpdateActiveCampaignDraft = useCallback(() => {
+    // Sync current state back to active campaign draft
+    const activeCampaignId = state.multiCampaign.activeCampaignId;
+    if (!activeCampaignId) return;
+
+    setState(prev => ({
+      ...prev,
+      multiCampaign: {
+        ...prev.multiCampaign,
+        campaigns: prev.multiCampaign.campaigns.map(c => {
+          if (c.id !== activeCampaignId) return c;
+          return {
+            ...c,
+            selectedScript: prev.selectedScript,
+            selectedAvatar: prev.selectedAvatar,
+            creatives: prev.creatives,
+            selectedCreative: prev.selectedCreative,
+            config: prev.campaignConfig,
+            selectedVariants: prev.selectedVariants,
+            adStrategy: prev.adStrategy,
+            variantCreativeAssignments: prev.variantCreativeAssignments,
+            status: prev.campaignConfig ? 'ready' : (prev.selectedCreative ? 'configuring' : 'draft'),
+            updatedAt: new Date()
+          };
+        })
+      }
+    }));
+  }, [state]);
+
+  const handleMultiCampaignContinue = useCallback(async () => {
+    // Proceed to Facebook integration with all ready campaigns
+    const readyCampaigns = state.multiCampaign.campaigns.filter(c => c.status === 'ready');
+    if (readyCampaigns.length === 0) {
+      toast.error('No campaigns ready', { description: 'Complete at least one campaign configuration first' });
+      return;
+    }
+
+    addMessage('user', `Ready to publish ${readyCampaigns.length} campaign${readyCampaigns.length !== 1 ? 's' : ''}!`);
+    
+    await simulateTyping(
+      `Excellent! You have **${readyCampaigns.length} campaign${readyCampaigns.length !== 1 ? 's' : ''}** ready to publish:\n${readyCampaigns.map(c => `• ${c.name}`).join('\n')}\n\nLet's connect your Facebook Ads account:`,
+      { showFacebookConnect: true, stepId: 'facebook-integration' },
+      1200
+    );
+    setState(prev => ({ ...prev, step: 'facebook-integration', stepHistory: [...prev.stepHistory, 'facebook-integration'] }));
+  }, [state.multiCampaign.campaigns, addMessage, simulateTyping]);
+
   return {
     state,
     messages,
@@ -1163,5 +1309,12 @@ export const useCampaignFlow = () => {
     handleVariantsContinue,
     handleAdStrategyChange,
     handleCreativeAssignmentsChange,
+    // Multi-campaign handlers
+    handleEnableMultiCampaign,
+    handleAddCampaignDraft,
+    handleSelectCampaignDraft,
+    handleRemoveCampaignDraft,
+    handleUpdateActiveCampaignDraft,
+    handleMultiCampaignContinue,
   };
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment } from '@/types/campaign';
+import { CampaignState, CampaignStep, ScriptOption, CreativeOption, AIRecommendation, ProductVariant, AdStrategy, VariantCreativeAssignment, CampaignDraft } from '@/types/campaign';
 import { WelcomePanel } from './panels/WelcomePanel';
 import { ProductAnalysisPanel } from './panels/ProductAnalysisPanel';
 import { VariantSelectorPanel } from './panels/VariantSelectorPanel';
@@ -16,6 +16,8 @@ import { PerformanceDashboardPanel } from './panels/PerformanceDashboardPanel';
 import { PostPublishFeedbackPanel } from './panels/PostPublishFeedbackPanel';
 import { CustomScriptInput } from './panels/CustomScriptInput';
 import { CustomCreativeUpload } from './panels/CustomCreativeUpload';
+import { MultiCampaignHub } from './panels/MultiCampaignHub';
+import { CampaignSwitcher } from './panels/CampaignSwitcher';
 import { StepIndicator } from './StepIndicator';
 import { StepLoadingAnimation } from './StepLoadingAnimation';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +44,11 @@ interface RightPanelProps {
   onVariantsContinue?: () => void;
   onAdStrategyChange?: (strategy: AdStrategy) => void;
   onCreativeAssignmentsChange?: (assignments: VariantCreativeAssignment[]) => void;
+  // Multi-campaign handlers
+  onAddCampaignDraft?: (objective: string) => void;
+  onSelectCampaignDraft?: (campaignId: string) => void;
+  onRemoveCampaignDraft?: (campaignId: string) => void;
+  onMultiCampaignContinue?: () => void;
 }
 
 export const RightPanel = ({
@@ -65,6 +72,10 @@ export const RightPanel = ({
   onVariantsContinue,
   onAdStrategyChange,
   onCreativeAssignmentsChange,
+  onAddCampaignDraft,
+  onSelectCampaignDraft,
+  onRemoveCampaignDraft,
+  onMultiCampaignContinue,
 }: RightPanelProps) => {
   const viewportRef = useRef<HTMLDivElement>(null);
   const scriptSectionRef = useRef<HTMLDivElement>(null);
@@ -110,6 +121,20 @@ export const RightPanel = ({
         return <WelcomePanel />;
       
       case 'product-analysis':
+        // Show multi-campaign hub if in multi-campaign mode
+        if (state.multiCampaign.isMultiCampaignMode && onAddCampaignDraft && onSelectCampaignDraft && onRemoveCampaignDraft) {
+          return (
+            <MultiCampaignHub
+              productData={state.productData}
+              campaigns={state.multiCampaign.campaigns}
+              activeCampaignId={state.multiCampaign.activeCampaignId}
+              onAddCampaign={onAddCampaignDraft}
+              onSelectCampaign={onSelectCampaignDraft}
+              onRemoveCampaign={onRemoveCampaignDraft}
+              onContinue={onMultiCampaignContinue || (() => {})}
+            />
+          );
+        }
         return (
           <ProductAnalysisPanel 
             productData={state.productData} 
