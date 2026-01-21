@@ -239,7 +239,8 @@ export const useCampaignFlow = () => {
               options: [
                 { id: 'select-variants', label: 'Select Specific Variants', description: 'Choose which variants to advertise' },
                 { id: 'all-variants', label: 'Use All Variants', description: 'Create ads for all variants' },
-                { id: 'single-ad', label: 'Single Ad Only', description: 'Ignore variants, create one ad' }
+                { id: 'single-ad', label: 'Single Ad Only', description: 'Ignore variants, create one ad' },
+                { id: 'multi-campaign', label: 'Create Multiple Campaigns', description: 'Different goals, one product' }
               ]
             };
             
@@ -500,6 +501,24 @@ export const useCampaignFlow = () => {
             1000
           );
           setState(prev => ({ ...prev, step: 'ad-strategy', stepHistory: [...prev.stepHistory, 'ad-strategy'], isStepLoading: false }));
+        } else if (answerId === 'multi-campaign') {
+          // Enable multi-campaign mode (from variant flow)
+          if (!skipUserMessage) addMessage('user', "I want to create multiple campaigns!");
+          
+          setState(prev => ({
+            ...prev,
+            multiCampaign: {
+              ...prev.multiCampaign,
+              isMultiCampaignMode: true,
+              hasShownMultiCampaignPrompt: true
+            }
+          }));
+          
+          await simulateTyping(
+            `Great choice! 🎯 Creating multiple campaigns lets you reach customers at different stages.\n\nUse the **Campaign Hub** on the right to:\n• Add campaigns with different goals (Sales, Awareness, etc.)\n• Configure each campaign independently\n• Publish them all together\n\nStart by picking your first campaign goal!`,
+            { stepId: 'product-analysis' },
+            1200
+          );
         } else {
           // Go to variant selector panel
           if (!skipUserMessage) addMessage('user', "I'll select specific variants.");
