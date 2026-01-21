@@ -287,6 +287,9 @@ export interface PerformanceDashboardState {
   isActionCenterOpen: boolean;
 }
 
+// Import multi-campaign types
+import { CampaignDraft, MultiCampaignState } from './multiCampaign';
+
 export interface CampaignState {
   step: CampaignStep;
   stepHistory: CampaignStep[];
@@ -310,4 +313,9 @@ export interface CampaignState {
   adStrategy: AdStrategy;
   campaignStructure: CampaignStructure | null;
   variantCreativeAssignments: VariantCreativeAssignment[];
+  // Multi-campaign support
+  multiCampaign: MultiCampaignState;
 }
+
+// Re-export multi-campaign types for convenience
+export type { CampaignDraft, MultiCampaignState } from './multiCampaign';

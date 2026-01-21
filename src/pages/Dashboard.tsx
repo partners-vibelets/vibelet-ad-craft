@@ -40,6 +40,11 @@ const Dashboard = () => {
     handleVariantsContinue,
     handleAdStrategyChange,
     handleCreativeAssignmentsChange,
+    // Multi-campaign handlers
+    handleAddCampaignDraft,
+    handleSelectCampaignDraft,
+    handleRemoveCampaignDraft,
+    handleMultiCampaignContinue,
   } = useCampaignFlow();
 
   // Redirect to auth if not authenticated
@@ -119,6 +124,10 @@ const Dashboard = () => {
               onVariantsContinue={handleVariantsContinue}
               onAdStrategyChange={handleAdStrategyChange}
               onCreativeAssignmentsChange={handleCreativeAssignmentsChange}
+              onAddCampaignDraft={handleAddCampaignDraft}
+              onSelectCampaignDraft={handleSelectCampaignDraft}
+              onRemoveCampaignDraft={handleRemoveCampaignDraft}
+              onMultiCampaignContinue={handleMultiCampaignContinue}
             />
           </div>
         </div>
