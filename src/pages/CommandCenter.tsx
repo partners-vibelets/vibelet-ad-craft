@@ -83,10 +83,10 @@ interface HealthMetric {
 const mockReasons: (Reason & { icon: 'budget' | 'fatigue' | 'waste' })[] = [
   {
     id: '1',
-    title: 'Budget skew in Evergreen Content campaign',
+    title: 'Money going to the wrong places',
     explanation: [
-      '73% of daily budget consumed by 2 underperforming ad sets',
-      'Top-performing creatives receiving only 12% of total spend'
+      'Most of your daily budget is being spent on ads that aren\'t performing well',
+      'Your best ads are only getting a small share of the budget'
     ],
     dataWindow: 'Last 30 days',
     confidence: 91,
@@ -94,10 +94,10 @@ const mockReasons: (Reason & { icon: 'budget' | 'fatigue' | 'waste' })[] = [
   },
   {
     id: '2',
-    title: 'Ad fatigue detected in 2 ad sets',
+    title: 'Some ads are being shown too often',
     explanation: [
-      'CTR declined 34% over past 14 days despite stable impressions',
-      'Frequency now at 4.2x (threshold: 3.0x)'
+      'People are seeing the same ads repeatedly and clicking less',
+      'The same audience has seen your ads too many times'
     ],
     dataWindow: 'Last 14 days',
     confidence: 88,
@@ -105,10 +105,10 @@ const mockReasons: (Reason & { icon: 'budget' | 'fatigue' | 'waste' })[] = [
   },
   {
     id: '3',
-    title: '₹900 spent with weak conversion intent (last 7 days)',
+    title: '₹900 spent without getting results',
     explanation: [
-      'Clicks from low-intent audiences with <0.5% conversion rate',
-      'Geographic targeting includes low-performing regions'
+      'Clicks came from people who weren\'t likely to buy',
+      'Some locations aren\'t generating sales'
     ],
     dataWindow: 'Last 7 days',
     confidence: 79,
@@ -119,45 +119,45 @@ const mockReasons: (Reason & { icon: 'budget' | 'fatigue' | 'waste' })[] = [
 const mockActions: ActionItem[] = [
   {
     id: '1',
-    title: 'Reallocate ₹450 to Search Expansion',
-    impact: '+12% projected ROAS',
+    title: 'Move ₹450 to your best-performing campaign',
+    impact: '+12% more sales expected',
     confidence: 88,
     risk: 'Low',
     whyWorks: [
-      'Search campaigns show 2.3x higher conversion rate',
-      'Similar accounts saw 14-18% ROAS lift with this change'
+      'This campaign brings in more than twice as many sales',
+      'Other businesses saw similar improvements with this change'
     ],
-    dataUsed: '34 days of stable CPA data',
+    dataUsed: 'Based on 34 days of data',
     variance: 'Low',
-    consequence: 'Continued budget drain on underperforming segments, estimated ₹1,200 waste over next 7 days'
+    consequence: 'If you skip this, you might waste about ₹1,200 over the next week'
   },
   {
     id: '2',
-    title: 'Pause fatigued creatives in "Summer Sale" ad set',
-    impact: '+8% expected CTR recovery',
+    title: 'Replace overused ads in "Summer Sale"',
+    impact: '+8% more clicks expected',
     confidence: 84,
     risk: 'Low',
     whyWorks: [
-      'Fresh creatives in similar contexts recovered CTR within 48-72 hours',
-      'Audience overlap suggests immediate response to new visuals'
+      'Fresh ads usually start performing better within 2-3 days',
+      'Your audience responds well to new visuals'
     ],
-    dataUsed: '21 days of creative performance data',
+    dataUsed: 'Based on 21 days of data',
     variance: 'Medium',
-    consequence: 'Continued frequency escalation will increase CPM by estimated 15% within 5 days'
+    consequence: 'Costs will keep rising as people ignore the same old ads'
   },
   {
     id: '3',
-    title: 'Exclude low-intent geographic segments',
-    impact: '+₹180 daily savings',
+    title: 'Stop showing ads in areas that don\'t buy',
+    impact: 'Save ₹180 daily',
     confidence: 76,
     risk: 'Medium',
     whyWorks: [
-      'Bottom 3 regions contribute 22% spend but only 4% conversions',
-      'Exclusion won\'t impact reach to high-value audiences'
+      'Some areas take 22% of your budget but bring only 4% of sales',
+      'Your best customers won\'t be affected'
     ],
-    dataUsed: '28 days of regional performance',
+    dataUsed: 'Based on 28 days of data',
     variance: 'Medium',
-    consequence: 'Low-ROI spend continues, diluting overall account efficiency metrics'
+    consequence: 'You\'ll keep spending money in places that don\'t convert'
   }
 ];
 
@@ -167,7 +167,7 @@ const mockWasteItems: WasteItem[] = [
     name: 'Evergreen Content - Broad Interests',
     type: 'adset',
     amount: '₹420',
-    reason: 'High spend, zero conversions in last 7 days',
+    reason: 'Spent money but got no sales in the last week',
     confidence: 92
   },
   {
@@ -175,7 +175,7 @@ const mockWasteItems: WasteItem[] = [
     name: 'Summer Sale - Retargeting Lookalike',
     type: 'adset',
     amount: '₹310',
-    reason: 'CPA 4x above account average',
+    reason: 'Costing 4x more per sale than your other ads',
     confidence: 85
   },
   {
@@ -183,7 +183,7 @@ const mockWasteItems: WasteItem[] = [
     name: 'Brand Awareness - Video Views',
     type: 'campaign',
     amount: '₹170',
-    reason: 'No downstream conversions attributed',
+    reason: 'No sales resulted from this campaign',
     confidence: 71
   }
 ];
@@ -191,52 +191,52 @@ const mockWasteItems: WasteItem[] = [
 const mockLiveAlerts: LiveAlert[] = [
   { 
     id: '1', 
-    message: 'Conversion rate spiked 23% in Search campaign', 
+    message: 'Great news! Sales are up 23% in your Search campaign', 
     time: '1h ago', 
     type: 'positive',
-    details: 'Your Search Expansion campaign is outperforming expectations. The conversion rate jumped from 2.1% to 2.6% in the last 3 hours, driven by high-intent keywords.',
-    metric: 'Conversion Rate',
+    details: 'Your Search campaign is doing really well! More people are buying after clicking your ads - sales jumped 23% in the last 3 hours.',
+    metric: 'Sales Rate',
     change: '+23%',
     suggestedAction: {
-      title: 'Scale budget by 20%',
-      description: 'Increase daily budget from ₹500 to ₹600 to capture more high-intent traffic while performance is strong.',
-      impact: '+₹180 projected daily revenue'
+      title: 'Boost your budget by 20%',
+      description: 'Your ads are working great right now. Spend a bit more to reach even more buyers while things are going well.',
+      impact: 'Could earn ₹180 more daily'
     }
   },
   { 
     id: '2', 
-    message: 'CTR drop detected in Summer Sale ad set', 
+    message: 'Heads up: Fewer people clicking Summer Sale ads', 
     time: '2h ago', 
     type: 'negative',
-    details: 'CTR has declined from 1.8% to 1.2% over the past 6 hours. This appears to be linked to creative fatigue as frequency has reached 4.1x.',
-    metric: 'Click-Through Rate',
+    details: 'People are clicking on your Summer Sale ads less often. This usually happens when the same people see your ads too many times.',
+    metric: 'Clicks',
     change: '-33%',
     suggestedAction: {
-      title: 'Rotate in fresh creatives',
-      description: 'Pause the 2 lowest-performing creatives and activate backup variants to combat audience fatigue.',
-      impact: '+8% CTR recovery expected'
+      title: 'Switch to fresh ads',
+      description: 'Pause the ads that aren\'t getting clicks and try some new ones. Fresh visuals usually get more attention.',
+      impact: 'Could improve clicks by 8%'
     }
   },
   { 
     id: '3', 
-    message: 'CPA improved in Retargeting segment', 
+    message: 'Good news! Getting customers for less money', 
     time: '3h ago', 
     type: 'positive',
-    details: 'Cost per acquisition dropped from ₹145 to ₹112 as the audience warmed up. The retargeting pool quality has improved significantly.',
-    metric: 'Cost Per Acquisition',
+    details: 'It\'s now cheaper to get each new customer - costs dropped from ₹145 to ₹112. Your targeting is really working well.',
+    metric: 'Cost Per Customer',
     change: '-23%',
     suggestedAction: {
-      title: 'Expand retargeting window',
-      description: 'Extend the lookback window from 7 to 14 days to capture more qualified prospects at this efficient CPA.',
-      impact: '+35% audience reach'
+      title: 'Reach more potential buyers',
+      description: 'Since you\'re getting customers for less, try reaching more people who visited your site recently.',
+      impact: 'Could reach 35% more people'
     }
   }
 ];
 
 const mockHealthMetrics: HealthMetric[] = [
-  { label: 'Performance Consistency', value: 87, status: 'good' },
-  { label: 'Ad Fatigue Index', value: 34, status: 'warning' },
-  { label: 'Learning Stability', value: 92, status: 'good' }
+  { label: 'Steady Results', value: 87, status: 'good' },
+  { label: 'Ad Freshness', value: 34, status: 'warning' },
+  { label: 'Stable Performance', value: 92, status: 'good' }
 ];
 
 // Components
@@ -289,24 +289,24 @@ const VerdictBar = () => (
               <AlertTriangle className="w-5 h-5 text-primary" />
             </div>
             <div className="px-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
-              Action Required
+              Needs Your Attention
             </div>
           </div>
           <h1 className="text-2xl font-bold text-foreground leading-tight mb-3">
-            You're missing <span className="text-primary font-extrabold">~18% ROAS</span> due to fixable budget and fatigue issues
+            You could be making <span className="text-primary font-extrabold">~18% more</span> by fixing a few things
           </h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
               <Eye className="w-3.5 h-3.5 text-primary/70" />
-              Data: Last 30 days
+              Based on last 30 days
             </span>
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
               <Shield className="w-3.5 h-3.5 text-emerald-400/70" />
-              Confidence: 87%
+              87% sure about this
             </span>
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50">
               <Clock className="w-3.5 h-3.5 text-amber-400/70" />
-              Updated: 14 mins ago
+              Checked 14 mins ago
             </span>
           </div>
         </div>
@@ -362,7 +362,7 @@ const WhySection = () => {
       <div className="max-w-5xl mx-auto px-6 py-6">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
-          Why This Is Happening
+          What's Going On
         </h2>
         <div className="grid grid-cols-3 gap-4 items-start">
           {mockReasons.map((reason) => {
@@ -445,9 +445,9 @@ const ActionStack = () => {
       <div className="max-w-5xl mx-auto px-6 py-8">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
           <Target className="w-4 h-4 text-primary" />
-          Recommended Actions
+          What You Can Do
           <span className="text-xs text-muted-foreground font-normal normal-case ml-2">
-            Sorted by monetary impact
+            Sorted by biggest impact first
           </span>
         </h2>
         <div className="space-y-4">
@@ -501,7 +501,7 @@ const ActionStack = () => {
                       <div className="grid grid-cols-2 gap-6">
                         <div>
                           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                            Why This Works
+                            Why We Suggest This
                           </h4>
                           <ul className="space-y-1.5">
                             {action.whyWorks.map((reason, idx) => (
@@ -515,13 +515,13 @@ const ActionStack = () => {
                         <div className="space-y-4">
                           <div>
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                              Data Used
+                              How We Know
                             </h4>
                             <p className="text-sm text-foreground/80">{action.dataUsed}</p>
                           </div>
                           <div>
                             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                              Variance
+                              How Predictable
                             </h4>
                             <span className={cn(
                               "text-sm",
@@ -529,25 +529,25 @@ const ActionStack = () => {
                               action.variance === 'Medium' && "text-amber-400",
                               action.variance === 'High' && "text-red-400"
                             )}>
-                              {action.variance}
+                              {action.variance === 'Low' ? 'Very likely' : action.variance === 'Medium' ? 'Likely' : 'Less certain'}
                             </span>
                           </div>
                         </div>
                       </div>
                       
                       <div className="mt-4 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                        <h4 className="text-xs font-semibold text-amber-400 mb-1">If You Don't Act</h4>
+                        <h4 className="text-xs font-semibold text-amber-400 mb-1">What Happens If You Skip This</h4>
                         <p className="text-sm text-foreground/70">{action.consequence}</p>
                       </div>
 
                       <div className="mt-4 flex items-center gap-3">
                         <Button variant="outline" size="sm" className="text-xs">
                           <Play className="w-3 h-3 mr-1.5" />
-                          Simulate Impact
+                          See What Would Happen
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
                           <BookmarkPlus className="w-3 h-3 mr-1.5" />
-                          Apply Later
+                          Save for Later
                         </Button>
                       </div>
                     </div>
@@ -568,26 +568,26 @@ const MoneyMap = () => (
     <div className="max-w-5xl mx-auto px-6 py-6">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
         <DollarSign className="w-4 h-4 text-primary" />
-        Money Flow
+        Where Your Money Goes
       </h2>
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 flex items-center gap-4">
           {/* Spend */}
           <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Spend</p>
+            <p className="text-xs text-muted-foreground mb-1">You Spent</p>
             <p className="text-xl font-bold text-foreground">₹12,450</p>
-            <p className="text-xs text-amber-400 mt-1">68% concentrated in 2 campaigns</p>
+            <p className="text-xs text-amber-400 mt-1">Most went to just 2 campaigns</p>
           </div>
           
           <div className="flex flex-col items-center text-muted-foreground">
             <ChevronRight className="w-5 h-5" />
           </div>
           
-          {/* Conversions */}
+          {/* Sales */}
           <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Conversions</p>
+            <p className="text-xs text-muted-foreground mb-1">Sales You Got</p>
             <p className="text-xl font-bold text-foreground">847</p>
-            <p className="text-xs text-emerald-400 mt-1">82% from top 3 ad sets</p>
+            <p className="text-xs text-emerald-400 mt-1">Most from your top 3 ads</p>
           </div>
           
           <div className="flex flex-col items-center text-muted-foreground">
@@ -596,21 +596,21 @@ const MoneyMap = () => (
           
           {/* Revenue */}
           <div className="flex-1 p-4 rounded-lg bg-card/50 border border-border/50 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Revenue</p>
+            <p className="text-xs text-muted-foreground mb-1">You Earned</p>
             <p className="text-xl font-bold text-foreground">₹48,230</p>
-            <p className="text-xs text-muted-foreground mt-1">ROAS: 3.87x</p>
+            <p className="text-xs text-muted-foreground mt-1">₹3.87 back for every ₹1 spent</p>
           </div>
         </div>
         
-        {/* Leakage Indicator */}
+        {/* Wasted Money Indicator */}
         <div className="w-px h-16 bg-border/50" />
         <div className="p-4 rounded-lg bg-red-500/5 border border-red-500/20 text-center min-w-[140px]">
           <p className="text-xs text-red-400 mb-1 flex items-center justify-center gap-1">
             <TrendingDown className="w-3 h-3" />
-            Leakage
+            Money Lost
           </p>
           <p className="text-xl font-bold text-red-400">₹2,240</p>
-          <p className="text-xs text-muted-foreground mt-1">18% of total spend</p>
+          <p className="text-xs text-muted-foreground mt-1">18% didn't bring results</p>
         </div>
       </div>
     </div>
@@ -637,10 +637,10 @@ const WasteSection = () => {
                 </div>
                 <div className="text-left">
                   <h3 className="text-base font-semibold text-foreground">
-                    ₹{totalWaste.toLocaleString()} potentially wasted in last 7 days
+                    ₹{totalWaste.toLocaleString()} may have been wasted last week
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {mockWasteItems.length} items flagged for review
+                    {mockWasteItems.length} things to look at
                   </p>
                 </div>
               </div>
@@ -833,7 +833,7 @@ const LiveAlertCard = ({ alert }: { alert: LiveAlert }) => {
                     alert.type === 'positive' ? "text-emerald-400" : "text-amber-400"
                   )} />
                   <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Suggested Action
+                    What You Can Do
                   </span>
                 </div>
                 <h4 className="text-sm font-semibold text-foreground mb-1">
@@ -849,7 +849,7 @@ const LiveAlertCard = ({ alert }: { alert: LiveAlert }) => {
                     : "bg-amber-500/20 text-amber-300"
                 )}>
                   <Target className="w-3 h-3" />
-                  {alert.suggestedAction.impact}
+                  Expected result: {alert.suggestedAction.impact}
                 </div>
               </div>
               <Button 
@@ -878,7 +878,7 @@ const LiveAlertsSection = () => {
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Zap className="w-3.5 h-3.5 text-primary" />
-        <span className="font-medium uppercase tracking-wider">Live Alerts</span>
+        <span className="font-medium uppercase tracking-wider">What's Happening Now</span>
         <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
           {mockLiveAlerts.length}
         </span>
@@ -946,7 +946,7 @@ const AccountHealthHero = () => {
                   {healthStatus === 'good' ? 'Healthy' : healthStatus === 'warning' ? 'Needs Attention' : 'Critical'}
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground">Ad Account Health Score</p>
+              <p className="text-sm text-muted-foreground">Overall Account Health</p>
             </div>
           </div>
           
