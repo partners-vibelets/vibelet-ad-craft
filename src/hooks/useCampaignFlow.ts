@@ -1231,6 +1231,55 @@ export const useCampaignFlow = () => {
     toast.info(`Switched to ${campaign.name}`);
   }, [state.multiCampaign.campaigns]);
 
+  // Start configuring a campaign draft - transitions to script selection
+  const handleConfigureCampaignDraft = useCallback(async (campaignId: string) => {
+    const campaign = state.multiCampaign.campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+
+    // First select it
+    setState(prev => ({
+      ...prev,
+      multiCampaign: {
+        ...prev.multiCampaign,
+        activeCampaignId: campaignId,
+        campaigns: prev.multiCampaign.campaigns.map(c => 
+          c.id === campaignId ? { ...c, status: 'configuring' as const } : c
+        )
+      },
+      // Reset selection state for new configuration
+      selectedScript: campaign.selectedScript,
+      selectedAvatar: campaign.selectedAvatar,
+      creatives: campaign.creatives,
+      selectedCreative: campaign.selectedCreative,
+      isStepLoading: true
+    }));
+
+    addMessage('user', `Configure ${campaign.name}`);
+
+    // Show script selection
+    const scriptQuestion: InlineQuestion = {
+      id: 'script-selection',
+      question: 'Choose a script style that matches your brand voice:',
+      options: [
+        ...scriptOptions.map(s => ({ id: s.id, label: s.name, description: s.description })),
+        { id: 'custom-script', label: '✍️ Write My Own', description: 'Create custom ad copy' }
+      ]
+    };
+
+    await simulateTyping(
+      `Let's configure your **${campaign.objective}** campaign! 🎯\n\nFirst, pick a script style for your ad:`,
+      { inlineQuestion: scriptQuestion, stepId: 'script-selection' },
+      1000
+    );
+
+    setState(prev => ({ 
+      ...prev, 
+      step: 'script-selection', 
+      stepHistory: [...prev.stepHistory, 'script-selection'],
+      isStepLoading: false 
+    }));
+  }, [state.multiCampaign.campaigns, addMessage, simulateTyping]);
+
   const handleRemoveCampaignDraft = useCallback((campaignId: string) => {
     setState(prev => {
       const newCampaigns = prev.multiCampaign.campaigns.filter(c => c.id !== campaignId);
@@ -1335,5 +1384,6 @@ export const useCampaignFlow = () => {
     handleRemoveCampaignDraft,
     handleUpdateActiveCampaignDraft,
     handleMultiCampaignContinue,
+    handleConfigureCampaignDraft,
   };
 };

@@ -44,6 +44,7 @@ const Dashboard = () => {
     handleAddCampaignDraft,
     handleSelectCampaignDraft,
     handleRemoveCampaignDraft,
+    handleConfigureCampaignDraft,
     handleMultiCampaignContinue,
   } = useCampaignFlow();
 
@@ -127,6 +128,7 @@ const Dashboard = () => {
               onAddCampaignDraft={handleAddCampaignDraft}
               onSelectCampaignDraft={handleSelectCampaignDraft}
               onRemoveCampaignDraft={handleRemoveCampaignDraft}
+              onConfigureCampaignDraft={handleConfigureCampaignDraft}
               onMultiCampaignContinue={handleMultiCampaignContinue}
             />
           </div>

@@ -49,6 +49,7 @@ interface RightPanelProps {
   onAddCampaignDraft?: (objective: string) => void;
   onSelectCampaignDraft?: (campaignId: string) => void;
   onRemoveCampaignDraft?: (campaignId: string) => void;
+  onConfigureCampaignDraft?: (campaignId: string) => void;
   onMultiCampaignContinue?: () => void;
   onEditCampaignDraft?: (campaignId: string) => void;
   onPublishAllCampaigns?: () => void;
@@ -78,6 +79,7 @@ export const RightPanel = ({
   onAddCampaignDraft,
   onSelectCampaignDraft,
   onRemoveCampaignDraft,
+  onConfigureCampaignDraft,
   onMultiCampaignContinue,
   onEditCampaignDraft,
   onPublishAllCampaigns,
@@ -123,7 +125,7 @@ export const RightPanel = ({
     // PRIORITY: Show multi-campaign hub if in multi-campaign mode (regardless of current step)
     if (state.multiCampaign.isMultiCampaignMode && 
         (state.step === 'product-analysis' || state.step === 'variant-detection') &&
-        onAddCampaignDraft && onSelectCampaignDraft && onRemoveCampaignDraft) {
+        onAddCampaignDraft && onSelectCampaignDraft && onRemoveCampaignDraft && onConfigureCampaignDraft) {
       return (
         <MultiCampaignHub
           productData={state.productData}
@@ -132,6 +134,7 @@ export const RightPanel = ({
           onAddCampaign={onAddCampaignDraft}
           onSelectCampaign={onSelectCampaignDraft}
           onRemoveCampaign={onRemoveCampaignDraft}
+          onConfigureCampaign={onConfigureCampaignDraft}
           onContinue={onMultiCampaignContinue || (() => {})}
         />
       );
