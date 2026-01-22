@@ -24,6 +24,7 @@ interface MultiCampaignHubProps {
   onAddCampaign: (objective: string) => void;
   onSelectCampaign: (campaignId: string) => void;
   onRemoveCampaign: (campaignId: string) => void;
+  onConfigureCampaign: (campaignId: string) => void;
   onContinue: () => void;
 }
 
@@ -95,12 +96,14 @@ const CampaignCard = ({
   campaign,
   isActive,
   onSelect,
-  onRemove
+  onRemove,
+  onConfigure
 }: {
   campaign: CampaignDraft;
   isActive: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  onConfigure: () => void;
 }) => {
   const objective = campaignObjectiveOptions.find(
     o => o.name.toLowerCase() === campaign.objective.toLowerCase() || o.id === campaign.objective.toLowerCase()
@@ -145,6 +148,26 @@ const CampaignCard = ({
           </div>
           
           <div className="flex items-center gap-1 shrink-0">
+            {campaign.status === 'draft' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConfigure();
+                }}
+              >
+                <Edit2 className="h-3 w-3 mr-1" />
+                Configure
+              </Button>
+            )}
+            {campaign.status === 'ready' && (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px]">
+                <Check className="w-3 h-3 mr-1" />
+                Ready
+              </Badge>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -171,6 +194,7 @@ export const MultiCampaignHub = ({
   onAddCampaign,
   onSelectCampaign,
   onRemoveCampaign,
+  onConfigureCampaign,
   onContinue
 }: MultiCampaignHubProps) => {
   const [showObjectivePicker, setShowObjectivePicker] = useState(campaigns.length === 0);
@@ -219,6 +243,7 @@ export const MultiCampaignHub = ({
                 isActive={campaign.id === activeCampaignId}
                 onSelect={() => onSelectCampaign(campaign.id)}
                 onRemove={() => onRemoveCampaign(campaign.id)}
+                onConfigure={() => onConfigureCampaign(campaign.id)}
               />
             ))}
           </div>
