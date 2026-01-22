@@ -120,26 +120,29 @@ export const RightPanel = ({
       return <StepLoadingAnimation step={state.step} />;
     }
 
+    // PRIORITY: Show multi-campaign hub if in multi-campaign mode (regardless of current step)
+    if (state.multiCampaign.isMultiCampaignMode && 
+        (state.step === 'product-analysis' || state.step === 'variant-detection') &&
+        onAddCampaignDraft && onSelectCampaignDraft && onRemoveCampaignDraft) {
+      return (
+        <MultiCampaignHub
+          productData={state.productData}
+          campaigns={state.multiCampaign.campaigns}
+          activeCampaignId={state.multiCampaign.activeCampaignId}
+          onAddCampaign={onAddCampaignDraft}
+          onSelectCampaign={onSelectCampaignDraft}
+          onRemoveCampaign={onRemoveCampaignDraft}
+          onContinue={onMultiCampaignContinue || (() => {})}
+        />
+      );
+    }
+
     switch (state.step) {
       case 'welcome':
       case 'product-url':
         return <WelcomePanel />;
       
       case 'product-analysis':
-        // Show multi-campaign hub if in multi-campaign mode
-        if (state.multiCampaign.isMultiCampaignMode && onAddCampaignDraft && onSelectCampaignDraft && onRemoveCampaignDraft) {
-          return (
-            <MultiCampaignHub
-              productData={state.productData}
-              campaigns={state.multiCampaign.campaigns}
-              activeCampaignId={state.multiCampaign.activeCampaignId}
-              onAddCampaign={onAddCampaignDraft}
-              onSelectCampaign={onSelectCampaignDraft}
-              onRemoveCampaign={onRemoveCampaignDraft}
-              onContinue={onMultiCampaignContinue || (() => {})}
-            />
-          );
-        }
         return (
           <ProductAnalysisPanel 
             productData={state.productData} 
