@@ -25,7 +25,8 @@ interface AwayChange {
 
 // Storage key for last visit time
 const LAST_VISIT_KEY = 'vibelets_command_center_last_visit';
-const MIN_AWAY_TIME_MS = 5 * 60 * 1000; // 5 minutes minimum to show "while away"
+const MIN_AWAY_TIME_MS = 10 * 1000; // 10 seconds for demo (was 5 minutes)
+const DEMO_MODE = true; // Show on first visit for demo purposes
 
 // Mock changes that happened while away
 const generateMockChanges = (awayMinutes: number): AwayChange[] => {
@@ -141,10 +142,15 @@ export const WhileYouWereAway = () => {
       const awayMinutes = Math.floor(awayMs / 60000);
       
       if (awayMs >= MIN_AWAY_TIME_MS) {
-        setAwayDuration(awayMinutes);
-        setChanges(generateMockChanges(awayMinutes));
+        setAwayDuration(Math.max(awayMinutes, 30)); // Show at least 30 mins for demo
+        setChanges(generateMockChanges(Math.max(awayMinutes, 30)));
         setIsVisible(true);
       }
+    } else if (DEMO_MODE) {
+      // First visit in demo mode - show the component with sample data
+      setAwayDuration(45); // Simulate 45 mins away
+      setChanges(generateMockChanges(45));
+      setIsVisible(true);
     }
     
     // Update last visit time
