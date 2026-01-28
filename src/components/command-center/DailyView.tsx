@@ -2,7 +2,6 @@ import { DollarSign, ShoppingCart, Radio } from 'lucide-react';
 import { mockTodayInsights } from './mockData';
 import { QuickWinsPanel } from './QuickWinsPanel';
 import { TrendingChanges } from './TrendingChanges';
-import { LiveAlertsSection } from './LiveAlertsSection';
 import { WhileYouWereAway } from './WhileYouWereAway';
 import { AlertsSidebar } from './AlertsSidebar';
 import { ActionsImpactPanel } from './ActionsImpactPanel';
@@ -50,9 +49,6 @@ export const DailyView = () => {
               <p className="text-2xl font-bold text-foreground">{data.activeAds}</p>
             </div>
           </div>
-
-          {/* Live Alerts */}
-          <LiveAlertsSection alerts={data.alerts} />
 
           {/* Trending Changes */}
           <TrendingChanges changes={data.changes} />
