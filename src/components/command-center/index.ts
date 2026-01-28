@@ -9,4 +9,5 @@ export * from './BiweeklyView';
 export * from './QuickWinsPanel';
 export * from './TrendingChanges';
 export * from './LiveAlertsSection';
+export * from './NotificationSettings';
 export * from './CommandCenterLayout';

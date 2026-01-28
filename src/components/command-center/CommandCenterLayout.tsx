@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimePeriodSelector, TimePeriod } from './TimePeriodSelector';
 import { LoadingExperience } from './LoadingExperience';
@@ -8,8 +8,12 @@ import { AuditView } from './AuditView';
 import { DailyView } from './DailyView';
 import { WeeklyView } from './WeeklyView';
 import { BiweeklyView } from './BiweeklyView';
+import { NotificationSettings } from './NotificationSettings';
 import { FacebookConnectCard } from '@/components/dashboard/FacebookConnectCard';
+import { useCommandCenterNotifications } from '@/hooks/useCommandCenterNotifications';
+import { mockTodayInsights, mockLiveAlerts } from './mockData';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface CommandCenterLayoutProps {
   isConnected?: boolean;
@@ -22,21 +26,51 @@ export const CommandCenterLayout = ({ isConnected: initialConnected = false }: C
   const [hasLoadedBefore, setHasLoadedBefore] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('30-day');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const { notifyDataUpdate, simulateNewAlert } = useCommandCenterNotifications();
 
   const handleConnect = () => {
     setIsConnected(true);
     setIsLoading(true);
   };
 
-  const handleLoadingComplete = () => {
+  const handleLoadingComplete = useCallback(() => {
     setIsLoading(false);
     setHasLoadedBefore(true);
     setLastRefresh(new Date());
-  };
+    
+    // Initialize notification tracking with current data
+    notifyDataUpdate({
+      alerts: mockTodayInsights.alerts,
+      quickWins: mockTodayInsights.quickWins,
+      changes: mockTodayInsights.changes,
+    });
+
+    // Show welcome toast
+    toast.success('Account analysis complete!', {
+      description: 'Your 30-day audit report is ready. Notifications are enabled for real-time updates.',
+      duration: 5000,
+    });
+  }, [notifyDataUpdate]);
 
   const handleRefresh = () => {
     setIsLoading(true);
   };
+
+  // Simulate real-time polling for the "Today" view
+  useEffect(() => {
+    if (!isConnected || isLoading || selectedPeriod !== 'today') return;
+
+    const pollInterval = setInterval(() => {
+      // In production, this would fetch new data from the API
+      // For demo, we occasionally simulate new alerts
+      const shouldSimulate = Math.random() > 0.85; // 15% chance every 30s
+      if (shouldSimulate) {
+        simulateNewAlert();
+      }
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isConnected, isLoading, selectedPeriod, simulateNewAlert]);
 
   const renderContent = () => {
     switch (selectedPeriod) {
@@ -80,15 +114,29 @@ export const CommandCenterLayout = ({ isConnected: initialConnected = false }: C
                   selected={selectedPeriod} 
                   onSelect={setSelectedPeriod} 
                 />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-1">
+                  {selectedPeriod === 'today' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={simulateNewAlert}
+                      className="text-muted-foreground hover:text-primary"
+                      title="Simulate a new alert (demo)"
+                    >
+                      <Zap className="w-4 h-4" />
+                    </Button>
+                  )}
+                  <NotificationSettings />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
               </div>
             )}
           </div>
