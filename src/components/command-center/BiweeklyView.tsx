@@ -3,7 +3,6 @@ import { mock15DayInsights } from './mockData';
 import { QuickWinsPanel } from './QuickWinsPanel';
 import { TrendingChanges } from './TrendingChanges';
 import { InsightsSidebar } from './InsightsSidebar';
-import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 export const BiweeklyView = () => {
   const data = mock15DayInsights;
@@ -61,19 +60,13 @@ export const BiweeklyView = () => {
           <QuickWinsPanel quickWins={data.quickWins} title="Opportunities This Period" />
         </div>
         
-        {/* Sidebars - Right */}
-        <div className="flex flex-col gap-4">
-          {/* Actions Impact Panel */}
-          <ActionsImpactPanel />
-          
-          {/* Insights Sidebar */}
-          <InsightsSidebar 
-            title="15-Day Insights"
-            subtitle="Key patterns from this period"
-            changes={data.changes}
-            quickWins={data.quickWins.slice(0, 2)}
-          />
-        </div>
+        {/* Insights Sidebar - Right */}
+        <InsightsSidebar 
+          title="15-Day Insights"
+          subtitle="Key patterns from this period"
+          changes={data.changes}
+          quickWins={data.quickWins.slice(0, 2)}
+        />
       </div>
     </div>
   );

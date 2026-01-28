@@ -9,6 +9,7 @@ import { DailyView } from './DailyView';
 import { WeeklyView } from './WeeklyView';
 import { BiweeklyView } from './BiweeklyView';
 import { NotificationSettings } from './NotificationSettings';
+import { ActionsImpactBadge } from './ActionsImpactBadge';
 import { FacebookConnectCard } from '@/components/dashboard/FacebookConnectCard';
 import { useCommandCenterNotifications } from '@/hooks/useCommandCenterNotifications';
 import { mockTodayInsights, mockLiveAlerts } from './mockData';
@@ -191,6 +192,9 @@ export const CommandCenterLayout = ({ isConnected: initialConnected = false }: C
 
             {/* Content */}
             {renderContent()}
+            
+            {/* Actions Impact Badge - Floating */}
+            <ActionsImpactBadge />
           </>
         )}
       </main>

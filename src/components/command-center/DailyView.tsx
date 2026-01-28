@@ -4,7 +4,6 @@ import { QuickWinsPanel } from './QuickWinsPanel';
 import { TrendingChanges } from './TrendingChanges';
 import { WhileYouWereAway } from './WhileYouWereAway';
 import { AlertsSidebar } from './AlertsSidebar';
-import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 export const DailyView = () => {
   const data = mockTodayInsights;
@@ -57,14 +56,8 @@ export const DailyView = () => {
           <QuickWinsPanel quickWins={data.quickWins} title="Immediate Action" />
         </div>
         
-        {/* Sidebars - Right */}
-        <div className="flex flex-col gap-4">
-          {/* Actions Impact Panel */}
-          <ActionsImpactPanel />
-          
-          {/* Alerts Sidebar */}
-          <AlertsSidebar alerts={data.alerts} />
-        </div>
+        {/* Alerts Sidebar - Right */}
+        <AlertsSidebar alerts={data.alerts} />
       </div>
     </div>
   );
