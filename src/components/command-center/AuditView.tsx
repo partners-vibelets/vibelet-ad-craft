@@ -25,7 +25,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { mockReasons, mockActions, mockWasteItems, mockHealthMetrics, mockLiveAlerts } from './mockData';
 import { AlertsSidebar } from './AlertsSidebar';
-import { ExecutiveSummary } from './ExecutiveSummary';
 
 // Confidence Badge
 const ConfidenceBadge = ({ value }: { value: number }) => (
@@ -553,21 +552,15 @@ const VerdictBar = () => (
 export const AuditView = () => {
   return (
     <div className="animate-fade-in">
+      {/* Account Health Hero - Top of page */}
+      <div className="p-6 rounded-xl bg-gradient-to-b from-emerald-500/5 to-transparent border border-emerald-500/10 mb-8">
+        <AccountHealthHero />
+      </div>
+
       {/* Two Column Layout: Main Content + Alerts Sidebar */}
       <div className="flex gap-6">
-        {/* Alerts Sidebar - Left */}
-        <AlertsSidebar alerts={mockLiveAlerts} />
-        
-        {/* Main Content - Right */}
+        {/* Main Content - Left */}
         <div className="flex-1 min-w-0">
-          {/* Executive Summary */}
-          <ExecutiveSummary />
-          
-          {/* Account Health Hero */}
-          <div className="p-6 rounded-xl bg-gradient-to-b from-emerald-500/5 to-transparent border border-emerald-500/10 mb-8">
-            <AccountHealthHero />
-          </div>
-
           {/* Verdict Bar */}
           <VerdictBar />
 
@@ -583,6 +576,9 @@ export const AuditView = () => {
           {/* Money Map */}
           <MoneyMap />
         </div>
+        
+        {/* Alerts Sidebar - Right */}
+        <AlertsSidebar alerts={mockLiveAlerts} />
       </div>
     </div>
   );
