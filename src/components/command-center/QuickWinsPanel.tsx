@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuickWin } from './types';
+import { useTrackedActions } from '@/hooks/useTrackedActions';
 
 const categoryConfig = {
   budget: {
@@ -48,12 +49,25 @@ interface QuickWinsPanelProps {
 export const QuickWinsPanel = ({ quickWins, title = "Quick Wins" }: QuickWinsPanelProps) => {
   const [appliedIds, setAppliedIds] = useState<string[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const { trackAction } = useTrackedActions();
 
-  const handleApply = async (id: string) => {
-    setLoadingId(id);
+  const handleApply = async (win: QuickWin) => {
+    setLoadingId(win.id);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setAppliedIds(prev => [...prev, id]);
+    
+    // Track this action for monitoring
+    trackAction(
+      win.id,
+      'quick_win',
+      win.title,
+      win.category,
+      win.impact,
+      win.confidence,
+      '7 days'
+    );
+    
+    setAppliedIds(prev => [...prev, win.id]);
     setLoadingId(null);
   };
 
@@ -118,7 +132,7 @@ export const QuickWinsPanel = ({ quickWins, title = "Quick Wins" }: QuickWinsPan
                 size="sm"
                 variant={isApplied ? "ghost" : "default"}
                 disabled={isApplied || isLoading}
-                onClick={() => handleApply(win.id)}
+                onClick={() => handleApply(win)}
                 className={cn(
                   isApplied && "text-emerald-400"
                 )}
