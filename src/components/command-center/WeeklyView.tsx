@@ -3,7 +3,6 @@ import { mock7DayInsights, mockTrendingChanges } from './mockData';
 import { QuickWinsPanel } from './QuickWinsPanel';
 import { LiveAlertsSection } from './LiveAlertsSection';
 import { InsightsSidebar } from './InsightsSidebar';
-import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 export const WeeklyView = () => {
   const data = mock7DayInsights;
@@ -74,19 +73,13 @@ export const WeeklyView = () => {
           <QuickWinsPanel quickWins={data.quickWins} title="Recommended This Week" />
         </div>
         
-        {/* Sidebars - Right */}
-        <div className="flex flex-col gap-4">
-          {/* Actions Impact Panel */}
-          <ActionsImpactPanel />
-          
-          {/* Insights Sidebar */}
-          <InsightsSidebar 
-            title="Weekly Insights"
-            subtitle="Performance shifts this week"
-            changes={weeklyChanges}
-            quickWins={data.quickWins}
-          />
-        </div>
+        {/* Insights Sidebar - Right */}
+        <InsightsSidebar 
+          title="Weekly Insights"
+          subtitle="Performance shifts this week"
+          changes={weeklyChanges}
+          quickWins={data.quickWins}
+        />
       </div>
     </div>
   );

@@ -25,7 +25,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { mockReasons, mockActions, mockWasteItems, mockHealthMetrics, mockLiveAlerts } from './mockData';
 import { AlertsSidebar } from './AlertsSidebar';
-import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 // Confidence Badge
 const ConfidenceBadge = ({ value }: { value: number }) => (
@@ -578,14 +577,8 @@ export const AuditView = () => {
           <MoneyMap />
         </div>
         
-        {/* Sidebars - Right */}
-        <div className="flex flex-col gap-4">
-          {/* Actions Impact Panel */}
-          <ActionsImpactPanel />
-          
-          {/* Alerts Sidebar */}
-          <AlertsSidebar alerts={mockLiveAlerts} />
-        </div>
+        {/* Alerts Sidebar - Right */}
+        <AlertsSidebar alerts={mockLiveAlerts} />
       </div>
     </div>
   );
