@@ -1,15 +1,19 @@
 import { cn } from '@/lib/utils';
-import { Clock, DollarSign, ShoppingCart, Radio, Zap } from 'lucide-react';
+import { DollarSign, ShoppingCart, Radio } from 'lucide-react';
 import { mockTodayInsights } from './mockData';
 import { QuickWinsPanel } from './QuickWinsPanel';
 import { TrendingChanges } from './TrendingChanges';
 import { LiveAlertsSection } from './LiveAlertsSection';
+import { WhileYouWereAway } from './WhileYouWereAway';
 
 export const DailyView = () => {
   const data = mockTodayInsights;
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* While You Were Away - appears when user returns after being away */}
+      <WhileYouWereAway />
+      
       {/* Today's Snapshot */}
       <div className="flex items-center gap-2 mb-4">
         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
