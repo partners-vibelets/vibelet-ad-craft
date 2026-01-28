@@ -12,5 +12,6 @@ export * from './LiveAlertsSection';
 export * from './NotificationSettings';
 export * from './ExecutiveSummary';
 export * from './AlertsSidebar';
+export * from './InsightsSidebar';
 export * from './WhileYouWereAway';
 export * from './CommandCenterLayout';
