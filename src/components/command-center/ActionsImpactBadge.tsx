@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   Activity, 
@@ -9,7 +10,8 @@ import {
   XCircle,
   ChevronUp,
   X,
-  Sparkles
+  Sparkles,
+  History
 } from 'lucide-react';
 import { TrackedAction } from './types';
 import { useTrackedActions } from '@/hooks/useTrackedActions';
@@ -86,8 +88,14 @@ const ActionItem = ({ action }: ActionItemProps) => {
 
 export const ActionsImpactBadge = () => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const navigate = useNavigate();
   const { trackedActions, getSummary } = useTrackedActions();
   const summary = getSummary();
+
+  const handleViewHistory = () => {
+    setIsExpanded(false);
+    navigate('/actions-history');
+  };
 
   if (trackedActions.length === 0) return null;
 
@@ -151,14 +159,23 @@ export const ActionsImpactBadge = () => {
             )}
           </div>
 
-          {/* Footer Tip */}
-          <div className="px-4 py-2.5 border-t border-border/30 bg-primary/5">
+          {/* Footer with View All History */}
+          <div className="px-4 py-2.5 border-t border-border/30 bg-muted/10 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-primary" />
               <span className="text-[10px] text-muted-foreground">
-                We're monitoring impact based on your applied recommendations
+                Monitoring your applied recommendations
               </span>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleViewHistory}
+              className="h-6 px-2 text-xs text-primary hover:text-primary gap-1"
+            >
+              <History className="w-3 h-3" />
+              View All
+            </Button>
           </div>
         </div>
       )}

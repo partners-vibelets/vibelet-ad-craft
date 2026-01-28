@@ -13,6 +13,7 @@ import Onboarding from "./pages/Onboarding";
 import Recommendations from "./pages/Recommendations";
 import NotificationLog from "./pages/NotificationLog";
 import CommandCenter from "./pages/CommandCenter";
+import ActionsHistory from "./pages/ActionsHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ const App = () => (
                 <Route path="/recommendations" element={<Recommendations />} />
                 <Route path="/notifications" element={<NotificationLog />} />
                 <Route path="/command-center" element={<CommandCenter />} />
+                <Route path="/actions-history" element={<ActionsHistory />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
