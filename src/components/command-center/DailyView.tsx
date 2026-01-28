@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils';
 import { DollarSign, ShoppingCart, Radio } from 'lucide-react';
 import { mockTodayInsights } from './mockData';
 import { QuickWinsPanel } from './QuickWinsPanel';
@@ -6,6 +5,7 @@ import { TrendingChanges } from './TrendingChanges';
 import { LiveAlertsSection } from './LiveAlertsSection';
 import { WhileYouWereAway } from './WhileYouWereAway';
 import { AlertsSidebar } from './AlertsSidebar';
+import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 export const DailyView = () => {
   const data = mockTodayInsights;
@@ -61,8 +61,14 @@ export const DailyView = () => {
           <QuickWinsPanel quickWins={data.quickWins} title="Immediate Action" />
         </div>
         
-        {/* Alerts Sidebar - Right */}
-        <AlertsSidebar alerts={data.alerts} />
+        {/* Sidebars - Right */}
+        <div className="flex flex-col gap-4">
+          {/* Actions Impact Panel */}
+          <ActionsImpactPanel />
+          
+          {/* Alerts Sidebar */}
+          <AlertsSidebar alerts={data.alerts} />
+        </div>
       </div>
     </div>
   );

@@ -14,4 +14,5 @@ export * from './ExecutiveSummary';
 export * from './AlertsSidebar';
 export * from './InsightsSidebar';
 export * from './WhileYouWereAway';
+export * from './ActionsImpactPanel';
 export * from './CommandCenterLayout';

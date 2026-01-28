@@ -66,3 +66,24 @@ export interface TrendingChange {
   context: string;
   since: string;
 }
+
+// Tracked Action Types - for monitoring recommendation-based actions
+export interface TrackedAction {
+  id: string;
+  recommendationId: string;
+  recommendationType: 'quick_win' | 'action_item' | 'alert_action' | 'waste_pause';
+  title: string;
+  category: 'budget' | 'creative' | 'targeting' | 'schedule' | 'pause' | 'resume';
+  appliedAt: string; // ISO timestamp
+  expectedImpact: string;
+  status: 'monitoring' | 'positive' | 'negative' | 'neutral';
+  actualImpact?: {
+    metric: string;
+    before: string;
+    after: string;
+    change: string;
+    direction: 'up' | 'down' | 'neutral';
+  };
+  monitoringPeriod: string; // e.g., "7 days"
+  confidence: number;
+}

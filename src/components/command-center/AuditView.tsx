@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { mockReasons, mockActions, mockWasteItems, mockHealthMetrics, mockLiveAlerts } from './mockData';
 import { AlertsSidebar } from './AlertsSidebar';
+import { ActionsImpactPanel } from './ActionsImpactPanel';
 
 // Confidence Badge
 const ConfidenceBadge = ({ value }: { value: number }) => (
@@ -557,7 +558,7 @@ export const AuditView = () => {
         <AccountHealthHero />
       </div>
 
-      {/* Two Column Layout: Main Content + Alerts Sidebar */}
+      {/* Two Column Layout: Main Content + Sidebars */}
       <div className="flex gap-6">
         {/* Main Content - Left */}
         <div className="flex-1 min-w-0">
@@ -577,8 +578,14 @@ export const AuditView = () => {
           <MoneyMap />
         </div>
         
-        {/* Alerts Sidebar - Right */}
-        <AlertsSidebar alerts={mockLiveAlerts} />
+        {/* Sidebars - Right */}
+        <div className="flex flex-col gap-4">
+          {/* Actions Impact Panel */}
+          <ActionsImpactPanel />
+          
+          {/* Alerts Sidebar */}
+          <AlertsSidebar alerts={mockLiveAlerts} />
+        </div>
       </div>
     </div>
   );
