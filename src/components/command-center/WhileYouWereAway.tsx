@@ -167,34 +167,94 @@ export const WhileYouWereAway = () => {
 
   if (!isVisible || changes.length === 0) return null;
 
+  // Generate crisp summary based on changes
+  const generateSummary = () => {
+    const positiveCount = changes.filter(c => c.type === 'positive').length;
+    const negativeCount = changes.filter(c => c.type === 'negative').length;
+    const highPriorityCount = changes.filter(c => c.priority === 'high').length;
+    
+    if (highPriorityCount > 0) {
+      return {
+        headline: `${highPriorityCount} urgent item${highPriorityCount > 1 ? 's' : ''} need${highPriorityCount === 1 ? 's' : ''} attention`,
+        tone: 'warning' as const
+      };
+    }
+    
+    if (positiveCount > negativeCount) {
+      return {
+        headline: `Good news! ${positiveCount} positive change${positiveCount > 1 ? 's' : ''} while you were away`,
+        tone: 'positive' as const
+      };
+    }
+    
+    if (negativeCount > positiveCount) {
+      return {
+        headline: `${negativeCount} item${negativeCount > 1 ? 's' : ''} may need your review`,
+        tone: 'warning' as const
+      };
+    }
+    
+    return {
+      headline: `${changes.length} update${changes.length > 1 ? 's' : ''} since your last visit`,
+      tone: 'neutral' as const
+    };
+  };
+
+  const summary = generateSummary();
+
   return (
     <div className="mb-6 animate-fade-in">
       <div className="rounded-xl border border-primary/30 bg-gradient-to-r from-primary/5 via-background to-primary/5 overflow-hidden">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-primary/20 bg-primary/5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Clock className="w-4 h-4 text-primary" />
+        {/* Header with Summary */}
+        <div className="px-4 py-3 border-b border-primary/20 bg-primary/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">While You Were Away</h3>
+                <p className="text-xs text-muted-foreground">
+                  You were gone for {formatAwayDuration(awayDuration)} • Returned at {returnTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">While You Were Away</h3>
-              <p className="text-xs text-muted-foreground">
-                You were gone for {formatAwayDuration(awayDuration)} • Returned at {returnTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </p>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                {changes.length} update{changes.length > 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDismiss}
+                className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-              {changes.length} update{changes.length > 1 ? 's' : ''}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDismiss}
-              className="text-muted-foreground hover:text-foreground h-7 w-7 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+          
+          {/* Crisp Summary Banner */}
+          <div className={cn(
+            "mt-3 px-3 py-2 rounded-lg flex items-center gap-2",
+            summary.tone === 'positive' && "bg-emerald-500/10 border border-emerald-500/20",
+            summary.tone === 'warning' && "bg-amber-500/10 border border-amber-500/20",
+            summary.tone === 'neutral' && "bg-muted/50 border border-border/50"
+          )}>
+            <Zap className={cn(
+              "w-4 h-4 shrink-0",
+              summary.tone === 'positive' && "text-emerald-400",
+              summary.tone === 'warning' && "text-amber-400",
+              summary.tone === 'neutral' && "text-muted-foreground"
+            )} />
+            <p className={cn(
+              "text-sm font-medium",
+              summary.tone === 'positive' && "text-emerald-400",
+              summary.tone === 'warning' && "text-amber-400",
+              summary.tone === 'neutral' && "text-foreground"
+            )}>
+              {summary.headline}
+            </p>
           </div>
         </div>
         
