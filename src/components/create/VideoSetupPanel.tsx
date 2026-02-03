@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, Check, Image as ImageIcon, User, FileText, Clock, Sparkles, Play } from 'lucide-react';
+import { Upload, Check, Image as ImageIcon, User, FileText, Sparkles, Play, Wand2, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -19,6 +19,9 @@ export const VideoSetupPanel = ({
   onStartGeneration 
 }: VideoSetupPanelProps) => {
   const [description, setDescription] = useState('');
+  const [script, setScript] = useState('');
+  const [scriptMode, setScriptMode] = useState<'none' | 'custom' | 'generate'>('none');
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState<AvatarOption | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,6 +37,7 @@ export const VideoSetupPanel = ({
   const uploadedImageUrl = getCollectedValue('product-image');
   const selectedAvatarId = getCollectedValue('avatar');
   const productDescription = getCollectedValue('product-description');
+  const savedScript = getCollectedValue('script');
   const selectedAvatar = AVATARS.find(a => a.id === selectedAvatarId);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +51,45 @@ export const VideoSetupPanel = ({
     if (description.trim()) {
       onProvideInput('product-description', description);
     }
+  };
+
+  const handleScriptSubmit = () => {
+    if (script.trim()) {
+      onProvideInput('script', script);
+      setScriptMode('none');
+    }
+  };
+
+  const handleGenerateScript = () => {
+    setIsGeneratingScript(true);
+    setScriptMode('generate');
+    
+    // Simulate AI script generation
+    setTimeout(() => {
+      const generatedScript = `🎬 Introducing the ultimate ${productDescription || 'product'}!
+
+Are you tired of settling for less? Meet the game-changer you've been waiting for.
+
+✨ Premium quality that speaks for itself
+🚀 Designed for those who demand the best
+💪 Built to exceed your expectations
+
+Don't just take our word for it – experience the difference yourself.
+
+🔥 Order now and transform your everyday life!
+
+Limited time offer – Act fast before it's gone!`;
+      
+      setScript(generatedScript);
+      setIsGeneratingScript(false);
+    }, 2000);
+  };
+
+  const handleClearScript = () => {
+    setScript('');
+    setScriptMode('none');
+    // Clear the saved script by providing empty value
+    onProvideInput('script', '');
   };
 
   // Check if ready to generate
@@ -161,6 +204,96 @@ export const VideoSetupPanel = ({
               >
                 Save Description
               </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Script Card - Full width */}
+        <div className={cn(
+          "rounded-2xl border-2 p-5 transition-all duration-200 lg:col-span-2",
+          savedScript 
+            ? "border-primary bg-primary/5" 
+            : "border-border hover:border-primary/50"
+        )}>
+          <div className="flex items-start gap-3 mb-3">
+            <div className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+              savedScript ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            )}>
+              {savedScript ? <Check className="w-5 h-5" /> : <PenLine className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-foreground text-sm">Video Script</h3>
+              <p className="text-xs text-muted-foreground">Optional - AI will generate one if skipped</p>
+            </div>
+          </div>
+
+          {savedScript ? (
+            <div className="space-y-3">
+              <div className="text-sm text-foreground bg-muted/50 p-3 rounded-lg max-h-[150px] overflow-y-auto whitespace-pre-wrap">
+                {savedScript}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearScript}
+                className="w-full"
+              >
+                Edit Script
+              </Button>
+            </div>
+          ) : scriptMode === 'none' ? (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setScriptMode('custom')}
+                className="flex-1 gap-2"
+              >
+                <PenLine className="w-4 h-4" />
+                Write My Own
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateScript}
+                className="flex-1 gap-2"
+              >
+                <Wand2 className="w-4 h-4" />
+                Generate with AI
+              </Button>
+            </div>
+          ) : isGeneratingScript ? (
+            <div className="flex items-center justify-center gap-2 py-6">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">Generating script...</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Textarea
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                placeholder="Write your video script here... What should the AI presenter say about your product?"
+                className="min-h-[120px] resize-none text-sm"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setScriptMode('none'); setScript(''); }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleScriptSubmit}
+                  disabled={!script.trim()}
+                  className="flex-1"
+                >
+                  Save Script
+                </Button>
+              </div>
             </div>
           )}
         </div>
