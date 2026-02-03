@@ -15,8 +15,10 @@ import {
   LogOut, 
   User, 
   Settings, 
-  ChevronDown
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import vibeLogo from '@/assets/vibelets-logo-unified.png';
 
 export const DashboardHeader = () => {
@@ -39,9 +41,18 @@ export const DashboardHeader = () => {
 
   return (
     <header className="h-16 flex-shrink-0 bg-background/95 backdrop-blur-sm shadow-lg shadow-foreground/5 px-4 flex items-center justify-between">
-      {/* Left - Logo */}
-      <div className="flex items-center gap-3">
+      {/* Left - Logo & Navigation */}
+      <div className="flex items-center gap-6">
         <img src={vibeLogo} alt="Vibelets" className="h-7" />
+        
+        {/* Create Link */}
+        <Link 
+          to="/create"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+        >
+          <Sparkles className="w-4 h-4" />
+          Create
+        </Link>
       </div>
 
       {/* Right - Theme Toggle, Credits & Profile */}
