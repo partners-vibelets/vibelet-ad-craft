@@ -1,8 +1,13 @@
-import { CreateSession, CreateTemplate } from '@/types/create';
+import { useState } from 'react';
+import { CreateSession, CreateTemplate, CollectedInput } from '@/types/create';
 import { TemplateGallery } from './TemplateGallery';
 import { GenerationPreview } from './GenerationPreview';
 import { CreativeResult } from './CreativeResult';
 import { InputProgress } from './InputProgress';
+import { AvatarSelectionPanel } from './AvatarSelectionPanel';
+import { ProductImagePanel } from './ProductImagePanel';
+import { ProductDescriptionPanel } from './ProductDescriptionPanel';
+import { ScriptInputPanel } from './ScriptInputPanel';
 import { cn } from '@/lib/utils';
 
 interface CreateCanvasProps {
@@ -10,25 +15,77 @@ interface CreateCanvasProps {
   templates: CreateTemplate[];
   onSelectTemplate: (templateId: string) => void;
   onRegenerate: () => void;
+  onProvideInput: (inputId: string, value: string | File) => void;
+  onSkipInput: (inputId: string) => void;
+  currentInputId?: string;
 }
 
 export const CreateCanvas = ({ 
   session, 
   templates, 
   onSelectTemplate,
-  onRegenerate 
+  onRegenerate,
+  onProvideInput,
+  onSkipInput,
+  currentInputId
 }: CreateCanvasProps) => {
-  const renderContent = () => {
-    switch (session.canvasState) {
-      case 'template-selection':
+  const [descriptionValue, setDescriptionValue] = useState('');
+
+  // Get uploaded image URL from collected inputs
+  const getCollectedValue = (inputId: string): string | undefined => {
+    const input = session.collectedInputs.find(i => i.inputId === inputId);
+    if (!input) return undefined;
+    if (typeof input.value === 'string') return input.value;
+    if (input.value instanceof File) return URL.createObjectURL(input.value);
+    return undefined;
+  };
+
+  const uploadedImageUrl = getCollectedValue('product-image');
+  const productDescription = session.collectedInputs.find(i => i.inputId === 'product-description')?.value as string;
+
+  const renderInputCollectionContent = () => {
+    // Show different panels based on current input being collected
+    switch (currentInputId) {
+      case 'product-image':
         return (
-          <TemplateGallery 
-            templates={templates} 
-            onSelectTemplate={onSelectTemplate} 
+          <ProductImagePanel
+            onUpload={(file) => onProvideInput('product-image', file)}
+            uploadedImageUrl={uploadedImageUrl}
           />
         );
       
-      case 'input-collection':
+      case 'product-description':
+        return (
+          <ProductDescriptionPanel
+            value={descriptionValue}
+            onChange={setDescriptionValue}
+            onSubmit={() => {
+              onProvideInput('product-description', descriptionValue);
+              setDescriptionValue('');
+            }}
+            uploadedImageUrl={uploadedImageUrl}
+          />
+        );
+      
+      case 'avatar':
+        return (
+          <AvatarSelectionPanel
+            onSelectAvatar={(avatarId) => onProvideInput('avatar', avatarId)}
+            selectedAvatarId={getCollectedValue('avatar')}
+          />
+        );
+      
+      case 'script':
+        return (
+          <ScriptInputPanel
+            onSubmitScript={(script) => onProvideInput('script', script)}
+            onSkip={() => onSkipInput('script')}
+            productDescription={productDescription}
+          />
+        );
+      
+      default:
+        // Default input collection view with progress
         return (
           <div className="flex flex-col items-center justify-center h-full p-8">
             <div className="w-full max-w-md">
@@ -58,6 +115,21 @@ export const CreateCanvas = ({
             </div>
           </div>
         );
+    }
+  };
+
+  const renderContent = () => {
+    switch (session.canvasState) {
+      case 'template-selection':
+        return (
+          <TemplateGallery 
+            templates={templates} 
+            onSelectTemplate={onSelectTemplate} 
+          />
+        );
+      
+      case 'input-collection':
+        return renderInputCollectionContent();
       
       case 'generating':
         return <GenerationPreview template={session.template} />;
