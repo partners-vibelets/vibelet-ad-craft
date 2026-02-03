@@ -15,6 +15,7 @@ const Create = () => {
     session,
     messages,
     templates,
+    currentInputId,
     selectTemplate,
     provideInput,
     skipInput,
@@ -61,6 +62,7 @@ const Create = () => {
             onSkipInput={skipInput}
             onReset={reset}
             showTemplateChips={showTemplateChips}
+            currentInputId={currentInputId}
           />
         </div>
 
@@ -71,6 +73,9 @@ const Create = () => {
             templates={templates}
             onSelectTemplate={selectTemplate}
             onRegenerate={regenerate}
+            onProvideInput={provideInput}
+            onSkipInput={skipInput}
+            currentInputId={currentInputId}
           />
         </div>
       </div>
