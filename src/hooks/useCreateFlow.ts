@@ -67,8 +67,6 @@ export const useCreateFlow = () => {
     const template = CREATE_TEMPLATES.find(t => t.id === templateId);
     if (!template) return;
 
-    const firstInput = template.requiredInputs[0];
-
     setSession(prev => ({
       ...prev,
       template,
@@ -77,28 +75,24 @@ export const useCreateFlow = () => {
       collectedInputs: [],
     }));
 
-    setCurrentInputId(firstInput?.id);
+    setCurrentInputId(undefined); // Let the canvas panel handle input collection
 
-    // Add user message showing selection
+    // Add conversational messages
     const userMsg = createUserMessage(`I want to create a ${template.name}`);
     
-    // Prepare the first input request
+    // For video templates, give guidance about the setup panel
+    const isVideo = template.outputType === 'video';
     const assistantMsg = createAssistantMessage(
-      `Great choice! ${template.description}. Let's get started.`,
+      isVideo 
+        ? `Great choice! I've opened the video setup panel for you. Fill in the details on the right – upload your product image, add a description, and optionally pick an AI presenter. Hit "Generate Video" when you're ready! 🎬`
+        : `Let's create something amazing! ${template.description}. Start by providing the required information.`
     );
 
-    // Second message asking for first input
-    const inputRequestMsg = createAssistantMessage(
-      getInputPrompt(firstInput),
-      { inputRequest: firstInput }
-    );
-
-    setMessages(prev => [...prev, userMsg, assistantMsg, inputRequestMsg]);
+    setMessages(prev => [...prev, userMsg, assistantMsg]);
   }, []);
 
   // Handle generic prompt (custom creation)
   const handleGenericPrompt = useCallback((prompt: string) => {
-    // For generic prompts, use the custom-prompt template
     const customTemplate = CREATE_TEMPLATES.find(t => t.id === 'custom-prompt');
     if (!customTemplate) return;
 
@@ -117,91 +111,69 @@ export const useCreateFlow = () => {
 
     setMessages(prev => [...prev, userMsg, assistantMsg]);
 
-    // Simulate generation
     simulateGeneration(prompt);
   }, []);
 
-  // Provide input value
+  // Provide input value - works for both chat and canvas inputs
   const provideInput = useCallback((inputId: string, value: string | File) => {
     const input = getAllInputs().find(i => i.id === inputId);
     if (!input) return;
 
-    // Add to collected inputs
-    const newCollectedInputs = [...session.collectedInputs, { inputId, value, type: input.type }];
+    // Check if this input already exists (for updates)
+    const existingIndex = session.collectedInputs.findIndex(i => i.inputId === inputId);
+    
+    let newCollectedInputs: CollectedInput[];
+    if (existingIndex >= 0) {
+      // Update existing
+      newCollectedInputs = [...session.collectedInputs];
+      newCollectedInputs[existingIndex] = { inputId, value, type: input.type };
+    } else {
+      // Add new
+      newCollectedInputs = [...session.collectedInputs, { inputId, value, type: input.type }];
+    }
     
     setSession(prev => ({
       ...prev,
       collectedInputs: newCollectedInputs,
     }));
 
-    // Add user message
+    // Add chat message for feedback
     const displayValue = typeof value === 'string' ? value : (value as File).name;
+    const feedbackMessages: Record<string, string> = {
+      'product-image': `📸 Product image uploaded!`,
+      'product-description': `✍️ Description saved: "${displayValue.slice(0, 50)}${displayValue.length > 50 ? '...' : ''}"`,
+      'avatar': `👤 Avatar selected: ${value}`,
+      'script': value === 'generate' ? `✨ AI will generate a script for you` : `📝 Script saved`,
+      'duration': `⏱️ Duration set to ${value} seconds`,
+    };
+
     const userMsg = createUserMessage(
-      input.type === 'image' ? `[Uploaded: ${displayValue}]` : 
-      input.type === 'avatar' ? `Selected avatar: ${value}` :
-      displayValue,
+      feedbackMessages[inputId] || displayValue,
       input.type === 'image' ? { uploadedImage: typeof value === 'string' ? value : URL.createObjectURL(value) } : undefined
     );
+    
     setMessages(prev => [...prev, userMsg]);
 
-    // Check what's next
-    setTimeout(() => {
-      checkNextStep(inputId, newCollectedInputs);
-    }, 500);
+    // Add encouraging response for key milestones
+    const collectedCount = newCollectedInputs.length;
+    const requiredCount = session.template?.requiredInputs.length || 0;
+    
+    if (inputId === 'product-image' && !session.collectedInputs.find(i => i.inputId === 'product-description')) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, createAssistantMessage("Looking good! Now add a brief product description.")]);
+      }, 300);
+    } else if (collectedCount >= requiredCount && existingIndex < 0) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, createAssistantMessage("🎉 All set! You can generate now or customize more options.")]);
+      }, 300);
+    }
   }, [getAllInputs, session.collectedInputs, session.template]);
 
   // Skip optional input
   const skipInput = useCallback((inputId: string) => {
-    const userMsg = createUserMessage("Skip this");
+    const userMsg = createUserMessage(`Skipping ${inputId.replace('-', ' ')}`);
     setMessages(prev => [...prev, userMsg]);
-
-    setTimeout(() => {
-      checkNextStep(inputId, session.collectedInputs);
-    }, 300);
-  }, [session.collectedInputs, session.template]);
-
-  // Check what to do next after input
-  const checkNextStep = useCallback((lastInputId: string, currentCollected: CollectedInput[]) => {
-    if (!session.template) return;
-
-    const allInputs = [...session.template.requiredInputs, ...session.template.optionalInputs];
-    const lastIndex = allInputs.findIndex(i => i.id === lastInputId);
-    const nextInput = allInputs[lastIndex + 1];
-
-    const collectedIds = currentCollected.map(i => i.inputId);
-    const remainingRequired = session.template.requiredInputs.filter(
-      i => !collectedIds.includes(i.id)
-    );
-
-    // If all required inputs are collected
-    if (remainingRequired.length === 0) {
-      // Check if there are optional inputs to offer
-      const nextOptionalInput = session.template.optionalInputs.find(
-        i => !collectedIds.includes(i.id)
-      );
-
-      if (nextOptionalInput) {
-        setCurrentInputId(nextOptionalInput.id);
-        const assistantMsg = createAssistantMessage(
-          getOptionalPrompt(nextOptionalInput),
-          { inputRequest: nextOptionalInput }
-        );
-        setMessages(prev => [...prev, assistantMsg]);
-      } else {
-        // All done, start generating
-        setCurrentInputId(undefined);
-        startGeneration();
-      }
-    } else if (nextInput) {
-      // Move to next required input
-      setCurrentInputId(nextInput.id);
-      const assistantMsg = createAssistantMessage(
-        getInputPrompt(nextInput),
-        { inputRequest: nextInput }
-      );
-      setMessages(prev => [...prev, assistantMsg]);
-    }
-  }, [session.template]);
+  }, []);
 
   // Start generation
   const startGeneration = useCallback(() => {
@@ -211,10 +183,9 @@ export const useCreateFlow = () => {
       status: 'generating',
     }));
 
-    const assistantMsg = createAssistantMessage("Perfect! I'm generating your video now. This may take a couple of minutes...");
+    const assistantMsg = createAssistantMessage("🚀 Generating your video now. This may take a couple of minutes...");
     setMessages(prev => [...prev, assistantMsg]);
 
-    // Simulate generation
     simulateGeneration();
   }, []);
 
@@ -222,12 +193,10 @@ export const useCreateFlow = () => {
   const simulateGeneration = useCallback((prompt?: string) => {
     setIsGenerating(true);
 
-    // Mock delay of 4-6 seconds for video
     const isVideo = session.template?.outputType === 'video';
     const delay = isVideo ? 4000 + Math.random() * 2000 : 3000 + Math.random() * 2000;
 
     setTimeout(() => {
-      // Mock generated outputs - realistic video thumbnails
       const mockOutputs: GeneratedCreative[] = [
         {
           id: generateId(),
@@ -252,7 +221,7 @@ export const useCreateFlow = () => {
       }));
 
       const assistantMsg = createAssistantMessage(
-        "🎉 Your video is ready! You can preview it, download it, or use it directly in a campaign."
+        "🎉 Your video is ready! Preview it, download, or use it in a campaign."
       );
       setMessages(prev => [...prev, assistantMsg]);
       setIsGenerating(false);
@@ -292,9 +261,7 @@ export const useCreateFlow = () => {
 
   // Handle user message (natural language)
   const handleUserMessage = useCallback((message: string) => {
-    // If no template selected, check if it's a generic prompt or template reference
     if (!session.template) {
-      // Check if user is selecting a template by name
       const matchedTemplate = CREATE_TEMPLATES.find(t => 
         message.toLowerCase().includes(t.name.toLowerCase()) ||
         message.toLowerCase().includes(t.id.replace('-', ' '))
@@ -303,30 +270,31 @@ export const useCreateFlow = () => {
       if (matchedTemplate) {
         selectTemplate(matchedTemplate.id);
       } else {
-        // Treat as generic prompt
         handleGenericPrompt(message);
       }
       return;
     }
 
-    // Check for generate/create commands
+    // Check for generate commands
     if (message.toLowerCase().includes('generate') || 
         message.toLowerCase().includes('create now') ||
-        message.toLowerCase().includes('start generating')) {
+        message.toLowerCase().includes('start')) {
       if (hasAllRequiredInputs()) {
         startGeneration();
         return;
       }
     }
 
-    // If in input collection, treat as input value based on current input type
-    if (currentInputId) {
-      const currentInput = getAllInputs().find(i => i.id === currentInputId);
-      if (currentInput && (currentInput.type === 'text' || currentInput.type === 'script')) {
-        provideInput(currentInputId, message);
-      }
+    // Treat as product description if that's what we're waiting for
+    const hasDescription = session.collectedInputs.find(i => i.inputId === 'product-description');
+    if (!hasDescription && message.length > 10) {
+      provideInput('product-description', message);
+    } else {
+      // Echo other messages
+      const userMsg = createUserMessage(message);
+      setMessages(prev => [...prev, userMsg]);
     }
-  }, [session.template, currentInputId, selectTemplate, handleGenericPrompt, provideInput, startGeneration, hasAllRequiredInputs, getAllInputs]);
+  }, [session.template, session.collectedInputs, selectTemplate, handleGenericPrompt, provideInput, startGeneration, hasAllRequiredInputs]);
 
   return {
     session,
@@ -346,36 +314,3 @@ export const useCreateFlow = () => {
     getRemainingRequiredInputs,
   };
 };
-
-// Helper function to get conversational prompt for each input type
-function getInputPrompt(input: CreateInputDefinition): string {
-  const prompts: Record<string, string> = {
-    'product-image': "First, upload your product image. You can drag & drop it on the canvas or use the upload button.",
-    'product-description': "Tell me about your product – what makes it special? You can type in the canvas or here in chat.",
-    'hand-model': "What style of hand would you like holding your product?",
-    'background': "Any specific background style in mind?",
-    'avatar': "Now, pick an AI presenter for your video. Click any avatar to see a preview of their style!",
-    'script': "Would you like to write a custom script or let AI generate one for you?",
-    'duration': "How long should the video be?",
-    'scene': "What kind of scene works best for your product?",
-    'lighting': "What lighting style would you prefer?",
-    'angle': "What camera angle works best?",
-    'caption-idea': "What message do you want to convey in your post?",
-    'platform-format': "What platform format do you need?",
-    'custom-prompt': "Describe what you'd like me to create.",
-    'reference-image': "Do you have a reference image to guide the style?",
-  };
-
-  return prompts[input.id] || `Please provide the ${input.label.toLowerCase()}.`;
-}
-
-// Helper function for optional input prompts
-function getOptionalPrompt(input: CreateInputDefinition): string {
-  const prompts: Record<string, string> = {
-    'avatar': "Looking good! Would you like to choose a specific AI presenter, or should I pick the best match for your product?",
-    'script': "Almost there! Would you like to write your own script, or should I generate one based on your product?",
-    'duration': "How long should your video be? (You can skip this for a 30-second default)",
-  };
-
-  return prompts[input.id] || `Would you like to customize the ${input.label.toLowerCase()}? You can skip this if you'd like.`;
-}

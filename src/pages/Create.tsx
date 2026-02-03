@@ -19,6 +19,7 @@ const Create = () => {
     selectTemplate,
     provideInput,
     skipInput,
+    startGeneration,
     regenerate,
     reset,
     handleUserMessage,
@@ -75,6 +76,7 @@ const Create = () => {
             onRegenerate={regenerate}
             onProvideInput={provideInput}
             onSkipInput={skipInput}
+            onStartGeneration={startGeneration}
             currentInputId={currentInputId}
           />
         </div>

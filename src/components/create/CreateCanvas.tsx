@@ -1,13 +1,9 @@
 import { useState } from 'react';
-import { CreateSession, CreateTemplate, CollectedInput } from '@/types/create';
+import { CreateSession, CreateTemplate } from '@/types/create';
 import { TemplateGallery } from './TemplateGallery';
 import { GenerationPreview } from './GenerationPreview';
 import { CreativeResult } from './CreativeResult';
-import { InputProgress } from './InputProgress';
-import { AvatarSelectionPanel } from './AvatarSelectionPanel';
-import { ProductImagePanel } from './ProductImagePanel';
-import { ProductDescriptionPanel } from './ProductDescriptionPanel';
-import { ScriptInputPanel } from './ScriptInputPanel';
+import { VideoSetupPanel } from './VideoSetupPanel';
 import { cn } from '@/lib/utils';
 
 interface CreateCanvasProps {
@@ -17,6 +13,7 @@ interface CreateCanvasProps {
   onRegenerate: () => void;
   onProvideInput: (inputId: string, value: string | File) => void;
   onSkipInput: (inputId: string) => void;
+  onStartGeneration: () => void;
   currentInputId?: string;
 }
 
@@ -27,97 +24,9 @@ export const CreateCanvas = ({
   onRegenerate,
   onProvideInput,
   onSkipInput,
+  onStartGeneration,
   currentInputId
 }: CreateCanvasProps) => {
-  const [descriptionValue, setDescriptionValue] = useState('');
-
-  // Get uploaded image URL from collected inputs
-  const getCollectedValue = (inputId: string): string | undefined => {
-    const input = session.collectedInputs.find(i => i.inputId === inputId);
-    if (!input) return undefined;
-    if (typeof input.value === 'string') return input.value;
-    if (input.value instanceof File) return URL.createObjectURL(input.value);
-    return undefined;
-  };
-
-  const uploadedImageUrl = getCollectedValue('product-image');
-  const productDescription = session.collectedInputs.find(i => i.inputId === 'product-description')?.value as string;
-
-  const renderInputCollectionContent = () => {
-    // Show different panels based on current input being collected
-    switch (currentInputId) {
-      case 'product-image':
-        return (
-          <ProductImagePanel
-            onUpload={(file) => onProvideInput('product-image', file)}
-            uploadedImageUrl={uploadedImageUrl}
-          />
-        );
-      
-      case 'product-description':
-        return (
-          <ProductDescriptionPanel
-            value={descriptionValue}
-            onChange={setDescriptionValue}
-            onSubmit={() => {
-              onProvideInput('product-description', descriptionValue);
-              setDescriptionValue('');
-            }}
-            uploadedImageUrl={uploadedImageUrl}
-          />
-        );
-      
-      case 'avatar':
-        return (
-          <AvatarSelectionPanel
-            onSelectAvatar={(avatarId) => onProvideInput('avatar', avatarId)}
-            selectedAvatarId={getCollectedValue('avatar')}
-          />
-        );
-      
-      case 'script':
-        return (
-          <ScriptInputPanel
-            onSubmitScript={(script) => onProvideInput('script', script)}
-            onSkip={() => onSkipInput('script')}
-            productDescription={productDescription}
-          />
-        );
-      
-      default:
-        // Default input collection view with progress
-        return (
-          <div className="flex flex-col items-center justify-center h-full p-8">
-            <div className="w-full max-w-md">
-              {session.template && (
-                <>
-                  <div className="text-center mb-8">
-                    <h2 className="text-xl font-bold text-foreground mb-2">
-                      {session.template.name}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {session.template.description}
-                    </p>
-                  </div>
-                  
-                  <InputProgress 
-                    template={session.template}
-                    collectedInputs={session.collectedInputs}
-                  />
-
-                  <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                    <p className="text-sm text-center text-muted-foreground">
-                      Answer the questions in chat to continue. Your creative will appear here once generated.
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-    }
-  };
-
   const renderContent = () => {
     switch (session.canvasState) {
       case 'template-selection':
@@ -129,7 +38,35 @@ export const CreateCanvas = ({
         );
       
       case 'input-collection':
-        return renderInputCollectionContent();
+        // For video templates, show the combined setup panel
+        if (session.template?.outputType === 'video') {
+          return (
+            <VideoSetupPanel
+              collectedInputs={session.collectedInputs}
+              onProvideInput={onProvideInput}
+              onStartGeneration={onStartGeneration}
+            />
+          );
+        }
+        
+        // For image templates, show simpler input collection
+        return (
+          <div className="flex flex-col items-center justify-center h-full p-8">
+            <div className="w-full max-w-md text-center">
+              <h2 className="text-xl font-bold text-foreground mb-2">
+                {session.template?.name}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-6">
+                {session.template?.description}
+              </p>
+              <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <p className="text-sm text-muted-foreground">
+                  Use the chat to provide the required information
+                </p>
+              </div>
+            </div>
+          </div>
+        );
       
       case 'generating':
         return <GenerationPreview template={session.template} />;
