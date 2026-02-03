@@ -1,6 +1,10 @@
-import { Sparkles, Zap, Target, TrendingUp } from 'lucide-react';
+import { Sparkles, Zap, Target, TrendingUp, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 export const WelcomePanel = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 text-center">
       <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
@@ -29,7 +33,17 @@ export const WelcomePanel = () => {
         </div>
       </div>
 
-      <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 max-w-md">
+      {/* Create New button */}
+      <Button 
+        onClick={() => navigate('/create')}
+        className="mt-8 gap-2"
+        size="lg"
+      >
+        <Plus className="w-4 h-4" />
+        Create New
+      </Button>
+
+      <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20 max-w-md">
         <p className="text-sm text-foreground">
           <span className="font-medium">Quick tip:</span> Paste any product URL from your store and I'll extract all the details automatically.
         </p>
