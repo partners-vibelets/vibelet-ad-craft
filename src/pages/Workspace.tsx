@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { Sparkles, ArrowUp, Paperclip } from 'lucide-react';
+import { Sparkles, ArrowUp, Paperclip, FileText, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
 
@@ -32,6 +32,10 @@ const Workspace = () => {
     focusArtifact,
     setSidebarCollapsed,
     openSignalsDashboard,
+    archiveThread,
+    summarizeThread,
+    pinArtifact,
+    allThreads,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,15 +64,38 @@ const Workspace = () => {
         activeWorkspaceId="ws-1"
         onSwitchWorkspace={() => {}}
         onSignalsClick={openSignalsDashboard}
+        threads={allThreads}
+        onArchiveThread={archiveThread}
+        onSummarizeThread={summarizeThread}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
         {activeThread && (
           <div className="h-11 border-b border-border/30 flex items-center px-5 gap-2.5 shrink-0">
             <span className="text-sm font-medium text-foreground truncate">{activeThread.title}</span>
-            <span className="text-[10px] text-muted-foreground/60 ml-auto">
-              {activeThread.artifacts.length > 0 && `${activeThread.artifacts.length} artifact${activeThread.artifacts.length !== 1 ? 's' : ''}`}
+            <span className={cn(
+              "text-[10px] px-1.5 py-0.5 rounded-full ml-1",
+              activeThread.status === 'live-campaign' ? "bg-amber-400/15 text-amber-500" :
+              activeThread.status === 'archived' ? "bg-muted text-muted-foreground" :
+              "bg-secondary/10 text-secondary"
+            )}>
+              {activeThread.status === 'live-campaign' ? 'Live' : activeThread.status === 'archived' ? 'Archived' : 'Active'}
             </span>
+            <div className="ml-auto flex items-center gap-1">
+              {activeThread.artifacts.length > 0 && (
+                <span className="text-[10px] text-muted-foreground/60 mr-2">
+                  {activeThread.artifacts.length} artifact{activeThread.artifacts.length !== 1 ? 's' : ''}
+                </span>
+              )}
+              <button
+                onClick={() => summarizeThread(activeThread.id)}
+                className="h-7 px-2 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1"
+                title="Summarize thread"
+              >
+                <FileText className="w-3 h-3" />
+                Summarize
+              </button>
+            </div>
           </div>
         )}
 
@@ -77,6 +104,23 @@ const Workspace = () => {
             <>
               <div ref={scrollRef} className="h-full overflow-y-auto">
                 <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
+                  {/* Pinned artifacts at top */}
+                  {activeThread.pinnedArtifactIds.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium flex items-center gap-1 px-1">
+                        <Pin className="w-3 h-3" /> Pinned
+                      </span>
+                      <ArtifactStream
+                        artifacts={activeThread.artifacts.filter(a => activeThread.pinnedArtifactIds.includes(a.id))}
+                        onToggleCollapse={toggleArtifactCollapse}
+                        onUpdateData={updateArtifactData}
+                        onArtifactAction={handleArtifactAction}
+                        focusedArtifactId={focusedArtifactId}
+                        pinnedIds={activeThread.pinnedArtifactIds}
+                        onPinArtifact={pinArtifact}
+                      />
+                    </div>
+                  )}
                   {activeThread.messages.map((msg, msgIdx) => {
                     const relatedArtifacts = msg.artifactIds
                       ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
@@ -99,6 +143,8 @@ const Workspace = () => {
                               onUpdateData={updateArtifactData}
                               onArtifactAction={handleArtifactAction}
                               focusedArtifactId={focusedArtifactId}
+                              pinnedIds={activeThread.pinnedArtifactIds}
+                              onPinArtifact={pinArtifact}
                             />
                           </div>
                         )}

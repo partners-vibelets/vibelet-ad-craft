@@ -573,6 +573,7 @@ export function useWorkspace() {
       id, title: 'New Thread', workspaceId,
       messages: [{ id: `msg-${Date.now()}`, role: 'assistant', content: "Hi! I'm your AI marketing assistant. What would you like to work on? 🚀\n\nI can help with **campaigns**, **creatives**, **Facebook account management**, **performance analysis**, or **automation**.", timestamp: new Date() }],
       artifacts: [], rules: [], createdAt: new Date(), updatedAt: new Date(), isActive: true,
+      status: 'active', pinnedArtifactIds: [],
     };
     setThreads(prev => ({ ...prev, [id]: newThread }));
     setActiveThreadId(id);
@@ -925,16 +926,56 @@ export function useWorkspace() {
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: true,
+      status: 'active',
+      pinnedArtifactIds: [],
     };
 
     setThreads(prev => ({ ...prev, [id]: newThread }));
     setActiveThreadId(id);
   }, [threads]);
 
+  const archiveThread = useCallback((threadId: string) => {
+    setThreads(prev => {
+      const thread = prev[threadId];
+      if (!thread) return prev;
+      return { ...prev, [threadId]: { ...thread, status: thread.status === 'archived' ? 'active' : 'archived', isActive: thread.status === 'archived' } };
+    });
+  }, []);
+
+  const summarizeThread = useCallback((threadId: string) => {
+    if (!threadId) return;
+    const thread = threads[threadId];
+    if (!thread) return;
+
+    const artifactCount = thread.artifacts.length;
+    const msgCount = thread.messages.length;
+    const types = [...new Set(thread.artifacts.map(a => a.type))];
+    const summary = `📝 **Thread Summary: ${thread.title}**\n\n• ${msgCount} messages, ${artifactCount} artifacts\n• Artifact types: ${types.map(t => t.replace(/-/g, ' ')).join(', ') || 'none'}\n• Created: ${thread.createdAt.toLocaleDateString()}\n• Last updated: ${thread.updatedAt.toLocaleDateString()}`;
+
+    const summaryMsg: ThreadMessage = {
+      id: `msg-summary-${Date.now()}`, role: 'assistant', content: summary, timestamp: new Date(),
+    };
+    appendMessage(threadId, summaryMsg);
+  }, [threads, appendMessage]);
+
+  const pinArtifact = useCallback((artifactId: string) => {
+    if (!activeThreadId) return;
+    setThreads(prev => {
+      const thread = prev[activeThreadId];
+      if (!thread) return prev;
+      const pinned = thread.pinnedArtifactIds.includes(artifactId)
+        ? thread.pinnedArtifactIds.filter(id => id !== artifactId)
+        : [...thread.pinnedArtifactIds, artifactId];
+      return { ...prev, [activeThreadId]: { ...thread, pinnedArtifactIds: pinned } };
+    });
+  }, [activeThreadId]);
+
+  const allThreads = Object.values(threads);
+
   return {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
-    openSignalsDashboard,
+    openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
   };
 }
