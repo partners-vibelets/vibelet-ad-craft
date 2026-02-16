@@ -20,11 +20,16 @@ interface ConversationStep {
 type Intent =
   | 'campaign' | 'create-flow' | 'creative-images' | 'creative-video' | 'creative-both'
   | 'connect-facebook' | 'audit' | 'publish' | 'performance' | 'insights'
-  | 'rule' | 'demo' | 'default';
+  | 'rule' | 'demo' | 'product-url' | 'default';
+
+function isUrl(message: string): boolean {
+  return /https?:\/\/|www\.|\.com|\.shop|\.store|\.co\b|\.io\b|\.net\b|\.org\b/i.test(message);
+}
 
 function detectIntent(message: string): Intent {
   const l = message.toLowerCase();
   if (l.includes('full demo') || l.includes('run demo') || l.includes('end to end') || l.includes('end-to-end') || l.includes('show me everything')) return 'demo';
+  if (isUrl(message)) return 'product-url';
   if ((l.includes('connect') || l.includes('link') || l.includes('add') || l.includes('integrate')) && (l.includes('facebook') || l.includes('fb') || l.includes('meta'))) return 'connect-facebook';
   if (l.includes('audit') || (l.includes('review') && l.includes('account')) || (l.includes('what') && l.includes('working'))) return 'audit';
   if (l.includes('publish') || l.includes('go live') || l.includes('push live') || l.includes('launch campaign')) return 'publish';
@@ -34,9 +39,11 @@ function detectIntent(message: string): Intent {
   if ((l.includes('create') || l.includes('generate') || l.includes('make') || l.includes('design') || l.includes('build'))
     && (l.includes('creative') || l.includes('ad') || l.includes('content'))) return 'create-flow';
   if (l.includes('campaign') || l.includes('plan') || l.includes('blueprint') || l.includes('summer') || l.includes('launch')) return 'campaign';
-  if (l.includes('performance') || l.includes('metrics') || l.includes('how') && l.includes('doing')) return 'performance';
+  if (l.includes('performance') || l.includes('metrics') || (l.includes('how') && l.includes('doing'))) return 'performance';
   if (l.includes('insight') || l.includes('signal') || l.includes('anomal')) return 'insights';
   if (l.includes('rule') || l.includes('automat') || l.includes('trigger')) return 'rule';
+  // Treat any freeform text as a product description if it's long enough (likely describing a product)
+  if (l.length > 30 && !l.includes('?')) return 'product-url';
   return 'default';
 }
 
@@ -675,6 +682,58 @@ export function useWorkspace() {
     appendMessage(activeThreadId, userMsg);
 
     const intent = detectIntent(content);
+    const thread = threads[activeThreadId];
+    
+    // Context-aware: check what the last assistant message was asking for
+    const lastAssistantMsg = thread?.messages?.filter(m => m.role === 'assistant').slice(-1)[0];
+    const lastContent = lastAssistantMsg?.content?.toLowerCase() || '';
+    const wasAskingForProduct = lastContent.includes('product url') || lastContent.includes('paste') || lastContent.includes('describe') || lastContent.includes('promoting') || lastContent.includes('sample');
+    const wasAskingForGoal = lastContent.includes('primary goal') || lastContent.includes('campaign goal');
+    const wasAskingForBudget = lastContent.includes('budget') || lastContent.includes('comfort zone');
+
+    // If the system was asking for product info and user provides anything (URL or description), auto-analyze
+    if (wasAskingForProduct && (intent === 'product-url' || intent === 'default')) {
+      // Simulate analyzing the product
+      setIsTyping(true);
+      const analyzeSteps: ConversationStep[] = [
+        { delay: 800, response: { content: `🔍 Analyzing your product... pulling details now.` } },
+        { delay: 3000, response: styleToProductAnalysis('bold') },
+      ];
+      runConversationSteps(activeThreadId, analyzeSteps);
+      return;
+    }
+
+    // If asking for goal and user types something matching
+    if (wasAskingForGoal) {
+      const l = content.toLowerCase();
+      let goalAction = 'goal-sales';
+      if (l.includes('aware') || l.includes('brand')) goalAction = 'goal-awareness';
+      else if (l.includes('traffic') || l.includes('click') || l.includes('visit')) goalAction = 'goal-traffic';
+      else if (l.includes('lead')) goalAction = 'goal-sales';
+      const prefix = isDemoRef.current ? 'demo-' : '';
+      const followUp = goalFollowUps[goalAction];
+      if (followUp) {
+        const mapped = isDemoRef.current ? followUp.map(step => ({
+          ...step, response: { ...step.response, actionChips: step.response.actionChips?.map(c => ({ ...c, action: c.action.replace('budget-', 'demo-budget-') })) },
+        })) : followUp;
+        setIsTyping(true);
+        runConversationSteps(activeThreadId, mapped);
+      }
+      return;
+    }
+
+    // If asking for budget and user types something
+    if (wasAskingForBudget) {
+      const l = content.toLowerCase();
+      let budgetLevel = 'budget-medium';
+      if (l.includes('low') || l.includes('small') || l.includes('under') || l.includes('less')) budgetLevel = 'budget-low';
+      else if (l.includes('high') || l.includes('big') || l.includes('more') || l.includes('100') || l.includes('150')) budgetLevel = 'budget-high';
+      const budgetMap: Record<string, number> = { 'budget-low': 25, 'budget-medium': 60, 'budget-high': 120 };
+      const response = isDemoRef.current ? demoBlueprintResponse('Sales', budgetMap[budgetLevel] || 60) : buildBlueprintResponse('Sales', budgetMap[budgetLevel] || 60);
+      respondWithSim(activeThreadId, response);
+      return;
+    }
+
     if (intent === 'demo') {
       isDemoRef.current = true;
       setThreads(prev => {
@@ -683,6 +742,14 @@ export function useWorkspace() {
       });
       setIsTyping(true);
       runConversationSteps(activeThreadId, buildDemoFlow());
+    } else if (intent === 'product-url') {
+      // User pasted a URL or described product outside of a prompt context — auto-analyze
+      setIsTyping(true);
+      const analyzeSteps: ConversationStep[] = [
+        { delay: 800, response: { content: `🔍 Analyzing your product... pulling details now.` } },
+        { delay: 3000, response: styleToProductAnalysis('bold') },
+      ];
+      runConversationSteps(activeThreadId, analyzeSteps);
     } else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
     else if (intent === 'create-flow') { setIsTyping(true); runConversationSteps(activeThreadId, buildCreativeConversation()); }
     else if (intent === 'creative-images') { setIsTyping(true); runConversationSteps(activeThreadId, buildCreativeConversation('image')); }
@@ -692,7 +759,7 @@ export function useWorkspace() {
     else if (intent === 'audit') { setIsTyping(true); runConversationSteps(activeThreadId, buildAuditFlow(isDemoRef.current)); }
     else if (intent === 'publish') { respondWithSim(activeThreadId, isDemoRef.current ? demoPublishResponse() : publishCampaignResponse()); }
     else { respondWithSim(activeThreadId, simpleResponses[intent] || simpleResponses.default); }
-  }, [activeThreadId, appendMessage, runConversationSteps, respondWithSim]);
+  }, [activeThreadId, threads, appendMessage, runConversationSteps, respondWithSim]);
 
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
