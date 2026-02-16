@@ -15,6 +15,7 @@ import NotificationLog from "./pages/NotificationLog";
 import CommandCenter from "./pages/CommandCenter";
 import ActionsHistory from "./pages/ActionsHistory";
 import Create from "./pages/Create";
+import Workspace from "./pages/Workspace";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="/command-center" element={<CommandCenter />} />
                 <Route path="/actions-history" element={<ActionsHistory />} />
                 <Route path="/create" element={<Create />} />
+                <Route path="/workspace" element={<Workspace />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
