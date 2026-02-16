@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
+import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin } from 'lucide-react';
@@ -8,6 +9,14 @@ import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
 
 const Workspace = () => {
+  const [onboardingComplete, setOnboardingComplete] = useState(() => {
+    return localStorage.getItem('vibelets-onboarded') === 'true';
+  });
+  const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(() => {
+    const saved = localStorage.getItem('vibelets-onboarding-data');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   const {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
@@ -24,11 +33,27 @@ const Workspace = () => {
     }
   }, [activeThread?.messages, isTyping]);
 
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    setOnboardingData(data);
+    setOnboardingComplete(true);
+    localStorage.setItem('vibelets-onboarded', 'true');
+    localStorage.setItem('vibelets-onboarding-data', JSON.stringify(data));
+  };
+
   const handleHomeMessage = (message: string, context?: { path: string; filters?: Record<string, string[]> }) => {
     enterWorkspaceFromHome(message, context);
   };
 
   const showSuggestions = activeThread && activeThread.messages.length <= 1 && !isTyping;
+
+  // Show onboarding for first-time users
+  if (!onboardingComplete) {
+    return (
+      <div className="h-screen flex bg-background overflow-hidden">
+        <OnboardingFlow onComplete={handleOnboardingComplete} userName="Alex Johnson" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
@@ -54,6 +79,7 @@ const Workspace = () => {
             onSendMessage={handleHomeMessage}
             userName="Alex Johnson"
             credits={247}
+            onboardingComplete={onboardingComplete}
           />
         ) : (
           <>

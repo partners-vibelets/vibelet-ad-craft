@@ -340,15 +340,21 @@ function buildAuditFlow(isDemo = false): ConversationStep[] {
 // ========== DEMO FLOW ==========
 
 function buildDemoFlow(): ConversationStep[] {
-  return [{ delay: 1200, response: {
-    content: `🎬 Let me show you the full Vibelets experience — from product to live campaign.\n\nI'll use a sample product to walk through everything. Let me start by analyzing it...`,
-  } }, { delay: 3500, response: styleToProductAnalysis('bold') }];
+  return [
+    { delay: 1200, response: {
+      content: `Hey! 👋 Let me walk you through what Vibelets can do — I'll take a real product and show you the entire journey from analysis to a live campaign with AI monitoring.\n\nFirst things first — I need a product to work with. Got a URL, or want me to use a sample?`,
+      actionChips: [
+        { label: '🔗 Paste a URL', action: 'prompt-url' },
+        { label: '⚡ Use sample product', action: 'use-sample-product' },
+      ],
+    }},
+  ];
 }
 
 function demoBlueprintResponse(objective: string, budgetDaily: number): SimResponse {
   const base = buildBlueprintResponse(objective, budgetDaily);
   return { ...base,
-    content: `Here's your campaign blueprint — I've filled in targeting, schedule, and creatives based on the product analysis.\n\n${base.content}`,
+    content: `I've put together a full campaign blueprint based on your product. Targeting, schedule, creatives — all pre-filled. **Click any field to tweak it.**`,
     actionChips: [{ label: '🎨 Generate creatives', action: 'demo-creatives' }, { label: '✏️ Edit blueprint', action: 'refine-targeting' }],
   };
 }
@@ -356,7 +362,7 @@ function demoBlueprintResponse(objective: string, budgetDaily: number): SimRespo
 function demoCreativeResultResponse(avatarName: string): SimResponse {
   const base = creativeResultResponse(avatarName);
   return { ...base,
-    content: `🎉 **Your creatives are ready!** Preview them below.\n\nNow let's get these live — I'll connect your Facebook account and set up the campaign.`,
+    content: `🎉 **All creatives are ready!** You've got images for feed, story, and a video with ${avatarName}.\n\nNow let's get these in front of your audience — I just need to connect your ad account.`,
     actionChips: [{ label: '📱 Connect Facebook', action: 'connect-facebook' }, { label: '📥 Download all', action: 'download-all' }],
   };
 }
@@ -364,23 +370,22 @@ function demoCreativeResultResponse(avatarName: string): SimResponse {
 function demoFacebookConnectedResponse(): SimResponse {
   const base = facebookConnectedResponse();
   return { ...base,
-    content: `✅ **Facebook connected!** I found your ad account and auto-detected your Pixel and Page.\n\nLet's configure and publish your campaign.`,
-    actionChips: [{ label: '🚀 Configure & publish', action: 'configure-campaign' }, { label: '📊 Run account audit first', action: 'audit' }],
+    content: `✅ **Connected!** I found your ad account — **Primary Ad Account** with Pixel and Page auto-detected.\n\nLet me configure the campaign so you can review everything before going live.`,
+    actionChips: [{ label: '🚀 Configure & publish', action: 'configure-campaign' }],
   };
 }
 
 function demoPublishResponse(): SimResponse {
   const base = publishCampaignResponse();
   return { ...base,
-    content: `🎉🎊 **Campaign published!** Your ads are now live.\n\nI'll monitor performance and send insights as they come in. Want me to run a full account audit to see how this fits with your other campaigns?`,
+    content: `🎉🎊 **Your campaign is live!** Ads are now running on Facebook & Instagram.\n\nThe campaign enters a learning phase — I'll have initial data for you in 24-48 hours. In the meantime, want me to audit your account to find more opportunities?`,
     actionChips: [{ label: '🔍 Run account audit', action: 'audit' }, { label: '📊 View performance', action: 'performance' }],
   };
 }
 
 function demoAuditActionChips(): ActionChip[] {
   return [
-    { label: '⚡ Act on recommendation', action: 'demo-act-recommendation' },
-    { label: '🤖 Set up automation rule', action: 'setup-rule' },
+    { label: '⚡ Apply top recommendation', action: 'demo-act-recommendation' },
     { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
   ];
 }
@@ -786,13 +791,16 @@ export function useWorkspace() {
 
     if (action === 'demo-act-recommendation') {
       respondWithSim(activeThreadId, {
-        content: `⚡ **Acting on top recommendation: "Reallocate budget to retargeting"**\n\nShifting $400/month from underperforming broad campaigns to your retargeting campaign (5.2x ROAS).`,
+        content: `⚡ **Done — budget reallocated!** I've shifted $400/month from underperforming broad campaigns to your retargeting campaign (5.2x ROAS).\n\n• Expected impact: **+$2,000/month revenue**\n• I'll monitor this for 7 days and auto-revert if ROAS drops below 3x\n\nWant me to set up an automation rule so I can handle these optimizations automatically going forward?`,
         artifacts: [{ type: 'ai-insights' as ArtifactType, titleSuffix: 'Budget Reallocation — Applied', dataOverrides: { insights: [{
           type: 'opportunity', severity: 'high', title: 'Reallocate budget to retargeting',
-          description: 'Expected to add $2,000+/month in revenue. Retargeting campaign has 5.2x ROAS vs 1.8x for broad. Change applied — monitoring for 7 days.',
+          description: 'Change applied. Retargeting campaign has 5.2x ROAS vs 1.8x for broad. Monitoring for 7 days with auto-revert safety net.',
           metric: 'ROAS', change: 52, suggestedAction: 'Monitor for 7 days — auto-revert if ROAS drops below 3x',
         }] } }],
-        actionChips: [{ label: '🤖 Set up automation rule (Step 7)', action: 'setup-rule' }, { label: '📊 View performance', action: 'performance' }],
+        actionChips: [
+          { label: '🤖 Yes, set up automation', action: 'setup-rule' },
+          { label: '📊 View performance', action: 'performance' },
+        ],
       });
       return;
     }
