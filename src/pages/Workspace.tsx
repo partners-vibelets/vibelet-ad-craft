@@ -26,6 +26,7 @@ const Workspace = () => {
     createThread,
     sendMessage,
     handleActionChip,
+    handleArtifactAction,
     toggleArtifactCollapse,
     updateArtifactData,
     focusArtifact,
@@ -90,6 +91,7 @@ const Workspace = () => {
                               artifacts={relatedArtifacts}
                               onToggleCollapse={toggleArtifactCollapse}
                               onUpdateData={updateArtifactData}
+                              onArtifactAction={handleArtifactAction}
                               focusedArtifactId={focusedArtifactId}
                             />
                           </div>

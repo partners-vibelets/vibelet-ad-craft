@@ -47,7 +47,11 @@ export type ArtifactType =
   | 'ai-insights'
   | 'automation-rule'
   | 'publish-confirmation'
-  | 'ai-signals-summary';
+  | 'ai-signals-summary'
+  | 'product-analysis'
+  | 'script-options'
+  | 'avatar-selection'
+  | 'generation-progress';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
@@ -169,4 +173,52 @@ export interface AISignalsSummaryData {
   }[];
   actionsTaken: number;
   actionsRemaining: number;
+}
+
+export interface ProductAnalysisData {
+  productName: string;
+  productUrl?: string;
+  imageUrl: string;
+  price: string;
+  category: string;
+  description: string;
+  keyFeatures: string[];
+  targetAudience: string;
+}
+
+export interface ScriptOptionsData {
+  scripts: {
+    id: string;
+    style: string;
+    label: string;
+    script: string;
+    duration: string;
+    selected?: boolean;
+  }[];
+  selectedScriptId?: string;
+}
+
+export interface AvatarSelectionData {
+  avatars: {
+    id: string;
+    name: string;
+    style: string;
+    imageUrl: string;
+    selected?: boolean;
+  }[];
+  selectedAvatarId?: string;
+}
+
+export interface GenerationProgressData {
+  stage: 'analyzing' | 'scripting' | 'rendering' | 'complete';
+  progress: number;
+  outputs: {
+    id: string;
+    type: 'image' | 'video';
+    label: string;
+    format: string;
+    dimensions: string;
+    status: 'generating' | 'ready';
+    duration?: string;
+  }[];
 }

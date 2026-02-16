@@ -5,10 +5,11 @@ interface ArtifactStreamProps {
   artifacts: Artifact[];
   onToggleCollapse: (id: string) => void;
   onUpdateData: (id: string, data: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
   focusedArtifactId?: string | null;
 }
 
-export const ArtifactStream = ({ artifacts, onToggleCollapse, onUpdateData, focusedArtifactId }: ArtifactStreamProps) => {
+export const ArtifactStream = ({ artifacts, onToggleCollapse, onUpdateData, onArtifactAction, focusedArtifactId }: ArtifactStreamProps) => {
   if (artifacts.length === 0) return null;
 
   return (
@@ -23,6 +24,7 @@ export const ArtifactStream = ({ artifacts, onToggleCollapse, onUpdateData, focu
             artifact={artifact}
             onToggleCollapse={onToggleCollapse}
             onUpdateData={onUpdateData}
+            onArtifactAction={onArtifactAction}
           />
         </div>
       ))}

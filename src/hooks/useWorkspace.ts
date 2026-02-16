@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
 import { getThreadWithData, artifactTemplates } from '@/data/workspaceMockData';
+import { AVATARS } from '@/data/avatars';
 
 interface SimResponse {
   content: string;
@@ -72,6 +73,130 @@ function buildCampaignConversation(userMessage: string): ConversationStep[] {
     },
   ];
 }
+
+// Multi-step creative creation flow: product → scripts → avatar → generate
+function buildCreativeConversation(userMessage: string): ConversationStep[] {
+  // Extract product name from message
+  const productMatch = userMessage.match(/(?:create|make|generate|build|design)\s+(?:a\s+|an\s+|some\s+)?(?:creative|creatives|ad|ads|video|videos|content)?\s*(?:for\s+)?(?:my\s+|a\s+|the\s+)?(.+?)(?:\s+product|\s+brand|\s+store|$)/i);
+  const productName = productMatch?.[1]?.trim() || 'your product';
+  const capName = productName.charAt(0).toUpperCase() + productName.slice(1);
+
+  return [
+    {
+      delay: 1200,
+      response: {
+        content: `Let's create some amazing creatives for **${capName}**! 🎨\n\nFirst, let me analyze the product so I can tailor everything — scripts, visuals, and targeting.`,
+      },
+    },
+    {
+      delay: 3200,
+      response: {
+        content: `Here's what I found about your product. Take a look and let me know if anything needs adjusting before we move to scripts.`,
+        artifacts: [
+          {
+            type: 'product-analysis' as ArtifactType,
+            titleSuffix: `${capName} — Product Analysis`,
+            dataOverrides: {
+              productName: capName,
+              imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+              price: '$29.99',
+              category: 'Apparel / T-Shirts',
+              description: `Premium quality ${productName} made from 100% organic cotton. Features a modern fit with reinforced stitching and a soft-touch finish. Available in 8 colorways.`,
+              keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
+              targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35, interested in streetwear and sustainable fashion.',
+            },
+          },
+        ],
+        actionChips: [
+          { label: '✅ Looks good — show me scripts', icon: 'check', action: 'show-scripts' },
+          { label: '✏️ Edit product details', icon: 'edit', action: 'edit-product' },
+        ],
+      },
+    },
+  ];
+}
+
+// Script and avatar follow-up responses for creative flow
+const creativeFlowResponses: Record<string, (payload?: any) => SimResponse> = {
+  'show-scripts': () => ({
+    content: "I've generated 3 script options with different tones and angles. **Click one to select it** — you can always come back and change your mind.",
+    artifacts: [
+      {
+        type: 'script-options' as ArtifactType,
+        titleSuffix: 'Script Options',
+        dataOverrides: {
+          scripts: [
+            {
+              id: 'script-a',
+              style: 'Conversational',
+              label: 'Script A — Friendly & Casual',
+              duration: '30s',
+              script: "Hey! Looking for the perfect tee? We've got you. Our new collection is made from 100% organic cotton — super soft, great fit, and good for the planet. Available in 8 colors. Grab yours before they're gone!",
+            },
+            {
+              id: 'script-b',
+              style: 'Hype',
+              label: 'Script B — Bold & Energetic',
+              duration: '30s',
+              script: "Stop scrolling. This is the tee you've been waiting for. Premium organic cotton. 8 fire colorways. A fit that hits different. This isn't just a t-shirt — it's a statement. Limited drop. Don't sleep on it.",
+            },
+            {
+              id: 'script-c',
+              style: 'Storytelling',
+              label: 'Script C — Narrative',
+              duration: '45s',
+              script: "Every great outfit starts with the perfect t-shirt. That's why we spent 18 months perfecting ours. 100% organic cotton sourced from sustainable farms. A modern silhouette that flatters every body type. And 8 colors inspired by city sunsets. This is more than fashion — it's a feeling. Try it once, and you'll understand.",
+            },
+          ],
+          selectedScriptId: null,
+        },
+      },
+    ],
+  }),
+  'script-selected': (payload) => ({
+    content: `Great choice! Now let's pick an AI avatar to present your product. **Click on an avatar** to select them — they'll deliver the script you chose.`,
+    artifacts: [
+      {
+        type: 'avatar-selection' as ArtifactType,
+        titleSuffix: 'Choose Your Avatar',
+        dataOverrides: {
+          avatars: AVATARS.slice(0, 8).map(a => ({
+            id: a.id,
+            name: a.name,
+            style: a.style,
+            imageUrl: a.imageUrl,
+            selected: false,
+          })),
+          selectedAvatarId: null,
+        },
+      },
+    ],
+  }),
+  'avatar-selected': (payload) => {
+    const avatar = AVATARS.find(a => a.id === payload?.avatarId);
+    const avatarName = avatar?.name || 'the avatar';
+    return {
+      content: `**${avatarName}** is locked in! 🎬 I'm now generating your creatives — a full image set plus a video ad with ${avatarName} delivering the script. This will take about a minute...`,
+      artifacts: [
+        {
+          type: 'generation-progress' as ArtifactType,
+          titleSuffix: 'Generating Creatives',
+          dataOverrides: {
+            stage: 'rendering',
+            progress: 35,
+            outputs: [
+              { id: 'out-1', type: 'image', label: 'Hero Banner (Feed)', format: 'image', dimensions: '1200×628', status: 'generating' },
+              { id: 'out-2', type: 'image', label: 'Instagram Story', format: 'image', dimensions: '1080×1920', status: 'generating' },
+              { id: 'out-3', type: 'image', label: 'Square Post', format: 'image', dimensions: '1080×1080', status: 'generating' },
+              { id: 'out-4', type: 'video', label: `Video Ad — ${avatarName}`, format: 'video', dimensions: '1080×1920', status: 'generating', duration: '30s' },
+            ],
+          },
+        },
+      ],
+    };
+  },
+};
+
 
 // Action chip follow-up responses
 const chipResponses: Record<string, SimResponse> = {
@@ -218,6 +343,9 @@ const simpleResponses: Record<string, SimResponse> = {
 function detectIntent(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes('publish') || lower.includes('go live')) return 'publish';
+  // Creative creation flow detection — must come before simple 'creative'/'video'
+  if ((lower.includes('create') || lower.includes('generate') || lower.includes('make') || lower.includes('design') || lower.includes('build'))
+    && (lower.includes('creative') || lower.includes('ad') || lower.includes('video') || lower.includes('content'))) return 'create-flow';
   if (lower.includes('video') || lower.includes('avatar')) return 'video';
   if (lower.includes('creative') || lower.includes('image') || lower.includes('ad design') || lower.includes('banner')) return 'creative';
   if (lower.includes('campaign') || lower.includes('plan') || lower.includes('blueprint') || lower.includes('launch')) return 'campaign';
@@ -371,8 +499,10 @@ export function useWorkspace() {
     const intent = detectIntent(content);
 
     if (intent === 'campaign') {
-      // Multi-step campaign conversation
       const steps = buildCampaignConversation(content);
+      runConversationSteps(activeThreadId, steps);
+    } else if (intent === 'create-flow') {
+      const steps = buildCreativeConversation(content);
       runConversationSteps(activeThreadId, steps);
     } else {
       // Single-step response
@@ -399,7 +529,9 @@ export function useWorkspace() {
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
 
-    const response = chipResponses[action];
+    // Check creative flow responses first
+    const creativeFlowFn = creativeFlowResponses[action];
+    const response = creativeFlowFn ? creativeFlowFn() : chipResponses[action];
     if (!response) return;
 
     setIsTyping(true);
@@ -419,6 +551,77 @@ export function useWorkspace() {
       appendMessage(activeThreadId, aiMsg, newArtifacts);
       setIsTyping(false);
       if (artifactIds.length > 0) setFocusedArtifactId(artifactIds[0]);
+    }, 800 + Math.random() * 600);
+  }, [activeThreadId, appendMessage]);
+
+  // Handle artifact-level actions (script selection, avatar selection)
+  const handleArtifactAction = useCallback((artifactId: string, action: string, payload?: any) => {
+    if (!activeThreadId) return;
+
+    const creativeFlowFn = creativeFlowResponses[action];
+    if (!creativeFlowFn) return;
+
+    const response = creativeFlowFn(payload);
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const { artifacts: newArtifacts, ids: artifactIds } = createArtifactsFromSpec(response.artifacts);
+
+      const aiMsg: ThreadMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+        artifactIds: artifactIds.length > 0 ? artifactIds : undefined,
+        actionChips: response.actionChips,
+      };
+
+      appendMessage(activeThreadId, aiMsg, newArtifacts);
+      setIsTyping(false);
+      if (artifactIds.length > 0) setFocusedArtifactId(artifactIds[0]);
+
+      // If this was avatar-selected, simulate progress updates
+      if (action === 'avatar-selected' && artifactIds.length > 0) {
+        const progressArtId = artifactIds[0];
+        const progressSteps = [
+          { delay: 2000, progress: 55, stage: 'rendering' },
+          { delay: 4000, progress: 75, stage: 'rendering' },
+          { delay: 6000, progress: 90, stage: 'rendering' },
+          { delay: 8000, progress: 100, stage: 'complete' },
+        ];
+        progressSteps.forEach(({ delay, progress, stage }) => {
+          const timer = setTimeout(() => {
+            setThreads(prev => {
+              const thread = prev[activeThreadId];
+              if (!thread) return prev;
+              return {
+                ...prev,
+                [activeThreadId]: {
+                  ...thread,
+                  artifacts: thread.artifacts.map(a =>
+                    a.id === progressArtId
+                      ? {
+                          ...a,
+                          data: {
+                            ...a.data,
+                            progress,
+                            stage,
+                            outputs: a.data.outputs?.map((o: any) => ({
+                              ...o,
+                              status: progress >= 100 ? 'ready' : o.status,
+                            })),
+                          },
+                          updatedAt: new Date(),
+                        }
+                      : a
+                  ),
+                },
+              };
+            });
+          }, delay);
+          pendingStepsRef.current.push(timer);
+        });
+      }
     }, 800 + Math.random() * 600);
   }, [activeThreadId, appendMessage]);
 
@@ -486,6 +689,7 @@ export function useWorkspace() {
     createThread,
     sendMessage,
     handleActionChip,
+    handleArtifactAction,
     toggleArtifactCollapse,
     updateArtifactData,
     focusArtifact,

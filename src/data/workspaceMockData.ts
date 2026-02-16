@@ -302,6 +302,44 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       actionsRemaining: 0,
     },
   },
+  'product-analysis': {
+    type: 'product-analysis',
+    title: 'Product Analysis',
+    data: {
+      productName: '',
+      imageUrl: '',
+      price: '',
+      category: '',
+      description: '',
+      keyFeatures: [],
+      targetAudience: '',
+    },
+  },
+  'script-options': {
+    type: 'script-options',
+    title: 'Script Options',
+    data: {
+      scripts: [],
+      selectedScriptId: null,
+    },
+  },
+  'avatar-selection': {
+    type: 'avatar-selection',
+    title: 'Avatar Selection',
+    data: {
+      avatars: [],
+      selectedAvatarId: null,
+    },
+  },
+  'generation-progress': {
+    type: 'generation-progress',
+    title: 'Generation Progress',
+    data: {
+      stage: 'analyzing',
+      progress: 0,
+      outputs: [],
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [
