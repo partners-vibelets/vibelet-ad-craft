@@ -40,6 +40,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'campaign-config': 'Config',
   'device-preview': 'Preview',
   'ai-signals-dashboard': 'Signals',
+  'data-table': 'Data',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -62,6 +63,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'campaign-config': <Layers className="w-3.5 h-3.5" />,
   'device-preview': <Smartphone className="w-3.5 h-3.5" />,
   'ai-signals-dashboard': <Zap className="w-3.5 h-3.5" />,
+  'data-table': <BarChart3 className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -135,6 +137,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'campaign-config': return <CampaignConfigBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'device-preview': return <DevicePreviewBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'ai-signals-dashboard': return <AISignalsDashboardBody artifact={artifact} onArtifactAction={onArtifactAction} />;
+    case 'data-table': return <DataTableBody data={artifact.data} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -1301,6 +1304,149 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
             ))}
           </div>
         </DisclosureSection>
+      )}
+    </div>
+  );
+};
+
+// ========== DATA TABLE ARTIFACT BODY ==========
+
+const DataTableBody = ({ data: d }: { data: Record<string, any> }) => {
+  const [sortCol, setSortCol] = useState<number | null>(null);
+  const [sortAsc, setSortAsc] = useState(true);
+
+  const columns: { key: string; label: string; align?: string; highlight?: boolean }[] = d.columns || [];
+  const rows: any[][] = d.rows || [];
+  const summary = d.summary || '';
+  const highlights = d.highlights || [];
+
+  const handleSort = (colIdx: number) => {
+    if (sortCol === colIdx) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortCol(colIdx);
+      setSortAsc(true);
+    }
+  };
+
+  const sortedRows = sortCol !== null
+    ? [...rows].sort((a, b) => {
+        const aVal = a[sortCol];
+        const bVal = b[sortCol];
+        const aNum = typeof aVal === 'string' ? parseFloat(aVal.replace(/[^0-9.-]/g, '')) : aVal;
+        const bNum = typeof bVal === 'string' ? parseFloat(bVal.replace(/[^0-9.-]/g, '')) : bVal;
+        if (!isNaN(aNum) && !isNaN(bNum)) return sortAsc ? aNum - bNum : bNum - aNum;
+        return sortAsc ? String(aVal).localeCompare(String(bVal)) : String(bVal).localeCompare(String(aVal));
+      })
+    : rows;
+
+  // Detect top performer (first row by default or marked)
+  const topRowIdx = d.topRowIndex ?? 0;
+
+  return (
+    <div className="space-y-3">
+      {/* Narrative summary */}
+      {summary && (
+        <p className="text-sm text-foreground leading-relaxed">{summary}</p>
+      )}
+
+      {/* Highlights as insight pills */}
+      {highlights.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {highlights.map((h: { label: string; value: string; trend?: 'up' | 'down' | 'neutral' }, i: number) => (
+            <div key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 border border-border/30 text-xs">
+              <span className="text-muted-foreground">{h.label}</span>
+              <span className={cn(
+                "font-semibold",
+                h.trend === 'up' ? 'text-secondary' : h.trend === 'down' ? 'text-amber-500' : 'text-foreground'
+              )}>
+                {h.value}
+              </span>
+              {h.trend === 'up' && <ArrowUpRight className="w-3 h-3 text-secondary" />}
+              {h.trend === 'down' && <ArrowUpRight className="w-3 h-3 text-amber-500 rotate-90" />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Modern data table */}
+      <div className="rounded-lg border border-border/40 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-muted/15">
+                <th className="w-8 px-3 py-2.5 text-[10px] text-muted-foreground/60 font-normal">#</th>
+                {columns.map((col, ci) => (
+                  <th
+                    key={ci}
+                    onClick={() => handleSort(ci)}
+                    className={cn(
+                      "px-3 py-2.5 text-[10px] uppercase tracking-wider font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none",
+                      col.align === 'right' && 'text-right'
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.label}
+                      {sortCol === ci && (
+                        sortAsc
+                          ? <ChevronUp className="w-2.5 h-2.5" />
+                          : <ChevronDown className="w-2.5 h-2.5" />
+                      )}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((row, ri) => {
+                const isTop = ri === topRowIdx && sortCol === null;
+                return (
+                  <tr
+                    key={ri}
+                    className={cn(
+                      "border-t border-border/20 transition-colors hover:bg-muted/10",
+                      isTop && "bg-secondary/5"
+                    )}
+                  >
+                    <td className="px-3 py-2 text-[10px] text-muted-foreground/40 tabular-nums">{ri + 1}</td>
+                    {row.map((cell: any, ci: number) => {
+                      const col = columns[ci];
+                      const isHighlightCol = col?.highlight;
+                      // Detect trend values like "+23%" or "-5%"
+                      const cellStr = String(cell);
+                      const isPositive = cellStr.startsWith('+');
+                      const isNegative = cellStr.startsWith('-') && cellStr.includes('%');
+
+                      return (
+                        <td
+                          key={ci}
+                          className={cn(
+                            "px-3 py-2 text-xs",
+                            col?.align === 'right' && 'text-right tabular-nums',
+                            isHighlightCol ? 'font-semibold text-foreground' : 'text-muted-foreground',
+                            ci === 0 && 'font-medium text-foreground',
+                            isPositive && 'text-secondary',
+                            isNegative && 'text-amber-500'
+                          )}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {isTop && ci === 0 && <Flame className="w-3 h-3 text-secondary shrink-0" />}
+                            {cell}
+                          </span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Footer note */}
+      {d.footnote && (
+        <p className="text-[10px] text-muted-foreground/50 italic">{d.footnote}</p>
       )}
     </div>
   );
