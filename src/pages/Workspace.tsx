@@ -7,12 +7,12 @@ import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
 
 const suggestionChips = [
+  '🎬 Run full demo',
   '📊 Plan a new campaign',
   '🎨 Create ad creative',
   '📈 Check performance',
   '🔍 Run a 30-day audit',
   '⚡ Set up automation rule',
-  '🎯 Optimize targeting',
 ];
 
 const Workspace = () => {

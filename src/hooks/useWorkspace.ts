@@ -20,10 +20,13 @@ interface ConversationStep {
 type Intent =
   | 'campaign' | 'create-flow' | 'creative-images' | 'creative-video' | 'creative-both'
   | 'connect-facebook' | 'audit' | 'publish' | 'performance' | 'insights'
-  | 'rule' | 'default';
+  | 'rule' | 'demo' | 'default';
 
 function detectIntent(message: string): Intent {
   const l = message.toLowerCase();
+
+  // Full demo
+  if (l.includes('full demo') || l.includes('run demo') || l.includes('end to end') || l.includes('end-to-end') || l.includes('show me everything')) return 'demo';
 
   // Facebook connect
   if ((l.includes('connect') || l.includes('link') || l.includes('add') || l.includes('integrate')) && (l.includes('facebook') || l.includes('fb') || l.includes('meta'))) return 'connect-facebook';
@@ -390,7 +393,7 @@ function devicePreviewResponse(): SimResponse {
 
 function publishCampaignResponse(): SimResponse {
   return {
-    content: `🎉🎊 **Campaign published successfully!** Your ads are now live on Facebook & Instagram. I'll monitor performance and send you insights as they come in.`,
+    content: `🎉🎊 **Campaign published successfully!** Your ads are now live on Facebook & Instagram. I'll monitor performance and send you insights as they come in.\n\nYour campaign is now in learning phase — expect initial data within 24-48 hours.`,
     artifacts: [{
       type: 'publish-confirmation' as ArtifactType,
       titleSuffix: 'Campaign Published!',
@@ -405,15 +408,16 @@ function publishCampaignResponse(): SimResponse {
     }],
     actionChips: [
       { label: '📊 View performance', action: 'performance' },
+      { label: '🔍 Run 30-day audit', action: 'audit' },
+      { label: '⚡ Set up automation rules', action: 'setup-rule' },
       { label: '🚀 Create another campaign', action: 'new-campaign' },
-      { label: '⚡ Set up automation rules', action: 'rule' },
     ],
   };
 }
 
 // ========== AUDIT FLOW ==========
 
-function buildAuditFlow(): ConversationStep[] {
+function buildAuditFlow(isDemo = false): ConversationStep[] {
   return [
     {
       delay: 1200,
@@ -449,15 +453,174 @@ function buildAuditFlow(): ConversationStep[] {
             },
           },
         ],
-        actionChips: [
+        actionChips: isDemo ? demoAuditActionChips() : [
           { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
           { label: '💰 Reallocate budget', action: 'adjust-budget' },
-          { label: '⚡ Set up automation rules', action: 'rule' },
+          { label: '⚡ Set up automation rules', action: 'setup-rule' },
           { label: '🎯 Create lookalike audience', action: 'refine-targeting' },
         ],
       },
     },
   ];
+}
+
+// ========== DEMO FLOW ==========
+
+function buildDemoFlow(): ConversationStep[] {
+  return [
+    {
+      delay: 1200,
+      response: {
+        content: `🎬 **Full Demo Mode** — I'll walk you through the complete campaign lifecycle in this thread.\n\nLet's start with **Step 1: Campaign Planning**. I'll draft a blueprint for a Summer T-Shirt collection.\n\n**What's the primary goal?**`,
+        actionChips: [
+          { label: '💰 Direct sales', action: 'demo-goal-sales' },
+          { label: '📣 Brand awareness', action: 'demo-goal-awareness' },
+          { label: '🔗 Website traffic', action: 'demo-goal-traffic' },
+        ],
+      },
+    },
+  ];
+}
+
+// Demo auto-chains: after blueprint, suggest creatives
+function demoBlueprintResponse(objective: string, budgetDaily: number): SimResponse {
+  const base = buildBlueprintResponse(objective, budgetDaily);
+  return {
+    ...base,
+    content: `✅ **Step 1 complete!** Here's your campaign blueprint.\n\n${base.content}\n\nNext up: **Step 2 — Creative Generation** (images + video)`,
+    actionChips: [
+      { label: '🎨 Generate creatives (Step 2)', action: 'demo-creatives' },
+      { label: '✏️ Edit blueprint first', action: 'refine-targeting' },
+    ],
+  };
+}
+
+// After creative result, chain to Facebook connect
+function demoCreativeResultResponse(avatarName: string): SimResponse {
+  const base = creativeResultResponse(avatarName);
+  return {
+    ...base,
+    content: `✅ **Steps 2 & 3 complete!** Images and video are ready.\n\n${base.content}\n\nNext: **Step 4 — Connect Facebook & Publish**`,
+    actionChips: [
+      { label: '📱 Connect Facebook (Step 4)', action: 'connect-facebook' },
+      { label: '📥 Download all', action: 'download-all' },
+    ],
+  };
+}
+
+// After Facebook connect in demo, chain to configure + publish
+function demoFacebookConnectedResponse(): SimResponse {
+  const base = facebookConnectedResponse();
+  return {
+    ...base,
+    content: `✅ **Facebook connected!** ${base.content}\n\nLet's configure and publish your campaign.`,
+    actionChips: [
+      { label: '🚀 Configure & publish (Step 4)', action: 'configure-campaign' },
+      { label: '📊 Run account audit first', action: 'audit' },
+    ],
+  };
+}
+
+// After publish in demo, chain to audit
+function demoPublishResponse(): SimResponse {
+  const base = publishCampaignResponse();
+  return {
+    ...base,
+    content: `✅ **Step 4 complete — Campaign published!** 🎉\n\n${base.content}\n\nNext: **Step 5 — 30-Day Account Audit**`,
+    actionChips: [
+      { label: '🔍 Run 30-day audit (Step 5)', action: 'audit' },
+      { label: '📊 View performance', action: 'performance' },
+    ],
+  };
+}
+
+// After audit in demo, chain to recommendation + rule
+function demoAuditActionChips(): ActionChip[] {
+  return [
+    { label: '⚡ Act on recommendation (Step 6)', action: 'demo-act-recommendation' },
+    { label: '🤖 Set up automation rule (Step 7)', action: 'setup-rule' },
+    { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
+  ];
+}
+
+// Automation rule creation response
+function automationRuleResponse(): SimResponse {
+  return {
+    content: `⚡ I've set up a smart automation rule based on your campaign data. Toggle it on when you're ready — it'll protect your spend automatically.`,
+    artifacts: [{
+      type: 'automation-rule' as ArtifactType,
+      titleSuffix: 'Auto-pause High CPA Ads',
+      dataOverrides: {
+        name: 'Auto-pause high CPA ads',
+        trigger: 'CPA exceeds $20 for any ad set',
+        condition: 'Sustained for 24 consecutive hours',
+        action: 'Pause the ad set and notify me',
+        isActive: true,
+        autoExecute: false,
+        lastTriggered: null,
+      },
+    }],
+    actionChips: [
+      { label: '➕ Add another rule', action: 'setup-rule-2' },
+      { label: '📊 View performance', action: 'performance' },
+      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    ],
+  };
+}
+
+function automationRule2Response(): SimResponse {
+  return {
+    content: `Here's another rule — this one automatically scales your winning campaigns.`,
+    artifacts: [{
+      type: 'automation-rule' as ArtifactType,
+      titleSuffix: 'Scale on High ROAS',
+      dataOverrides: {
+        name: 'Scale budget when ROAS > 3x',
+        trigger: 'ROAS exceeds 3.0x on any campaign',
+        condition: 'Maintained for 48 hours with $50+ spend',
+        action: 'Increase daily budget by 25%',
+        isActive: true,
+        autoExecute: false,
+        lastTriggered: null,
+      },
+    }],
+    actionChips: [
+      { label: '📊 View performance', action: 'performance' },
+      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    ],
+  };
+}
+
+// Recommendation applied response
+function recommendationAppliedResponse(): SimResponse {
+  return {
+    content: `✅ **Recommendation applied!** I've submitted the change to your ad account. Here's what to expect:\n\n• Changes take effect within **15-30 minutes**\n• Initial data in **24-48 hours**\n• Full impact assessment in **7 days**\n\nI'll monitor and alert you if anything unexpected happens.`,
+    actionChips: [
+      { label: '📊 View performance', action: 'performance' },
+      { label: '⚡ Set up automation rule', action: 'setup-rule' },
+      { label: '🔍 Run another audit', action: 'audit' },
+    ],
+  };
+}
+
+function recommendationDeferredResponse(): SimResponse {
+  return {
+    content: `⏳ **Recommendation deferred.** I'll remind you about this in 48 hours. In the meantime, I'll keep monitoring.`,
+    actionChips: [
+      { label: '📊 View performance', action: 'performance' },
+      { label: '🔍 Run audit', action: 'audit' },
+    ],
+  };
+}
+
+function recommendationDismissedResponse(): SimResponse {
+  return {
+    content: `❌ **Recommendation dismissed.** Got it — I'll learn from this and improve future suggestions. Is there anything else you'd like to work on?`,
+    actionChips: [
+      { label: '📊 View performance', action: 'performance' },
+      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    ],
+  };
 }
 
 // ========== SIMPLE RESPONSES ==========
@@ -554,6 +717,7 @@ export function useWorkspace() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [focusedArtifactId, setFocusedArtifactId] = useState<string | null>(null);
   const pendingStepsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const isDemoRef = useRef(false);
 
   const activeThread = activeThreadId ? threads[activeThreadId] : null;
 
@@ -634,7 +798,16 @@ export function useWorkspace() {
 
     const intent = detectIntent(content);
 
-    if (intent === 'campaign') {
+    if (intent === 'demo') {
+      isDemoRef.current = true;
+      // Rename thread
+      setThreads(prev => {
+        const thread = prev[activeThreadId];
+        return { ...prev, [activeThreadId]: { ...thread, title: 'Full Demo — Summer Collection', status: 'active' as const } };
+      });
+      setIsTyping(true);
+      runConversationSteps(activeThreadId, buildDemoFlow());
+    } else if (intent === 'campaign') {
       setIsTyping(true);
       runConversationSteps(activeThreadId, buildCampaignConversation(content));
     } else if (intent === 'create-flow') {
@@ -654,9 +827,9 @@ export function useWorkspace() {
       runConversationSteps(activeThreadId, buildFacebookConnectFlow());
     } else if (intent === 'audit') {
       setIsTyping(true);
-      runConversationSteps(activeThreadId, buildAuditFlow());
+      runConversationSteps(activeThreadId, buildAuditFlow(isDemoRef.current));
     } else if (intent === 'publish') {
-      respondWithSim(activeThreadId, publishCampaignResponse());
+      respondWithSim(activeThreadId, isDemoRef.current ? demoPublishResponse() : publishCampaignResponse());
     } else {
       respondWithSim(activeThreadId, simpleResponses[intent] || simpleResponses.default);
     }
@@ -678,6 +851,70 @@ export function useWorkspace() {
     if (action.startsWith('style-')) {
       const style = action.replace('style-', '');
       respondWithSim(activeThreadId, styleToProductAnalysis(style));
+      return;
+    }
+
+    // Demo goal selections
+    if (action.startsWith('demo-goal-')) {
+      const goalKey = action.replace('demo-', '');
+      const followUp = goalFollowUps[goalKey];
+      if (followUp) {
+        // Override budget chips to use demo-budget prefix
+        const demoFollowUp: ConversationStep[] = followUp.map(step => ({
+          ...step,
+          response: {
+            ...step.response,
+            actionChips: step.response.actionChips?.map(c => ({
+              ...c,
+              action: c.action.replace('budget-', 'demo-budget-'),
+            })),
+          },
+        }));
+        setIsTyping(true);
+        runConversationSteps(activeThreadId, demoFollowUp);
+      }
+      return;
+    }
+
+    // Demo budget selections → demo blueprint
+    if (action.startsWith('demo-budget-')) {
+      const budgetKey = action.replace('demo-', '');
+      const budgetMap: Record<string, number> = { 'budget-low': 25, 'budget-medium': 60, 'budget-high': 120 };
+      respondWithSim(activeThreadId, demoBlueprintResponse('Sales', budgetMap[budgetKey] || 60));
+      return;
+    }
+
+    // Demo creatives — skip type question, go straight to both
+    if (action === 'demo-creatives') {
+      setIsTyping(true);
+      runConversationSteps(activeThreadId, buildCreativeConversation('both'));
+      return;
+    }
+
+    // Demo act on recommendation
+    if (action === 'demo-act-recommendation') {
+      respondWithSim(activeThreadId, {
+        content: `⚡ **Acting on top recommendation: "Reallocate budget to retargeting"**\n\nShifting $400/month from underperforming broad campaigns to your retargeting campaign (5.2x ROAS).`,
+        artifacts: [{
+          type: 'ai-insights' as ArtifactType,
+          titleSuffix: 'Budget Reallocation — Applied',
+          dataOverrides: {
+            insights: [{
+              type: 'opportunity',
+              severity: 'high',
+              title: 'Reallocate budget to retargeting',
+              description: 'Expected to add $2,000+/month in revenue. Retargeting campaign has 5.2x ROAS vs 1.8x for broad. Change applied — monitoring for 7 days.',
+              metric: 'ROAS',
+              change: 52,
+              suggestedAction: 'Monitor for 7 days — auto-revert if ROAS drops below 3x',
+            }],
+          },
+        }],
+        actionChips: [
+          { label: '🤖 Set up automation rule (Step 7)', action: 'setup-rule' },
+          { label: '📊 View performance', action: 'performance' },
+        ],
+      });
       return;
     }
 
@@ -708,7 +945,7 @@ export function useWorkspace() {
     // Audit
     if (action === 'audit') {
       setIsTyping(true);
-      runConversationSteps(activeThreadId, buildAuditFlow());
+      runConversationSteps(activeThreadId, buildAuditFlow(isDemoRef.current));
       return;
     }
 
@@ -726,7 +963,13 @@ export function useWorkspace() {
 
     // Publish
     if (action === 'publish-campaign') {
-      respondWithSim(activeThreadId, publishCampaignResponse());
+      // Update thread status to live
+      setThreads(prev => {
+        const thread = prev[activeThreadId];
+        if (!thread) return prev;
+        return { ...prev, [activeThreadId]: { ...thread, status: 'live-campaign' } };
+      });
+      respondWithSim(activeThreadId, isDemoRef.current ? demoPublishResponse() : publishCampaignResponse());
       return;
     }
 
@@ -740,6 +983,30 @@ export function useWorkspace() {
     // Script/Avatar flow
     if (action === 'show-scripts') {
       respondWithSim(activeThreadId, showScriptsResponse);
+      return;
+    }
+
+    // Automation rule creation
+    if (action === 'setup-rule') {
+      respondWithSim(activeThreadId, automationRuleResponse());
+      return;
+    }
+    if (action === 'setup-rule-2') {
+      respondWithSim(activeThreadId, automationRule2Response());
+      return;
+    }
+
+    // Recommendation actions
+    if (action === 'apply-recommendation') {
+      respondWithSim(activeThreadId, recommendationAppliedResponse());
+      return;
+    }
+    if (action === 'defer-recommendation') {
+      respondWithSim(activeThreadId, recommendationDeferredResponse());
+      return;
+    }
+    if (action === 'dismiss-recommendation') {
+      respondWithSim(activeThreadId, recommendationDismissedResponse());
       return;
     }
 
@@ -763,7 +1030,7 @@ export function useWorkspace() {
 
     // Facebook connect button
     if (action === 'facebook-connect-auth') {
-      respondWithSim(activeThreadId, facebookConnectedResponse(), 2000);
+      respondWithSim(activeThreadId, isDemoRef.current ? demoFacebookConnectedResponse() : facebookConnectedResponse(), 2000);
       return;
     }
 
@@ -809,9 +1076,9 @@ export function useWorkspace() {
           pendingStepsRef.current.push(t);
         });
 
-        // Spawn creative result
+        // Spawn creative result (demo-aware)
         const completionTimer = setTimeout(() => {
-          const resultResp = creativeResultResponse(avatarName);
+          const resultResp = isDemoRef.current ? demoCreativeResultResponse(avatarName) : creativeResultResponse(avatarName);
           const { artifacts: resultArts, ids: resultIds } = createArtifactsFromSpec(resultResp.artifacts);
           const resultMsg: ThreadMessage = {
             id: `msg-${Date.now()}-result`, role: 'assistant', content: resultResp.content, timestamp: new Date(),
