@@ -62,6 +62,7 @@ export const mockThreads: Thread[] = [
 ];
 
 export const mockArtifacts: Artifact[] = [
+  // ... keep existing code
   {
     id: 'art-1',
     type: 'campaign-blueprint',
@@ -188,6 +189,49 @@ export const mockArtifacts: Artifact[] = [
       isActive: true,
       autoExecute: false,
       lastTriggered: '2026-02-15T14:30:00',
+    },
+  },
+  {
+    id: 'art-7',
+    type: 'data-table',
+    title: 'Top 10 Campaigns — Last 7 Days',
+    status: 'live',
+    version: 1,
+    isCollapsed: false,
+    createdAt: new Date('2026-02-16'),
+    updatedAt: new Date('2026-02-16'),
+    data: {
+      summary: 'Here are your top 10 performing campaigns from the last 7 days, ranked by ROAS. Your Spring Sale retargeting campaign is leading with a 6.2x return — nearly double the account average.',
+      highlights: [
+        { label: 'Avg ROAS', value: '3.8x', trend: 'up' },
+        { label: 'Total Spend', value: '₹18,420', trend: 'neutral' },
+        { label: 'Total Revenue', value: '₹69,996', trend: 'up' },
+        { label: 'Best CPA', value: '₹112', trend: 'down' },
+      ],
+      columns: [
+        { key: 'campaign', label: 'Campaign', highlight: true },
+        { key: 'spend', label: 'Spend', align: 'right' },
+        { key: 'revenue', label: 'Revenue', align: 'right', highlight: true },
+        { key: 'roas', label: 'ROAS', align: 'right', highlight: true },
+        { key: 'cpa', label: 'CPA', align: 'right' },
+        { key: 'conversions', label: 'Conv.', align: 'right' },
+        { key: 'ctr', label: 'CTR', align: 'right' },
+        { key: 'trend', label: '7d Trend', align: 'right' },
+      ],
+      rows: [
+        ['Spring Sale — Retargeting', '₹2,840', '₹17,608', '6.2x', '₹112', '25', '4.8%', '+23%'],
+        ['Product Demo — Video Views', '₹2,120', '₹10,600', '5.0x', '₹132', '16', '3.9%', '+15%'],
+        ['Lookalike — Top Purchasers', '₹1,950', '₹8,775', '4.5x', '₹140', '14', '3.6%', '+8%'],
+        ['Brand Awareness — Feed', '₹2,400', '₹9,600', '4.0x', '₹160', '15', '3.2%', '+5%'],
+        ['Summer Teaser — Stories', '₹1,680', '₹6,384', '3.8x', '₹168', '10', '3.4%', '+12%'],
+        ['Flash Sale — Carousel', '₹2,100', '₹7,350', '3.5x', '₹175', '12', '2.9%', '-3%'],
+        ['New Arrivals — DPA', '₹1,450', '₹4,350', '3.0x', '₹182', '8', '2.7%', '+2%'],
+        ['Engagement — Reels', '₹1,280', '₹3,200', '2.5x', '₹213', '6', '2.4%', '-8%'],
+        ['Cold Audience — Interests', '₹1,600', '₹2,880', '1.8x', '₹228', '7', '1.9%', '-12%'],
+        ['Evergreen — Broad Targeting', '₹1,000', '₹1,250', '1.3x', '₹333', '3', '1.2%', '-18%'],
+      ],
+      topRowIndex: 0,
+      footnote: 'Data from Feb 9 — Feb 16, 2026 · Sorted by ROAS · Click column headers to re-sort',
     },
   },
 ];
@@ -380,6 +424,17 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       ad: { pageName: '', primaryText: '', headline: '', cta: '', imageUrl: '', websiteUrl: '' },
     },
   },
+  'data-table': {
+    type: 'data-table',
+    title: 'Data Table',
+    data: {
+      summary: '',
+      highlights: [],
+      columns: [],
+      rows: [],
+      footnote: '',
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [
@@ -414,6 +469,24 @@ export const mockMessages: ThreadMessage[] = [
     content: "Here's your weekly snapshot. ROI is strong at 4.5x, but I've flagged some insights and set up an automation rule to protect your spend.",
     timestamp: new Date('2026-02-16T10:00:30'),
     artifactIds: ['art-4', 'art-5', 'art-6'],
+  },
+  {
+    id: 'msg-6',
+    role: 'user',
+    content: 'Show me my top 10 performing campaigns from the last 7 days',
+    timestamp: new Date('2026-02-16T11:00:00'),
+  },
+  {
+    id: 'msg-7',
+    role: 'assistant',
+    content: "Here's your top 10 breakdown. Your retargeting campaign is crushing it — 6.2x ROAS with the lowest CPA in the account. I'd recommend shifting more budget there and pausing the bottom two performers.",
+    timestamp: new Date('2026-02-16T11:00:30'),
+    artifactIds: ['art-7'],
+    actionChips: [
+      { label: '💰 Shift budget to top 3', action: 'shift-budget-top3' },
+      { label: '⏸️ Pause bottom performers', action: 'pause-underperformers' },
+      { label: '📊 Compare with last month', action: 'compare-last-month' },
+    ],
   },
 ];
 
