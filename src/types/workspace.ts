@@ -51,7 +51,8 @@ export type ArtifactType =
   | 'product-analysis'
   | 'script-options'
   | 'avatar-selection'
-  | 'generation-progress';
+  | 'generation-progress'
+  | 'creative-result';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
@@ -221,4 +222,18 @@ export interface GenerationProgressData {
     status: 'generating' | 'ready';
     duration?: string;
   }[];
+}
+
+export interface CreativeResultData {
+  outputs: {
+    id: string;
+    type: 'image' | 'video';
+    label: string;
+    url: string;
+    thumbnailUrl?: string;
+    format: string;
+    dimensions: string;
+    duration?: string;
+  }[];
+  selectedIndex: number;
 }

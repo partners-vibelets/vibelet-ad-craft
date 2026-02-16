@@ -134,20 +134,20 @@ export const WorkspaceSidebar = ({
           </button>
         </div>
 
-        {/* Section tabs */}
-        <div className="flex flex-wrap gap-1">
+        {/* Section nav */}
+        <div className="flex flex-col gap-0.5">
           {sectionConfig.map(sec => (
             <button
               key={sec.id}
               onClick={() => setActiveSection(sec.id)}
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
+                "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors w-full text-left",
                 activeSection === sec.id
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
             >
-              <sec.icon className="w-3 h-3" />
+              <sec.icon className="w-3.5 h-3.5 shrink-0" />
               <span>{sec.label}</span>
             </button>
           ))}
