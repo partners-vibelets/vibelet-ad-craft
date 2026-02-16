@@ -78,6 +78,7 @@ const Workspace = () => {
             userName="Alex Johnson"
             credits={247}
             onboardingComplete={onboardingComplete}
+            onboardingData={onboardingData}
           />
         ) : (
           <>
