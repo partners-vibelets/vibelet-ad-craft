@@ -24,7 +24,7 @@ export interface Thread {
 export interface ActionChip {
   label: string;
   icon?: string;
-  action: string; // intent key to trigger
+  action: string;
 }
 
 export interface ThreadMessage {
@@ -52,7 +52,10 @@ export type ArtifactType =
   | 'script-options'
   | 'avatar-selection'
   | 'generation-progress'
-  | 'creative-result';
+  | 'creative-result'
+  | 'facebook-connect'
+  | 'campaign-config'
+  | 'device-preview';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
@@ -236,4 +239,55 @@ export interface CreativeResultData {
     duration?: string;
   }[];
   selectedIndex: number;
+}
+
+export interface FacebookConnectData {
+  status: 'disconnected' | 'connecting' | 'connected';
+  accountName?: string;
+  profileImage?: string;
+  adAccounts?: {
+    id: string;
+    name: string;
+    pixelId: string;
+    pageName: string;
+    currency: string;
+  }[];
+  selectedAccountId?: string;
+}
+
+export interface CampaignConfigData {
+  campaignLevel: {
+    name: string;
+    objective: string;
+    budgetType: string;
+    budget: number;
+  };
+  adSetLevel: {
+    name: string;
+    budget: number;
+    duration: string;
+    pixelId: string;
+    targeting: { ageRange: string; locations: string[]; interests: string[] };
+  };
+  adLevel: {
+    name: string;
+    pageName: string;
+    primaryText: string;
+    headline: string;
+    cta: string;
+    websiteUrl: string;
+    creative: { type: string; url: string; label: string };
+  };
+}
+
+export interface DevicePreviewData {
+  activeDevice: 'mobile' | 'desktop';
+  ad: {
+    pageName: string;
+    primaryText: string;
+    headline: string;
+    cta: string;
+    imageUrl: string;
+    websiteUrl: string;
+  };
 }

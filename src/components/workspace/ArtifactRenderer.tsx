@@ -4,7 +4,8 @@ import {
   FileText, BarChart3, Zap, Settings2, Image as ImageIcon,
   Video, CheckCircle2, Send, Activity, AlertTriangle, Play, Pause,
   TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
-  Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye
+  Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye,
+  Facebook, Smartphone, Monitor, Globe, Shield, ExternalLink, Layers
 } from 'lucide-react';
 import { Artifact, ArtifactType } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,9 @@ const typeLabels: Record<ArtifactType, string> = {
   'avatar-selection': 'Avatars',
   'generation-progress': 'Generating',
   'creative-result': 'Results',
+  'facebook-connect': 'Facebook',
+  'campaign-config': 'Config',
+  'device-preview': 'Preview',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -52,6 +56,9 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'avatar-selection': <User className="w-3.5 h-3.5" />,
   'generation-progress': <Loader2 className="w-3.5 h-3.5" />,
   'creative-result': <Eye className="w-3.5 h-3.5" />,
+  'facebook-connect': <Facebook className="w-3.5 h-3.5" />,
+  'campaign-config': <Layers className="w-3.5 h-3.5" />,
+  'device-preview': <Smartphone className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -121,6 +128,9 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'avatar-selection': return <AvatarSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'generation-progress': return <GenerationProgressBody data={artifact.data} />;
     case 'creative-result': return <CreativeResultBody artifact={artifact} onUpdateData={onUpdateData} />;
+    case 'facebook-connect': return <FacebookConnectBody artifact={artifact} onArtifactAction={onArtifactAction} />;
+    case 'campaign-config': return <CampaignConfigBody artifact={artifact} onUpdateData={onUpdateData} />;
+    case 'device-preview': return <DevicePreviewBody artifact={artifact} onUpdateData={onUpdateData} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -678,6 +688,231 @@ const CreativeResultBody = ({ artifact, onUpdateData }: { artifact: Artifact; on
           <Button size="sm" className="h-7 text-xs gap-1.5">
             <ArrowRight className="w-3 h-3" /> Use in Campaign
           </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ========== FACEBOOK CONNECT ==========
+
+const FacebookConnectBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const isConnected = d.status === 'connected';
+
+  if (isConnected) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/5 border border-secondary/20">
+          <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-secondary/30 shrink-0">
+            {d.profileImage ? (
+              <img src={d.profileImage} alt={d.accountName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-primary/10 flex items-center justify-center"><User className="w-5 h-5 text-primary" /></div>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-secondary" />
+              <span className="text-sm font-medium text-foreground">{d.accountName}</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Facebook account connected</p>
+          </div>
+          <Facebook className="w-5 h-5 text-[#1877F2]" />
+        </div>
+
+        {d.adAccounts?.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ad Accounts</p>
+            {d.adAccounts.map((acc: any) => (
+              <div
+                key={acc.id}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all",
+                  acc.id === d.selectedAccountId
+                    ? "border-primary/30 bg-primary/5 ring-1 ring-primary/10"
+                    : "border-border/40 bg-muted/10"
+                )}
+              >
+                <div className={cn("w-2 h-2 rounded-full shrink-0", acc.id === d.selectedAccountId ? "bg-secondary" : "bg-muted-foreground/20")} />
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{acc.name}</p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                    <span className="flex items-center gap-0.5"><Globe className="w-3 h-3" /> {acc.pageName}</span>
+                    <span>·</span>
+                    <span className="flex items-center gap-0.5"><Shield className="w-3 h-3" /> Pixel: {acc.pixelId}</span>
+                  </p>
+                </div>
+                {acc.id === d.selectedAccountId && <Check className="w-4 h-4 text-primary" />}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col items-center text-center py-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#1877F2]/10 flex items-center justify-center mb-3">
+          <Facebook className="w-7 h-7 text-[#1877F2]" />
+        </div>
+        <p className="text-sm font-medium text-foreground mb-1">Connect your Facebook account</p>
+        <p className="text-xs text-muted-foreground max-w-xs mb-4">
+          We'll access your ad accounts, pages, and pixels to manage campaigns on your behalf.
+        </p>
+        <Button
+          onClick={() => onArtifactAction?.(artifact.id, 'facebook-connect-auth')}
+          className="gap-2"
+          size="sm"
+        >
+          <Facebook className="w-4 h-4" />
+          Connect with Facebook
+        </Button>
+      </div>
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 text-[10px] text-muted-foreground">
+        <Shield className="w-3.5 h-3.5 shrink-0" />
+        <span>Secure OAuth connection — we never store your password</span>
+      </div>
+    </div>
+  );
+};
+
+// ========== CAMPAIGN CONFIG ==========
+
+const CampaignConfigBody = ({ artifact, onUpdateData }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void }) => {
+  const d = artifact.data;
+  const updateCampaign = (key: string, value: any) => onUpdateData(artifact.id, { ...d, campaignLevel: { ...d.campaignLevel, [key]: value } });
+  const updateAdSet = (key: string, value: any) => onUpdateData(artifact.id, { ...d, adSetLevel: { ...d.adSetLevel, [key]: value } });
+  const updateAd = (key: string, value: any) => onUpdateData(artifact.id, { ...d, adLevel: { ...d.adLevel, [key]: value } });
+
+  return (
+    <div className="space-y-4">
+      {/* Campaign Level */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-primary">
+          <Target className="w-3.5 h-3.5" />
+          <span>Campaign Level</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pl-5">
+          <EditableField label="Campaign Name" value={d.campaignLevel?.name} onSave={v => updateCampaign('name', v)} className="col-span-2" />
+          <ReadOnlyField label="Objective" value={d.campaignLevel?.objective} />
+          <ReadOnlyField label="Budget Type" value={d.campaignLevel?.budgetType} />
+        </div>
+      </div>
+
+      {/* Ad Set Level */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-primary">
+          <Layers className="w-3.5 h-3.5" />
+          <span>Ad Set Level</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pl-5">
+          <EditableField label="Ad Set Name" value={d.adSetLevel?.name} onSave={v => updateAdSet('name', v)} className="col-span-2" />
+          <EditableField label="Budget" value={`$${d.adSetLevel?.budget}`} onSave={v => updateAdSet('budget', parseInt(v.replace('$', '')))} />
+          <ReadOnlyField label="Duration" value={d.adSetLevel?.duration} />
+          <ReadOnlyField label="Pixel ID" value={d.adSetLevel?.pixelId} />
+          <ReadOnlyField label="Targeting" value={`${d.adSetLevel?.targeting?.ageRange}, ${d.adSetLevel?.targeting?.locations?.join(', ')}`} />
+        </div>
+      </div>
+
+      {/* Ad Level */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-xs font-medium text-primary">
+          <ImageIcon className="w-3.5 h-3.5" />
+          <span>Ad Level</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 pl-5">
+          <EditableField label="Ad Name" value={d.adLevel?.name} onSave={v => updateAd('name', v)} className="col-span-2" />
+          <ReadOnlyField label="Page" value={d.adLevel?.pageName} />
+          <ReadOnlyField label="CTA" value={d.adLevel?.cta} />
+          <EditableField label="Primary Text" value={d.adLevel?.primaryText} onSave={v => updateAd('primaryText', v)} className="col-span-2" />
+          <EditableField label="Headline" value={d.adLevel?.headline} onSave={v => updateAd('headline', v)} className="col-span-2" />
+          <ReadOnlyField label="Website" value={d.adLevel?.websiteUrl} />
+        </div>
+
+        {/* Creative preview */}
+        {d.adLevel?.creative && (
+          <div className="pl-5 mt-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Creative</p>
+            <div className="rounded-lg overflow-hidden border border-border/40 w-48">
+              <img src={d.adLevel.creative.url} alt={d.adLevel.creative.label} className="w-full aspect-video object-cover" />
+              <div className="px-2 py-1.5 bg-muted/20">
+                <p className="text-[10px] text-muted-foreground">{d.adLevel.creative.label}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ========== DEVICE PREVIEW ==========
+
+const DevicePreviewBody = ({ artifact, onUpdateData }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void }) => {
+  const d = artifact.data;
+  const isMobile = d.activeDevice === 'mobile';
+  const ad = d.ad || {};
+
+  return (
+    <div className="space-y-3">
+      {/* Device toggle */}
+      <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/30 w-fit">
+        <button
+          onClick={() => onUpdateData(artifact.id, { ...d, activeDevice: 'mobile' })}
+          className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all", isMobile ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <Smartphone className="w-3.5 h-3.5" /> Mobile
+        </button>
+        <button
+          onClick={() => onUpdateData(artifact.id, { ...d, activeDevice: 'desktop' })}
+          className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all", !isMobile ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
+        >
+          <Monitor className="w-3.5 h-3.5" /> Desktop
+        </button>
+      </div>
+
+      {/* Device mockup */}
+      <div className={cn("mx-auto border border-border/60 rounded-2xl overflow-hidden bg-card shadow-lg", isMobile ? "w-[260px]" : "w-full max-w-[440px]")}>
+        {/* Facebook header */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border/30">
+          <div className="w-8 h-8 rounded-full bg-muted/30 flex items-center justify-center">
+            <Facebook className="w-4 h-4 text-[#1877F2]" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-foreground">{ad.pageName}</p>
+            <p className="text-[9px] text-muted-foreground">Sponsored · 🌍</p>
+          </div>
+        </div>
+
+        {/* Primary text */}
+        <div className="px-3 py-2">
+          <p className="text-xs text-foreground leading-relaxed">{ad.primaryText}</p>
+        </div>
+
+        {/* Image */}
+        <div className="aspect-[4/3] bg-muted/20 overflow-hidden">
+          <img src={ad.imageUrl} alt="Ad preview" className="w-full h-full object-cover" />
+        </div>
+
+        {/* CTA bar */}
+        <div className="flex items-center justify-between px-3 py-2 border-t border-border/30 bg-muted/10">
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] text-muted-foreground uppercase truncate">{ad.websiteUrl}</p>
+            <p className="text-[11px] font-semibold text-foreground truncate">{ad.headline}</p>
+          </div>
+          <div className="px-3 py-1.5 rounded-md bg-muted text-xs font-semibold text-foreground shrink-0">
+            {ad.cta}
+          </div>
+        </div>
+
+        {/* Reactions bar */}
+        <div className="flex items-center gap-3 px-3 py-1.5 border-t border-border/20 text-[10px] text-muted-foreground">
+          <span>👍 Like</span>
+          <span>💬 Comment</span>
+          <span>↗️ Share</span>
         </div>
       </div>
     </div>
