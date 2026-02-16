@@ -27,6 +27,7 @@ const Workspace = () => {
     createThread,
     sendMessage,
     toggleArtifactCollapse,
+    updateArtifactData,
     focusArtifact,
     setSidebarCollapsed,
   } = useWorkspace();
@@ -91,6 +92,7 @@ const Workspace = () => {
                             <ArtifactStream
                               artifacts={relatedArtifacts}
                               onToggleCollapse={toggleArtifactCollapse}
+                              onUpdateData={updateArtifactData}
                               focusedArtifactId={focusedArtifactId}
                             />
                           </div>

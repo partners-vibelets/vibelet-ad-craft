@@ -1,43 +1,74 @@
 import { useState, useCallback } from 'react';
-import { Thread, ThreadMessage, Artifact } from '@/types/workspace';
-import { getThreadWithData, mockMessages, mockArtifacts } from '@/data/workspaceMockData';
+import { Thread, ThreadMessage, Artifact, ArtifactType } from '@/types/workspace';
+import { getThreadWithData, artifactTemplates } from '@/data/workspaceMockData';
 
-const simulatedResponses: Record<string, { content: string; artifactType?: string }> = {
+interface SimResponse {
+  content: string;
+  artifacts?: { type: ArtifactType; titleSuffix?: string }[];
+}
+
+const simulatedResponses: Record<string, SimResponse> = {
   campaign: {
-    content: "I've drafted a campaign plan based on your request. You can review and edit the details in the artifact below.",
-    artifactType: 'campaign-plan',
+    content: "I've drafted a campaign blueprint. You can edit any field directly — click on a value to change it.",
+    artifacts: [{ type: 'campaign-blueprint', titleSuffix: 'Campaign Blueprint' }],
+  },
+  creative: {
+    content: "Here's a creative set with multiple ad formats. I can generate variants or videos once you're happy with the direction.",
+    artifacts: [{ type: 'creative-set', titleSuffix: 'Creative Set' }],
+  },
+  video: {
+    content: "I'm preparing a video creative with an AI avatar. You can edit the script directly in the artifact.",
+    artifacts: [{ type: 'video-creative', titleSuffix: 'Video Creative' }],
   },
   performance: {
-    content: "Here's your latest performance report. Key metrics are highlighted and I've included recommendations.",
-    artifactType: 'performance-report',
+    content: "Here's your performance snapshot with key metrics and recommendations.",
+    artifacts: [{ type: 'performance-snapshot', titleSuffix: 'Performance Snapshot' }],
+  },
+  insights: {
+    content: "I've analyzed your account and surfaced key insights. Here's what I found.",
+    artifacts: [{ type: 'ai-insights', titleSuffix: 'AI Insights' }],
   },
   audit: {
-    content: "I've completed a 30-day audit of your ad account. Check the findings and recommended actions below.",
-    artifactType: 'audit-report',
+    content: "Your 30-day audit is ready. I've summarized the signals and recommended actions below.",
+    artifacts: [
+      { type: 'performance-snapshot', titleSuffix: 'Audit Performance' },
+      { type: 'ai-signals-summary', titleSuffix: 'Signal Summary' },
+    ],
+  },
+  rule: {
+    content: "I've set up an automation rule for you. Toggle it on when you're ready.",
+    artifacts: [{ type: 'automation-rule', titleSuffix: 'Automation Rule' }],
+  },
+  publish: {
+    content: "Ready to publish? Here's the confirmation. Review the details and confirm when ready.",
+    artifacts: [{ type: 'publish-confirmation', titleSuffix: 'Publish Confirmation' }],
   },
   default: {
-    content: "Got it! I'll work on that for you. Is there anything specific you'd like me to focus on?",
+    content: "Got it! I'll work on that. What would you like me to focus on?",
   },
 };
 
 function detectIntent(message: string): string {
   const lower = message.toLowerCase();
-  if (lower.includes('campaign') || lower.includes('plan') || lower.includes('launch')) return 'campaign';
-  if (lower.includes('performance') || lower.includes('metrics') || lower.includes('how')) return 'performance';
-  if (lower.includes('audit') || lower.includes('review') || lower.includes('analyze')) return 'audit';
+  if (lower.includes('publish') || lower.includes('go live') || lower.includes('launch')) return 'publish';
+  if (lower.includes('video') || lower.includes('avatar')) return 'video';
+  if (lower.includes('creative') || lower.includes('image') || lower.includes('ad design') || lower.includes('banner')) return 'creative';
+  if (lower.includes('campaign') || lower.includes('plan') || lower.includes('blueprint')) return 'campaign';
+  if (lower.includes('performance') || lower.includes('metrics') || lower.includes('how') || lower.includes('snapshot')) return 'performance';
+  if (lower.includes('insight') || lower.includes('signal') || lower.includes('anomal')) return 'insights';
+  if (lower.includes('audit') || lower.includes('review') || lower.includes('analyz')) return 'audit';
+  if (lower.includes('rule') || lower.includes('automat') || lower.includes('trigger')) return 'rule';
   return 'default';
 }
 
 export function useWorkspace() {
   const [activeThreadId, setActiveThreadId] = useState<string | null>('thread-1');
   const [threads, setThreads] = useState<Record<string, Thread>>(() => {
-    const t1 = getThreadWithData('thread-1');
-    const t2 = getThreadWithData('thread-2');
-    const t3 = getThreadWithData('thread-3');
     const map: Record<string, Thread> = {};
-    if (t1) map[t1.id] = t1;
-    if (t2) map[t2.id] = t2;
-    if (t3) map[t3.id] = t3;
+    ['thread-1', 'thread-2', 'thread-3'].forEach(id => {
+      const t = getThreadWithData(id);
+      if (t) map[id] = t;
+    });
     return map;
   });
   const [isTyping, setIsTyping] = useState(false);
@@ -60,10 +91,11 @@ export function useWorkspace() {
       messages: [{
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: "Hi! I'm ready to help. What would you like to work on — campaign planning, creative generation, performance analysis, or something else?",
+        content: "Hi! I'm ready to help. What would you like to work on — campaigns, creatives, performance, or automation?",
         timestamp: new Date(),
       }],
       artifacts: [],
+      rules: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: true,
@@ -93,28 +125,29 @@ export function useWorkspace() {
 
     setIsTyping(true);
 
-    // Simulate AI response
     setTimeout(() => {
       const intent = detectIntent(content);
       const response = simulatedResponses[intent];
-      let newArtifact: Artifact | undefined;
+      const newArtifacts: Artifact[] = [];
       const artifactIds: string[] = [];
 
-      if (response.artifactType) {
-        const artId = `art-${Date.now()}`;
-        artifactIds.push(artId);
-        const template = mockArtifacts.find(a => a.type === response.artifactType);
-        newArtifact = {
-          id: artId,
-          type: response.artifactType as any,
-          title: `${response.artifactType === 'campaign-plan' ? 'Campaign Plan' : response.artifactType === 'performance-report' ? 'Performance Report' : 'Audit Report'} — ${new Date().toLocaleDateString()}`,
-          status: 'draft',
-          version: 1,
-          isCollapsed: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          data: template?.data || {},
-        };
+      if (response.artifacts) {
+        response.artifacts.forEach((artSpec, idx) => {
+          const artId = `art-${Date.now()}-${idx}`;
+          artifactIds.push(artId);
+          const template = artifactTemplates[artSpec.type];
+          newArtifacts.push({
+            id: artId,
+            type: artSpec.type,
+            title: artSpec.titleSuffix || template?.title || 'Artifact',
+            status: 'draft',
+            version: 1,
+            isCollapsed: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            data: { ...(template?.data || {}) },
+          });
+        });
       }
 
       const aiMsg: ThreadMessage = {
@@ -132,7 +165,7 @@ export function useWorkspace() {
           [activeThreadId]: {
             ...thread,
             messages: [...thread.messages, aiMsg],
-            artifacts: newArtifact ? [...thread.artifacts, newArtifact] : thread.artifacts,
+            artifacts: [...thread.artifacts, ...newArtifacts],
             updatedAt: new Date(),
           },
         };
@@ -140,7 +173,7 @@ export function useWorkspace() {
 
       setIsTyping(false);
       if (artifactIds.length > 0) setFocusedArtifactId(artifactIds[0]);
-    }, 1500);
+    }, 1200 + Math.random() * 800);
   }, [activeThreadId]);
 
   const toggleArtifactCollapse = useCallback((artifactId: string) => {
@@ -159,9 +192,26 @@ export function useWorkspace() {
     });
   }, [activeThreadId]);
 
+  const updateArtifactData = useCallback((artifactId: string, data: Record<string, any>) => {
+    if (!activeThreadId) return;
+    setThreads(prev => {
+      const thread = prev[activeThreadId];
+      return {
+        ...prev,
+        [activeThreadId]: {
+          ...thread,
+          artifacts: thread.artifacts.map(a =>
+            a.id === artifactId
+              ? { ...a, data, version: a.version + 1, updatedAt: new Date() }
+              : a
+          ),
+        },
+      };
+    });
+  }, [activeThreadId]);
+
   const focusArtifact = useCallback((artifactId: string) => {
     if (!activeThreadId) return;
-    // Expand it if collapsed
     setThreads(prev => {
       const thread = prev[activeThreadId];
       return {
@@ -175,7 +225,6 @@ export function useWorkspace() {
       };
     });
     setFocusedArtifactId(artifactId);
-    // Scroll to it
     setTimeout(() => {
       document.getElementById(`artifact-${artifactId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
@@ -191,6 +240,7 @@ export function useWorkspace() {
     createThread,
     sendMessage,
     toggleArtifactCollapse,
+    updateArtifactData,
     focusArtifact,
     setSidebarCollapsed,
   };
