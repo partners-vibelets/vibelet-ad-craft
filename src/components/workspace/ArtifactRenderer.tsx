@@ -463,43 +463,108 @@ const AISignalsSummaryBody = ({ data: d }: { data: Record<string, any> }) => {
 
 // ========== CREATIVE FLOW ARTIFACT BODIES ==========
 
-const ProductAnalysisBody = ({ data: d }: { data: Record<string, any> }) => (
-  <div className="space-y-3">
-    <div className="flex gap-3">
-      <div className="w-20 h-20 rounded-lg bg-muted/30 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
-        {d.imageUrl ? (
-          <img src={d.imageUrl} alt={d.productName} className="w-full h-full object-cover" />
-        ) : (
-          <ShoppingBag className="w-6 h-6 text-muted-foreground/40" />
-        )}
-      </div>
-      <div className="flex-1 space-y-1">
+const ProductAnalysisBody = ({ data: d }: { data: Record<string, any> }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const images: string[] = d.images || (d.imageUrl ? [d.imageUrl] : []);
+  const variants: { id: string; label: string; value: string; image?: string }[] = d.variants || [];
+
+  return (
+    <div className="space-y-3">
+      {/* Image carousel */}
+      {images.length > 0 && (
+        <div className="space-y-2">
+          <div className="relative w-full aspect-[4/3] rounded-lg bg-muted/30 border border-border/40 overflow-hidden">
+            <img
+              src={images[currentImageIndex]}
+              alt={`${d.productName} — ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover"
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setCurrentImageIndex(prev => (prev - 1 + images.length) % images.length)}
+                  className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center text-foreground hover:bg-background transition-colors"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 -rotate-90" />
+                </button>
+                <button
+                  onClick={() => setCurrentImageIndex(prev => (prev + 1) % images.length)}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 flex items-center justify-center text-foreground hover:bg-background transition-colors"
+                >
+                  <ChevronDown className="w-3.5 h-3.5 rotate-90" />
+                </button>
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-background/70 backdrop-blur-sm text-[10px] text-foreground border border-border/30">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Thumbnail strip */}
+          {images.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={cn(
+                    "w-12 h-12 rounded-md border overflow-hidden shrink-0 transition-all",
+                    idx === currentImageIndex ? "border-primary ring-1 ring-primary/30" : "border-border/40 opacity-60 hover:opacity-100"
+                  )}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Product info */}
+      <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">{d.productName}</p>
         <p className="text-xs text-muted-foreground">{d.category}</p>
         {d.price && <p className="text-sm font-semibold text-secondary">{d.price}</p>}
       </div>
-    </div>
-    <p className="text-xs text-muted-foreground leading-relaxed">{d.description}</p>
-    {d.keyFeatures?.length > 0 && (
-      <div className="space-y-1">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Key Features</p>
-        <div className="flex flex-wrap gap-1.5">
-          {d.keyFeatures.map((f: string, i: number) => (
-            <span key={i} className="px-2 py-0.5 rounded-full text-[11px] bg-primary/8 text-primary border border-primary/10">
-              {f}
-            </span>
-          ))}
+
+      <p className="text-xs text-muted-foreground leading-relaxed">{d.description}</p>
+
+      {/* Variants */}
+      {variants.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Variants Detected</p>
+          <div className="flex flex-wrap gap-1.5">
+            {variants.map((v) => (
+              <span key={v.id} className="px-2.5 py-1 rounded-lg text-[11px] bg-muted/30 text-foreground border border-border/40 flex items-center gap-1.5">
+                {v.image && <img src={v.image} alt={v.label} className="w-4 h-4 rounded-sm object-cover" />}
+                <span className="font-medium">{v.label}</span>
+                {v.value && <span className="text-muted-foreground">· {v.value}</span>}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-    )}
-    {d.targetAudience && (
-      <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Target Audience</p>
-        <p className="text-xs text-foreground">{d.targetAudience}</p>
-      </div>
-    )}
-  </div>
-);
+      )}
+
+      {d.keyFeatures?.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Key Features</p>
+          <div className="flex flex-wrap gap-1.5">
+            {d.keyFeatures.map((f: string, i: number) => (
+              <span key={i} className="px-2 py-0.5 rounded-full text-[11px] bg-primary/8 text-primary border border-primary/10">
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {d.targetAudience && (
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Target Audience</p>
+          <p className="text-xs text-foreground">{d.targetAudience}</p>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ScriptOptionsBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
   const d = artifact.data;

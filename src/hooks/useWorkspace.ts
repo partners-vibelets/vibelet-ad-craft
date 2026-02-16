@@ -173,9 +173,23 @@ function buildCreativeConversation(creativeType?: 'image' | 'video' | 'both', co
 const styleToProductAnalysis = (style: string): SimResponse => ({
   content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
   artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
-    productName: 'Summer T-Shirt Collection', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+    productName: 'Summer T-Shirt Collection', 
+    images: [
+      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=450&fit=crop',
+      'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=450&fit=crop',
+      'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=600&h=450&fit=crop',
+      'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=450&fit=crop',
+      'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&h=450&fit=crop',
+    ],
     price: '$29.99', category: 'Apparel / T-Shirts',
     description: 'Premium quality t-shirts made from 100% organic cotton. Modern fit with reinforced stitching and soft-touch finish. Available in 8 colorways.',
+    variants: [
+      { id: 'v-black', label: 'Black', value: '$29.99', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop' },
+      { id: 'v-white', label: 'White', value: '$29.99', image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=100&h=100&fit=crop' },
+      { id: 'v-navy', label: 'Navy', value: '$29.99', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=100&h=100&fit=crop' },
+      { id: 'v-olive', label: 'Olive', value: '$34.99' },
+      { id: 'v-rust', label: 'Rust', value: '$34.99' },
+    ],
     keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
     targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35.',
   } }],
