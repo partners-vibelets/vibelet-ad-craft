@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
 import { getThreadWithData, artifactTemplates } from '@/data/workspaceMockData';
 import { AVATARS } from '@/data/avatars';
+import { mockReasons, mockActions, mockWasteItems, mockLiveAlerts, mockHealthMetrics, mockQuickWins } from '@/components/command-center/mockData';
 
 interface SimResponse {
   content: string;
@@ -823,6 +824,34 @@ export function useWorkspace() {
       pendingStepsRef.current.push(timer);
       return;
     }
+
+    // Act on signal → insert recommendation artifact
+    if (action === 'act-on-signal' && payload) {
+      respondWithSim(activeThreadId, {
+        content: `⚡ **Acting on: "${payload.title}"**\n\nHere's the detailed recommendation with projected impact. Review and apply when ready.`,
+        artifacts: [{
+          type: 'ai-insights' as ArtifactType,
+          titleSuffix: `Recommendation — ${payload.title}`,
+          dataOverrides: {
+            insights: [{
+              type: 'opportunity',
+              severity: 'high',
+              title: payload.title,
+              description: `This action is expected to deliver ${payload.impact}. Confidence: ${payload.confidence}%. Apply it to see results within 48-72 hours.`,
+              metric: 'Impact',
+              change: payload.confidence,
+              suggestedAction: `Apply: ${payload.title}`,
+            }],
+          },
+        }],
+        actionChips: [
+          { label: '✅ Apply now', action: 'apply-recommendation' },
+          { label: '⏳ Defer', action: 'defer-recommendation' },
+          { label: '❌ Dismiss', action: 'dismiss-recommendation' },
+        ],
+      });
+      return;
+    }
   }, [activeThreadId, appendMessage, respondWithSim]);
 
   const toggleArtifactCollapse = useCallback((artifactId: string) => {
@@ -851,9 +880,61 @@ export function useWorkspace() {
     setTimeout(() => document.getElementById(`artifact-${artifactId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
   }, [activeThreadId]);
 
+  const openSignalsDashboard = useCallback(() => {
+    // Check if signals thread already exists
+    const existingSignalsThread = Object.values(threads).find(t => t.title === 'AI Signals');
+    if (existingSignalsThread) {
+      setActiveThreadId(existingSignalsThread.id);
+      return;
+    }
+
+    const id = `thread-signals-${Date.now()}`;
+    const signalsArtifact: Artifact = {
+      id: `art-signals-${Date.now()}`,
+      type: 'ai-signals-dashboard',
+      title: 'Account Signals & Health',
+      status: 'live',
+      version: 1,
+      isCollapsed: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      data: {
+        healthScore: 62,
+        verdict: 'Your account needs attention',
+        verdictDetail: 'Budget allocation is off, some ads are fatigued, and there\'s wasted spend on non-converting areas.',
+        healthMetrics: mockHealthMetrics,
+        reasons: mockReasons,
+        actions: mockActions,
+        wasteItems: mockWasteItems,
+        liveAlerts: mockLiveAlerts,
+        quickWins: mockQuickWins,
+      },
+    };
+
+    const newThread: Thread = {
+      id, title: 'AI Signals', workspaceId: 'ws-1',
+      messages: [{
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: '🔍 Here\'s your **AI Signals Dashboard** — a real-time view of your ad account health, anomalies, and recommended actions. Click **"Act on this signal"** on any item to get a detailed recommendation.',
+        timestamp: new Date(),
+        artifactIds: [signalsArtifact.id],
+      }],
+      artifacts: [signalsArtifact],
+      rules: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      isActive: true,
+    };
+
+    setThreads(prev => ({ ...prev, [id]: newThread }));
+    setActiveThreadId(id);
+  }, [threads]);
+
   return {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
+    openSignalsDashboard,
   };
 }

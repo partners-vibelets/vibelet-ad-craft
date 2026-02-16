@@ -19,6 +19,7 @@ interface WorkspaceSidebarProps {
   onToggleCollapse: () => void;
   activeWorkspaceId: string;
   onSwitchWorkspace: (id: string) => void;
+  onSignalsClick?: () => void;
 }
 
 const sectionConfig: { id: SidebarSection; label: string; icon: React.ElementType }[] = [
@@ -68,6 +69,7 @@ export const WorkspaceSidebar = ({
   onToggleCollapse,
   activeWorkspaceId,
   onSwitchWorkspace,
+  onSignalsClick,
 }: WorkspaceSidebarProps) => {
   const [activeSection, setActiveSection] = useState<SidebarSection>('threads');
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,7 +141,10 @@ export const WorkspaceSidebar = ({
           {sectionConfig.map(sec => (
             <button
               key={sec.id}
-              onClick={() => setActiveSection(sec.id)}
+              onClick={() => {
+                setActiveSection(sec.id);
+                if (sec.id === 'signals' && onSignalsClick) onSignalsClick();
+              }}
               className={cn(
                 "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors w-full text-left",
                 activeSection === sec.id

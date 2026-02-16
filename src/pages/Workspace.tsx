@@ -31,6 +31,7 @@ const Workspace = () => {
     updateArtifactData,
     focusArtifact,
     setSidebarCollapsed,
+    openSignalsDashboard,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,7 @@ const Workspace = () => {
         onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
         activeWorkspaceId="ws-1"
         onSwitchWorkspace={() => {}}
+        onSignalsClick={openSignalsDashboard}
       />
 
       <div className="flex-1 flex flex-col min-w-0">

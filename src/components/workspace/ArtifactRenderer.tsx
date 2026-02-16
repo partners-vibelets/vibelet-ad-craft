@@ -5,7 +5,8 @@ import {
   Video, CheckCircle2, Send, Activity, AlertTriangle, Play, Pause,
   TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
   Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye,
-  Facebook, Smartphone, Monitor, Globe, Shield, ExternalLink, Layers
+  Facebook, Smartphone, Monitor, Globe, Shield, ExternalLink, Layers,
+  CircleAlert, DollarSign, Gauge, Flame, ArrowUpRight, ChevronUp
 } from 'lucide-react';
 import { Artifact, ArtifactType } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'facebook-connect': 'Facebook',
   'campaign-config': 'Config',
   'device-preview': 'Preview',
+  'ai-signals-dashboard': 'Signals',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -59,6 +61,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'facebook-connect': <Facebook className="w-3.5 h-3.5" />,
   'campaign-config': <Layers className="w-3.5 h-3.5" />,
   'device-preview': <Smartphone className="w-3.5 h-3.5" />,
+  'ai-signals-dashboard': <Zap className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -131,6 +134,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'facebook-connect': return <FacebookConnectBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'campaign-config': return <CampaignConfigBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'device-preview': return <DevicePreviewBody artifact={artifact} onUpdateData={onUpdateData} />;
+    case 'ai-signals-dashboard': return <AISignalsDashboardBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -915,6 +919,241 @@ const DevicePreviewBody = ({ artifact, onUpdateData }: { artifact: Artifact; onU
           <span>↗️ Share</span>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ========== AI SIGNALS DASHBOARD ==========
+
+const healthScoreColor = (score: number) => score >= 70 ? 'text-secondary' : score >= 40 ? 'text-amber-500' : 'text-destructive';
+const healthScoreBg = (score: number) => score >= 70 ? 'bg-secondary/15' : score >= 40 ? 'bg-amber-500/10' : 'bg-destructive/10';
+const healthScoreRing = (score: number) => score >= 70 ? 'stroke-secondary' : score >= 40 ? 'stroke-amber-500' : 'stroke-destructive';
+
+const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const healthScore = d.healthScore || 62;
+  const circumference = 2 * Math.PI * 40;
+  const strokeDashoffset = circumference - (healthScore / 100) * circumference;
+
+  return (
+    <div className="space-y-5">
+      {/* Account Health */}
+      <div className="flex items-center gap-5">
+        <div className="relative w-24 h-24 shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
+            <circle cx="50" cy="50" r="40" fill="none" strokeWidth="6" strokeLinecap="round"
+              className={healthScoreRing(healthScore)}
+              style={{ strokeDasharray: circumference, strokeDashoffset, transition: 'stroke-dashoffset 1s ease' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={cn("text-xl font-bold", healthScoreColor(healthScore))}>{healthScore}</span>
+            <span className="text-[9px] text-muted-foreground">Health</span>
+          </div>
+        </div>
+        <div className="flex-1 space-y-1.5">
+          <p className="text-sm font-medium text-foreground">{d.verdict || 'Your account needs attention'}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{d.verdictDetail || 'Budget allocation is off, some ads are fatigued, and there\'s wasted spend on non-converting areas.'}</p>
+          <div className="flex gap-2 mt-2">
+            {d.healthMetrics?.map((m: any) => (
+              <div key={m.label} className={cn("px-2 py-1 rounded-md text-[10px] font-medium", m.status === 'good' ? 'bg-secondary/10 text-secondary' : 'bg-amber-500/10 text-amber-500')}>
+                {m.label}: {m.value}%
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Why This Is Happening */}
+      {d.reasons?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <CircleAlert className="w-3.5 h-3.5 text-amber-500" />
+            <p className="text-xs font-medium text-foreground">Why This Is Happening</p>
+          </div>
+          <div className="space-y-2">
+            {d.reasons.map((reason: any) => {
+              const iconMap: Record<string, React.ReactNode> = {
+                budget: <DollarSign className="w-4 h-4" />,
+                fatigue: <Flame className="w-4 h-4" />,
+                waste: <AlertTriangle className="w-4 h-4" />,
+              };
+              return (
+                <div key={reason.id} className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-1.5">
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-amber-500 mt-0.5 shrink-0">{iconMap[reason.icon] || <CircleAlert className="w-4 h-4" />}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">{reason.title}</p>
+                      {reason.explanation?.map((ex: string, i: number) => (
+                        <p key={i} className="text-xs text-muted-foreground mt-0.5">• {ex}</p>
+                      ))}
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                        <span>{reason.dataWindow}</span>
+                        <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> {reason.confidence}% confidence</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Action Stack */}
+      {d.actions?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-medium text-foreground">Recommended Actions</p>
+          </div>
+          <div className="space-y-2">
+            {d.actions.map((action: any, idx: number) => (
+              <div key={action.id} className="p-3 rounded-xl border border-border/40 bg-card/60 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">{idx + 1}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{action.title}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px]">
+                      <span className="text-secondary font-medium flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" /> {action.impact}</span>
+                      <span className="text-muted-foreground">Risk: {action.risk}</span>
+                      <span className="text-muted-foreground flex items-center gap-0.5"><Gauge className="w-3 h-3" /> {action.confidence}%</span>
+                    </div>
+                    {action.whyWorks?.length > 0 && (
+                      <div className="mt-1.5 space-y-0.5">
+                        {action.whyWorks.map((w: string, i: number) => (
+                          <p key={i} className="text-[11px] text-muted-foreground">• {w}</p>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-amber-500/80 mt-1.5 italic">{action.consequence}</p>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
+                    onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', { actionId: action.id, title: action.title, impact: action.impact, confidence: action.confidence })}
+                  >
+                    <Zap className="w-3 h-3" /> Act on this signal
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Waste & Risk */}
+      {d.wasteItems?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+            <p className="text-xs font-medium text-foreground">Wasted Spend</p>
+          </div>
+          <div className="space-y-1.5">
+            {d.wasteItems.map((w: any) => (
+              <div key={w.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                <DollarSign className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{w.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{w.reason}</p>
+                </div>
+                <span className="text-sm font-semibold text-amber-500">{w.amount}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Live Alerts */}
+      {d.liveAlerts?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-medium text-foreground">Live Signals</p>
+          </div>
+          <div className="space-y-1.5">
+            {d.liveAlerts.map((alert: any) => (
+              <div key={alert.id} className={cn(
+                "p-3 rounded-xl border space-y-1.5",
+                alert.type === 'positive' ? "bg-secondary/5 border-secondary/20" : "bg-amber-500/5 border-amber-500/20"
+              )}>
+                <div className="flex items-start gap-2">
+                  {alert.type === 'positive'
+                    ? <TrendingUp className="w-3.5 h-3.5 text-secondary shrink-0 mt-0.5" />
+                    : <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  }
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">{alert.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{alert.time} · {alert.metric} {alert.change}</p>
+                  </div>
+                </div>
+                {alert.suggestedAction && (
+                  <div className="ml-5.5 flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <div>
+                      <p className="text-xs text-primary font-medium">💡 {alert.suggestedAction.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{alert.suggestedAction.impact}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] text-primary hover:bg-primary/10"
+                      onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
+                        actionId: alert.id,
+                        title: alert.suggestedAction.title,
+                        impact: alert.suggestedAction.impact,
+                        confidence: 85,
+                      })}
+                    >
+                      <Zap className="w-3 h-3 mr-1" /> Act
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Wins */}
+      {d.quickWins?.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="w-3.5 h-3.5 text-secondary" />
+            <p className="text-xs font-medium text-foreground">Quick Wins</p>
+          </div>
+          <div className="space-y-1.5">
+            {d.quickWins.map((qw: any) => (
+              <div key={qw.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-muted/20 border border-border/40">
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{qw.title}</p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                    <span className="text-secondary font-medium">{qw.impact}</span>
+                    <span>· {qw.timeToApply}</span>
+                    <span>· {qw.confidence}% confidence</span>
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary"
+                  onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
+                    actionId: qw.id,
+                    title: qw.title,
+                    impact: qw.impact,
+                    confidence: qw.confidence,
+                  })}
+                >
+                  <Zap className="w-3 h-3 mr-1" /> Act
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
