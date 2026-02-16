@@ -565,7 +565,35 @@ const simpleResponses: Record<string, SimResponse> = {
   default: { content: "Got it! I'm ready to help. What would you like to work on — campaigns, creatives, performance, or something else?" },
 };
 
-// ========== HELPERS ==========
+// Helper for building planning recommendation inline (used by sendMessage)
+function buildPlanningRecommendation(goalKey: string, _threadId: string): SimResponse {
+  let goalLabel: string, budgetRange: string, suggestion: string, objectiveDetail: string;
+  const audienceDefault = 'Your target audience, 18-45';
+  if (goalKey === 'sales') {
+    goalLabel = 'driving sales'; budgetRange = '$50-80/day'; 
+    suggestion = `For a **sales campaign**, I'd recommend starting with **$50-80/day** on Facebook & Instagram.`;
+    objectiveDetail = `I'll set up the campaign with **Advantage+ Shopping** targeting and conversion tracking via your Pixel.`;
+  } else if (goalKey === 'awareness') {
+    goalLabel = 'building brand awareness'; budgetRange = '$30-50/day';
+    suggestion = `For **brand awareness**, I'd suggest **$30-50/day** — great for building your audience.`;
+    objectiveDetail = `I'll optimize for **reach and frequency** to maximize brand visibility.`;
+  } else {
+    goalLabel = 'driving traffic'; budgetRange = '$40-60/day';
+    suggestion = `For **website traffic**, around **$40-60/day** is a solid starting point.`;
+    objectiveDetail = `I'll focus on **link click optimization** to get quality traffic.`;
+  }
+  return {
+    content: `Here's what I'd recommend:\n\n🎯 **Goal:** ${goalLabel}\n👥 **Target audience:** ${audienceDefault}\n💰 **Budget:** ${budgetRange} to start\n📱 **Platforms:** Facebook & Instagram\n\n${suggestion}\n\n${objectiveDetail}\n\n**My proposed plan:**\n1. 🔍 Analyze your product page\n2. 🎨 Generate AI creatives — images + video\n3. 📋 Build campaign structure\n4. 📱 Connect Facebook & publish\n5. 📊 Monitor & auto-optimize\n\n**Your Facebook account:** Primary Ad Account (Pixel: px_987654) ✅\n\n*Does this look right? Happy to adjust anything.*`,
+    actionChips: [
+      { label: '✅ Sounds great — let\'s go', action: 'planning-confirmed' },
+      { label: '💰 I want a different budget', action: 'planning-adjust-budget' },
+      { label: '🎯 Change the objective', action: 'planning-change-objective' },
+      { label: '❓ I have more questions', action: 'planning-more-questions' },
+    ],
+  };
+}
+
+
 
 function createArtifactsFromSpec(specs: SimResponse['artifacts']): { artifacts: Artifact[]; ids: string[] } {
   const artifacts: Artifact[] = [];
@@ -589,7 +617,7 @@ function createArtifactsFromSpec(specs: SimResponse['artifacts']): { artifacts: 
 function createDemoThreads(): Record<string, Thread> {
   const now = new Date();
   const demoThreadDefs: { id: string; title: string; emoji: string; firstMessage: string }[] = [
-    { id: 'demo-planning', title: '📊 Demo: Campaign Planning', emoji: '📊', firstMessage: "Welcome to the **Campaign Planning** demo! Type anything or click below to start planning a campaign from scratch.\n\nI'll walk you through goal selection, budget, and blueprint generation." },
+    { id: 'demo-planning', title: '📊 Demo: Campaign Planning', emoji: '📊', firstMessage: "Hey! 👋 I'm your AI campaign strategist. Before I build anything, I'd love to understand your business and goals.\n\nTell me — **what are you looking to promote?** A product, a service, a brand? The more context you give me, the better plan I can put together." },
     { id: 'demo-multi-variant', title: '🧪 Demo: Multi-Variant Campaign', emoji: '🧪', firstMessage: "Welcome to the **Multi-Variant Campaign** demo! I'll show you how to run ads for a product with multiple variants (e.g., flavors, sizes) — each with its own ad set and creatives.\n\nClick below to start with a sample product." },
     { id: 'demo-creatives', title: '🎨 Demo: Creative Generation', emoji: '🎨', firstMessage: "Welcome to the **Creative Generation** demo! I'll show you how to generate AI-powered ad images and videos.\n\nType anything or click below to begin." },
     { id: 'demo-publishing', title: '🚀 Demo: Publishing', emoji: '🚀', firstMessage: "Welcome to the **Publishing** demo! I'll walk you through connecting Facebook, configuring campaigns, and going live.\n\nClick below to start." },
@@ -599,7 +627,12 @@ function createDemoThreads(): Record<string, Thread> {
   ];
 
   const demoChips: Record<string, ActionChip[]> = {
-    'demo-planning': [{ label: '🚀 Plan a campaign', action: 'start-demo-planning' }],
+    'demo-planning': [
+      { label: '👕 I sell apparel', action: 'planning-category-apparel' },
+      { label: '💪 Health & supplements', action: 'planning-category-health' },
+      { label: '💄 Beauty & skincare', action: 'planning-category-beauty' },
+      { label: '📝 Let me describe it', action: 'planning-category-custom' },
+    ],
     'demo-multi-variant': [{ label: '🧪 Start multi-variant demo', action: 'start-demo-multi-variant' }],
     'demo-creatives': [{ label: '🎨 Generate creatives', action: 'start-demo-creatives' }],
     'demo-publishing': [{ label: '📱 Connect Facebook', action: 'connect-facebook' }],
@@ -779,13 +812,81 @@ export function useWorkspace() {
     // Context-aware: check what the last assistant message was asking for
     const lastAssistantMsg = thread?.messages?.filter(m => m.role === 'assistant').slice(-1)[0];
     const lastContent = lastAssistantMsg?.content?.toLowerCase() || '';
-    const wasAskingForProduct = lastContent.includes('product url') || lastContent.includes('paste') || lastContent.includes('describe') || lastContent.includes('promoting') || lastContent.includes('sample');
+    const wasAskingForProduct = lastContent.includes('product url') || lastContent.includes('paste') || lastContent.includes('describe') || lastContent.includes('promoting') || lastContent.includes('sample product');
     const wasAskingForGoal = lastContent.includes('primary goal') || lastContent.includes('campaign goal');
     const wasAskingForBudget = lastContent.includes('budget') || lastContent.includes('comfort zone');
+    const wasInPlanningConversation = lastContent.includes('what are you looking to promote') || lastContent.includes('ideal customer') || lastContent.includes('main thing you want') || lastContent.includes('go ahead and describe');
+    const wasAskingPlanningQuestions = lastContent.includes('does this look right') || lastContent.includes('happy to adjust');
+
+    // Planning conversation: user typed naturally about their product/business
+    if (wasInPlanningConversation && intent !== 'product-url') {
+      const l = content.toLowerCase();
+      // Detect if they mentioned a goal inline
+      if (l.includes('aware') || l.includes('brand')) {
+        respondWithSim(activeThreadId, buildPlanningRecommendation('awareness', activeThreadId));
+      } else if (l.includes('traffic') || l.includes('visit') || l.includes('click')) {
+        respondWithSim(activeThreadId, buildPlanningRecommendation('traffic', activeThreadId));
+      } else if (l.includes('sales') || l.includes('sell') || l.includes('revenue')) {
+        respondWithSim(activeThreadId, buildPlanningRecommendation('sales', activeThreadId));
+      } else {
+        // User described their business — acknowledge and ask about goals
+        respondWithSim(activeThreadId, {
+          content: `That's really helpful context! 📝 I can already see some strong angles for your ads.\n\nNow the important part — **what's the main thing you want from this campaign?** This shapes everything — the ad format, targeting, and how we measure success.`,
+          actionChips: [
+            { label: '🎯 Drive sales', action: 'planning-goal-sales' },
+            { label: '📣 Build brand awareness', action: 'planning-goal-awareness' },
+            { label: '🔗 Get website traffic', action: 'planning-goal-traffic' },
+            { label: '🤷 Not sure — suggest something', action: 'planning-goal-suggest' },
+          ],
+        });
+      }
+      return;
+    }
+
+    // Planning conversation: user responding to recommendation
+    if (wasAskingPlanningQuestions) {
+      const l = content.toLowerCase();
+      if (l.includes('yes') || l.includes('good') || l.includes('great') || l.includes('let') || l.includes('go') || l.includes('start') || l.includes('ready') || l.includes('ok') || l.includes('sure') || l.includes('perfect')) {
+        respondWithSim(activeThreadId, {
+          content: `Awesome — let's build this! 🚀\n\nFirst, I need your product details so I can tailor everything perfectly. **Share a product URL** and I'll automatically pull images, pricing, features, and descriptions — or I can use a sample product for the demo.`,
+          actionChips: [
+            { label: '🔗 Paste a URL', action: 'prompt-url' },
+            { label: '📝 Describe it', action: 'prompt-describe' },
+            { label: '⚡ Use sample product', action: 'use-sample-product' },
+          ],
+        });
+      } else if (l.includes('budget') || l.includes('money') || l.includes('spend') || l.includes('cost')) {
+        respondWithSim(activeThreadId, {
+          content: `Sure! What budget range are you comfortable with?`,
+          actionChips: [
+            { label: '🤏 $25-40/day — testing', action: 'planning-confirmed-low-budget' },
+            { label: '💰 $50-80/day — recommended', action: 'planning-confirmed' },
+            { label: '🚀 $100+/day — scaling', action: 'planning-confirmed-high-budget' },
+          ],
+        });
+      } else if (l.includes('question') || l.includes('how') || l.includes('what') || l.includes('?')) {
+        respondWithSim(activeThreadId, {
+          content: `Of course! Ask me anything — here are some common things people want to know:\n\n• **How long until I see results?** Usually 3-7 days for initial data, 2 weeks for meaningful optimization.\n• **Can I pause anytime?** Absolutely — no commitments.\n• **What creatives will you make?** Product hero shots, lifestyle images, and a short AI video.\n\nOr type your own question. 🙂`,
+          actionChips: [
+            { label: '✅ I\'m ready — let\'s plan', action: 'planning-confirmed' },
+            { label: '💰 Budget advice', action: 'planning-budget-advice' },
+          ],
+        });
+      } else {
+        respondWithSim(activeThreadId, {
+          content: `Got it! What would you like to change? I can adjust the budget, objective, targeting, or approach — just let me know. 🙂`,
+          actionChips: [
+            { label: '💰 Adjust budget', action: 'planning-adjust-budget' },
+            { label: '🎯 Change objective', action: 'planning-change-objective' },
+            { label: '✅ Actually, let\'s go with this', action: 'planning-confirmed' },
+          ],
+        });
+      }
+      return;
+    }
 
     // If the system was asking for product info and user provides anything (URL or description), auto-analyze
     if (wasAskingForProduct && (intent === 'product-url' || intent === 'default')) {
-      // Simulate analyzing the product
       setIsTyping(true);
       const analyzeSteps: ConversationStep[] = [
         { delay: 800, response: { content: `🔍 Analyzing your product... pulling details now.` } },
@@ -871,7 +972,142 @@ export function useWorkspace() {
       return;
     }
 
-    // Demo thread specific starters
+    // ===== CONVERSATIONAL PLANNING FLOW =====
+    
+    // Phase 1: User picks a category
+    if (action.startsWith('planning-category-')) {
+      const isCustom = action === 'planning-category-custom';
+      
+      respondWithSim(activeThreadId, {
+        content: isCustom
+          ? `Sure! Go ahead and describe what you're selling — the product, the brand, who it's for. I'll take it from there. ✍️`
+          : `Great choice! That's a strong category for paid ads. 💪\n\nBefore I start building, I want to make sure I get this right. A few things I'm curious about:\n\n**1.** Who's your ideal customer? (Age range, interests, where they're located)\n**2.** Have you run ads before, or is this your first campaign?\n**3.** What's the main thing you want from this campaign?\n\n*Feel free to type naturally — or pick a quick goal below.*`,
+        actionChips: isCustom ? undefined : [
+          { label: '🎯 Drive sales', action: 'planning-goal-sales' },
+          { label: '📣 Build brand awareness', action: 'planning-goal-awareness' },
+          { label: '🔗 Get website traffic', action: 'planning-goal-traffic' },
+          { label: '🤷 Not sure — suggest something', action: 'planning-goal-suggest' },
+        ],
+      });
+      return;
+    }
+
+    // Phase 2: User picks a goal → AI presents a detailed recommendation
+    if (action.startsWith('planning-goal-')) {
+      const goalKey = action.replace('planning-goal-', '');
+      const thread = threads[activeThreadId];
+      const hasHealth = thread?.messages.some(m => m.content?.toLowerCase().includes('health') || m.content?.toLowerCase().includes('supplement'));
+      const hasBeauty = thread?.messages.some(m => m.content?.toLowerCase().includes('beauty') || m.content?.toLowerCase().includes('skincare'));
+      
+      const category = hasHealth ? 'health & supplements' : hasBeauty ? 'beauty & skincare' : 'apparel';
+      const audienceDefault = hasHealth ? 'Fitness enthusiasts, gym-goers, 18-45' : hasBeauty ? 'Skincare enthusiasts, beauty buyers, 20-40' : 'Style-conscious millennials & Gen Z, 18-35';
+      
+      let goalLabel: string, budgetRange: string, suggestion: string, objectiveDetail: string;
+      if (goalKey === 'sales') {
+        goalLabel = 'driving sales'; budgetRange = '$50-80/day'; 
+        suggestion = `For a **sales campaign**, I'd recommend starting with **$50-80/day** on Facebook & Instagram. This gives Meta's algorithm enough data to optimize in the first 1-2 weeks.`;
+        objectiveDetail = `I'll set up the campaign with **Advantage+ Shopping** targeting and conversion tracking via your Pixel.`;
+      } else if (goalKey === 'awareness') {
+        goalLabel = 'building brand awareness'; budgetRange = '$30-50/day';
+        suggestion = `For **brand awareness**, I'd suggest **$30-50/day** — awareness campaigns are cheaper per impression and great for building your audience.`;
+        objectiveDetail = `I'll optimize for **reach and frequency** to maximize how many people see your brand.`;
+      } else if (goalKey === 'traffic') {
+        goalLabel = 'driving traffic'; budgetRange = '$40-60/day';
+        suggestion = `For **website traffic**, around **$40-60/day** is a solid starting point. I'll optimize for link clicks and landing page views.`;
+        objectiveDetail = `I'll focus on **link click optimization** to get the highest quality traffic to your site.`;
+      } else {
+        goalLabel = 'getting started'; budgetRange = '$50-80/day';
+        suggestion = `Based on what you've told me about your ${category} business, I'd actually recommend a **sales-focused campaign** to start. It gives you the clearest signal on what's working.`;
+        objectiveDetail = `We'll track purchases directly so you can see exactly what's making money.`;
+      }
+
+      respondWithSim(activeThreadId, {
+        content: `Here's what I'd recommend based on everything you've shared:\n\n🎯 **Goal:** ${goalLabel}\n👥 **Target audience:** ${audienceDefault}\n💰 **Budget:** ${budgetRange} to start\n📱 **Platforms:** Facebook & Instagram\n\n${suggestion}\n\n${objectiveDetail}\n\n**My proposed plan:**\n1. 🔍 Analyze your product page (images, pricing, features)\n2. 🎨 Generate AI creatives — images + short-form video\n3. 📋 Build the campaign structure (ad sets, targeting, budget)\n4. 📱 Connect your Facebook account & publish\n5. 📊 Monitor & auto-optimize\n\n**Your Facebook account:** I'll use your connected account (**Primary Ad Account** — Pixel: px_987654) ✅\n\n*Does this look right? Happy to adjust anything — budget, audience, approach — before we dive in.*`,
+        actionChips: [
+          { label: '✅ Sounds great — let\'s go', action: 'planning-confirmed' },
+          { label: '💰 I want a different budget', action: 'planning-adjust-budget' },
+          { label: '🎯 Change the objective', action: 'planning-change-objective' },
+          { label: '❓ I have more questions', action: 'planning-more-questions' },
+        ],
+      });
+      return;
+    }
+
+    // Phase 3a: User asks more questions
+    if (action === 'planning-more-questions') {
+      respondWithSim(activeThreadId, {
+        content: `Of course! Ask me anything — here are some common things people want to know:\n\n• **How long until I see results?** Usually 3-7 days for initial data, 2 weeks for meaningful optimization.\n• **Can I pause anytime?** Absolutely — no commitments. You can pause, adjust, or stop at any point.\n• **What creatives will you make?** I'll generate product hero shots, lifestyle images, and a short AI video ad with an avatar presenter.\n• **Will you handle targeting?** Yes — I'll set up interest-based targeting and let Meta's algorithm find your best customers.\n\nOr type your own question — I'm happy to dive deeper on anything. 🙂`,
+        actionChips: [
+          { label: '✅ I\'m ready — let\'s plan', action: 'planning-confirmed' },
+          { label: '💰 What budget do you recommend?', action: 'planning-budget-advice' },
+          { label: '📊 How do you track success?', action: 'planning-tracking-question' },
+        ],
+      });
+      return;
+    }
+
+    if (action === 'planning-budget-advice') {
+      respondWithSim(activeThreadId, {
+        content: `Great question! Here's how I think about budget:\n\n**$25-40/day** — Good for testing. You'll learn what works but optimization will be slower.\n**$50-80/day** — Sweet spot for most brands. Enough data for Meta to optimize within 1-2 weeks.\n**$100+/day** — Aggressive scaling. Best when you already know your winning creatives.\n\nMy recommendation? **Start at $50-60/day**, run for 2 weeks, then I'll tell you exactly where to scale up or cut back based on real data. 📊`,
+        actionChips: [
+          { label: '✅ $50-60/day sounds good', action: 'planning-confirmed' },
+          { label: '💰 Start smaller — $30/day', action: 'planning-confirmed-low-budget' },
+          { label: '🚀 Go aggressive — $100+/day', action: 'planning-confirmed-high-budget' },
+        ],
+      });
+      return;
+    }
+
+    if (action === 'planning-tracking-question') {
+      respondWithSim(activeThreadId, {
+        content: `I track everything that matters — in plain English, not marketing jargon:\n\n📈 **How much you're making** — Revenue from ads vs what you spent\n🛒 **How many people bought** — Actual purchases tracked via your Pixel\n💰 **Cost per sale** — How much each purchase costs you\n👀 **Who's seeing your ads** — Reach, impressions, and engagement\n🎯 **What's working** — Which creatives and audiences perform best\n\nI'll send you a daily summary and flag anything that needs your attention. Ready to get started? 🚀`,
+        actionChips: [
+          { label: '✅ Let\'s do it', action: 'planning-confirmed' },
+          { label: '❓ One more question', action: 'planning-more-questions' },
+        ],
+      });
+      return;
+    }
+
+    if (action === 'planning-change-objective') {
+      respondWithSim(activeThreadId, {
+        content: `No problem! What would you like to focus on instead?`,
+        actionChips: [
+          { label: '🎯 Drive sales', action: 'planning-goal-sales' },
+          { label: '📣 Build brand awareness', action: 'planning-goal-awareness' },
+          { label: '🔗 Get website traffic', action: 'planning-goal-traffic' },
+        ],
+      });
+      return;
+    }
+
+    if (action === 'planning-adjust-budget') {
+      respondWithSim(activeThreadId, {
+        content: `Sure! What budget range are you comfortable with?`,
+        actionChips: [
+          { label: '🤏 $25-40/day — testing', action: 'planning-confirmed-low-budget' },
+          { label: '💰 $50-80/day — recommended', action: 'planning-confirmed' },
+          { label: '🚀 $100+/day — scaling', action: 'planning-confirmed-high-budget' },
+        ],
+      });
+      return;
+    }
+
+    // Phase 4: User confirms → flow into product analysis
+    if (action === 'planning-confirmed' || action === 'planning-confirmed-low-budget' || action === 'planning-confirmed-high-budget') {
+      const budgetNote = action === 'planning-confirmed-low-budget' ? ' We\'ll start lean at $30/day.' : action === 'planning-confirmed-high-budget' ? ' Going aggressive at $120/day — love it!' : '';
+      respondWithSim(activeThreadId, {
+        content: `Awesome — let's build this! 🚀${budgetNote}\n\nFirst, I need your product details so I can tailor everything perfectly. **Share a product URL** and I'll automatically pull images, pricing, features, and descriptions — or I can use a sample product for the demo.`,
+        actionChips: [
+          { label: '🔗 Paste a URL', action: 'prompt-url' },
+          { label: '📝 Describe it', action: 'prompt-describe' },
+          { label: '⚡ Use sample product', action: 'use-sample-product' },
+        ],
+      });
+      return;
+    }
+
+    // Legacy starter
     if (action === 'start-demo-planning') {
       setIsTyping(true);
       runConversationSteps(activeThreadId, buildCampaignConversation('Plan a new campaign'));
