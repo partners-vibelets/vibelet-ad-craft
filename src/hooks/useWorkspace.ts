@@ -47,16 +47,49 @@ function extractProductName(msg: string): string {
   return m?.[1]?.trim() || 'your product';
 }
 
-function buildCampaignConversation(userMessage: string): ConversationStep[] {
+function buildCampaignConversation(userMessage: string, context?: { filters?: Record<string, string[]> }): ConversationStep[] {
+  const hasUrl = /https?:\/\/|www\.|\.com|\.shop|\.store/i.test(userMessage);
   const productName = extractProductName(userMessage);
+  
+  // If user provided a product URL, skip to product analysis
+  if (hasUrl) {
+    return [{
+      delay: 1200,
+      response: {
+        content: `🔍 Analyzing your product page... Let me pull the details.`,
+      },
+    }, {
+      delay: 3000,
+      response: styleToProductAnalysis('bold'),
+    }];
+  }
+
+  // If filters provided goal already, skip to budget
+  if (context?.filters?.objective?.length) {
+    const goalMap: Record<string, string> = { sales: 'goal-sales', awareness: 'goal-awareness', traffic: 'goal-traffic', leads: 'goal-sales' };
+    const goalAction = goalMap[context.filters.objective[0]] || 'goal-sales';
+    return [{
+      delay: 1200,
+      response: {
+        content: `I see you want to create a campaign for **${productName}**. First, I need to know about your product so I can optimize everything.\n\n**Share your product URL** or describe what you're promoting, and I'll analyze it automatically.`,
+        actionChips: [
+          { label: '🔗 Paste a URL', action: 'prompt-url' },
+          { label: '📝 Describe it', action: 'prompt-describe' },
+          { label: '⚡ Use sample product', action: 'use-sample-product' },
+        ],
+      },
+    }];
+  }
+
+  // Default: ask for product info first
   return [{
     delay: 1200,
     response: {
-      content: `🚀 Let's build a killer **${productName}** campaign! Before I draft the blueprint, two quick strategic questions:\n\n**What's the primary goal?**\nAre we optimizing for direct sales, brand awareness, or website traffic?`,
+      content: `Let's create a campaign for **${productName}**! 🚀\n\nFirst, share your product URL or describe what you're promoting — I'll pull everything I need automatically.`,
       actionChips: [
-        { label: '💰 Direct sales', action: 'goal-sales' },
-        { label: '📣 Brand awareness', action: 'goal-awareness' },
-        { label: '🔗 Website traffic', action: 'goal-traffic' },
+        { label: '🔗 Paste a URL', action: 'prompt-url' },
+        { label: '📝 Describe it', action: 'prompt-describe' },
+        { label: '⚡ Use sample product', action: 'use-sample-product' },
       ],
     },
   }];
@@ -95,22 +128,43 @@ function buildBlueprintResponse(objective: string, budgetDaily: number): SimResp
 
 // ========== CREATIVE FLOW ==========
 
-function buildCreativeConversation(creativeType?: 'image' | 'video' | 'both'): ConversationStep[] {
-  if (creativeType) {
-    const typeLabel = creativeType === 'image' ? 'static images 🖼️' : creativeType === 'video' ? 'a video ad 🎬' : 'images + video ✨';
-    return [{ delay: 1200, response: { content: `Let's create ${typeLabel}! **What tone and style should we go for?**`, actionChips: [
-      { label: '😎 Bold & trendy', action: 'style-bold' }, { label: '🌿 Clean & minimal', action: 'style-minimal' },
-      { label: '🎉 Fun & vibrant', action: 'style-fun' }, { label: '💎 Premium & elegant', action: 'style-premium' },
-    ] } }];
+function buildCreativeConversation(creativeType?: 'image' | 'video' | 'both', context?: { filters?: Record<string, string[]> }): ConversationStep[] {
+  // If context has type and style from home filters, skip ahead to product analysis
+  const typeFromCtx = context?.filters?.type?.[0] as 'image' | 'video' | 'both' | undefined;
+  const styleFromCtx = context?.filters?.style?.[0];
+  const resolvedType = creativeType || typeFromCtx;
+
+  if (resolvedType && styleFromCtx) {
+    // Both selected — go straight to asking for product
+    return [{ delay: 1200, response: {
+      content: `I'll generate ${resolvedType === 'image' ? 'images 🖼️' : resolvedType === 'video' ? 'a video 🎬' : 'images + video ✨'} in a **${styleFromCtx}** style.\n\nNow I need your product details — share a URL or describe the product so I can tailor everything.`,
+      actionChips: [
+        { label: '🔗 Paste a URL', action: 'prompt-url' },
+        { label: '📝 Describe it', action: 'prompt-describe' },
+        { label: '⚡ Use sample product', action: 'use-sample-product' },
+      ],
+    } }];
   }
-  return [{ delay: 1200, response: { content: `Let's create some amazing ad creatives! 🎨\n\n**What type of creatives do you need?**`, actionChips: [
+
+  if (resolvedType) {
+    const typeLabel = resolvedType === 'image' ? 'static images 🖼️' : resolvedType === 'video' ? 'a video ad 🎬' : 'images + video ✨';
+    return [{ delay: 1200, response: {
+      content: `I'll create ${typeLabel}! First — share your product URL or describe what you're promoting, so I can analyze it and generate tailored creatives.`,
+      actionChips: [
+        { label: '🔗 Paste a URL', action: 'prompt-url' },
+        { label: '📝 Describe it', action: 'prompt-describe' },
+        { label: '⚡ Use sample product', action: 'use-sample-product' },
+      ],
+    } }];
+  }
+  return [{ delay: 1200, response: { content: `Let's create some amazing ad creatives! 🎨\n\nFirst — **what type of creatives do you need?**`, actionChips: [
     { label: '🖼️ Static images', action: 'creative-type-image' }, { label: '🎬 Video with AI avatar', action: 'creative-type-video' },
     { label: '✨ Both images & video', action: 'creative-type-both' },
   ] } }];
 }
 
 const styleToProductAnalysis = (style: string): SimResponse => ({
-  content: `${style === 'bold' ? '😎' : style === 'minimal' ? '🌿' : style === 'fun' ? '🎉' : '💎'} Great taste! Let me analyze your product first so I can tailor everything perfectly.`,
+  content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
   artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
     productName: 'Summer T-Shirt Collection', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
     price: '$29.99', category: 'Apparel / T-Shirts',
@@ -118,7 +172,10 @@ const styleToProductAnalysis = (style: string): SimResponse => ({
     keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
     targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35.',
   } }],
-  actionChips: [{ label: '✅ Looks good — show me scripts', action: 'show-scripts' }, { label: '✏️ Edit product details', action: 'edit-product' }],
+  actionChips: [
+    { label: '✅ Looks good — continue', action: 'product-confirmed' },
+    { label: '✏️ Edit product details', action: 'edit-product' },
+  ],
 });
 
 const showScriptsResponse: SimResponse = {
@@ -284,51 +341,46 @@ function buildAuditFlow(isDemo = false): ConversationStep[] {
 
 function buildDemoFlow(): ConversationStep[] {
   return [{ delay: 1200, response: {
-    content: `🎬 **Full Demo Mode** — I'll walk you through the complete campaign lifecycle in this thread.\n\nLet's start with **Step 1: Campaign Planning**. I'll draft a blueprint for a Summer T-Shirt collection.\n\n**What's the primary goal?**`,
-    actionChips: [
-      { label: '💰 Direct sales', action: 'demo-goal-sales' },
-      { label: '📣 Brand awareness', action: 'demo-goal-awareness' },
-      { label: '🔗 Website traffic', action: 'demo-goal-traffic' },
-    ],
-  } }];
+    content: `🎬 Let me show you the full Vibelets experience — from product to live campaign.\n\nI'll use a sample product to walk through everything. Let me start by analyzing it...`,
+  } }, { delay: 3500, response: styleToProductAnalysis('bold') }];
 }
 
 function demoBlueprintResponse(objective: string, budgetDaily: number): SimResponse {
   const base = buildBlueprintResponse(objective, budgetDaily);
   return { ...base,
-    content: `✅ **Step 1 complete!** Here's your campaign blueprint.\n\n${base.content}\n\nNext up: **Step 2 — Creative Generation** (images + video)`,
-    actionChips: [{ label: '🎨 Generate creatives (Step 2)', action: 'demo-creatives' }, { label: '✏️ Edit blueprint first', action: 'refine-targeting' }],
+    content: `Here's your campaign blueprint — I've filled in targeting, schedule, and creatives based on the product analysis.\n\n${base.content}`,
+    actionChips: [{ label: '🎨 Generate creatives', action: 'demo-creatives' }, { label: '✏️ Edit blueprint', action: 'refine-targeting' }],
   };
 }
 
 function demoCreativeResultResponse(avatarName: string): SimResponse {
   const base = creativeResultResponse(avatarName);
   return { ...base,
-    content: `✅ **Steps 2 & 3 complete!** Images and video are ready.\n\n${base.content}\n\nNext: **Step 4 — Connect Facebook & Publish**`,
-    actionChips: [{ label: '📱 Connect Facebook (Step 4)', action: 'connect-facebook' }, { label: '📥 Download all', action: 'download-all' }],
+    content: `🎉 **Your creatives are ready!** Preview them below.\n\nNow let's get these live — I'll connect your Facebook account and set up the campaign.`,
+    actionChips: [{ label: '📱 Connect Facebook', action: 'connect-facebook' }, { label: '📥 Download all', action: 'download-all' }],
   };
 }
 
 function demoFacebookConnectedResponse(): SimResponse {
   const base = facebookConnectedResponse();
   return { ...base,
-    content: `✅ **Facebook connected!** ${base.content}\n\nLet's configure and publish your campaign.`,
-    actionChips: [{ label: '🚀 Configure & publish (Step 4)', action: 'configure-campaign' }, { label: '📊 Run account audit first', action: 'audit' }],
+    content: `✅ **Facebook connected!** I found your ad account and auto-detected your Pixel and Page.\n\nLet's configure and publish your campaign.`,
+    actionChips: [{ label: '🚀 Configure & publish', action: 'configure-campaign' }, { label: '📊 Run account audit first', action: 'audit' }],
   };
 }
 
 function demoPublishResponse(): SimResponse {
   const base = publishCampaignResponse();
   return { ...base,
-    content: `✅ **Step 4 complete — Campaign published!** 🎉\n\n${base.content}\n\nNext: **Step 5 — 30-Day Account Audit**`,
-    actionChips: [{ label: '🔍 Run 30-day audit (Step 5)', action: 'audit' }, { label: '📊 View performance', action: 'performance' }],
+    content: `🎉🎊 **Campaign published!** Your ads are now live.\n\nI'll monitor performance and send insights as they come in. Want me to run a full account audit to see how this fits with your other campaigns?`,
+    actionChips: [{ label: '🔍 Run account audit', action: 'audit' }, { label: '📊 View performance', action: 'performance' }],
   };
 }
 
 function demoAuditActionChips(): ActionChip[] {
   return [
-    { label: '⚡ Act on recommendation (Step 6)', action: 'demo-act-recommendation' },
-    { label: '🤖 Set up automation rule (Step 7)', action: 'setup-rule' },
+    { label: '⚡ Act on recommendation', action: 'demo-act-recommendation' },
+    { label: '🤖 Set up automation rule', action: 'setup-rule' },
     { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
   ];
 }
@@ -498,58 +550,7 @@ export function useWorkspace() {
     setIsTyping(false);
   }, []);
 
-  const enterWorkspaceFromHome = useCallback((message: string) => {
-    if (!message.trim()) {
-      // Just go home
-      setIsHomeMode(true);
-      setActiveThreadId(null);
-      return;
-    }
-    // Create new thread and send message
-    const id = `thread-${Date.now()}`;
-    const intent = detectIntent(message);
-    const title = intent === 'demo' ? 'Full Demo — Summer Collection'
-      : intent === 'campaign' ? 'New Campaign'
-      : intent === 'create-flow' || intent === 'creative-images' || intent === 'creative-video' || intent === 'creative-both' ? 'Creative Generation'
-      : intent === 'connect-facebook' ? 'Facebook Setup'
-      : intent === 'audit' ? 'Account Audit'
-      : intent === 'rule' ? 'Automation Setup'
-      : 'New Thread';
-
-    const newThread: Thread = {
-      id, title, workspaceId: 'ws-1',
-      messages: [{ id: `msg-${Date.now()}-welcome`, role: 'assistant', content: "Hi! I'm your AI marketing assistant. What would you like to work on? 🚀", timestamp: new Date() }],
-      artifacts: [], rules: [], createdAt: new Date(), updatedAt: new Date(), isActive: true,
-      status: 'active', pinnedArtifactIds: [],
-    };
-    setThreads(prev => ({ ...prev, [id]: newThread }));
-    setActiveThreadId(id);
-    setIsHomeMode(false);
-
-    // Send the message after a tick
-    setTimeout(() => {
-      const userMsg: ThreadMessage = { id: `msg-${Date.now()}`, role: 'user', content: message, timestamp: new Date() };
-      setThreads(prev => {
-        const thread = prev[id];
-        if (!thread) return prev;
-        return { ...prev, [id]: { ...thread, messages: [...thread.messages, userMsg], updatedAt: new Date() } };
-      });
-
-      if (intent === 'demo') isDemoRef.current = true;
-
-      // Process intent
-      if (intent === 'demo') { setIsTyping(true); runConversationSteps(id, buildDemoFlow()); }
-      else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(id, buildCampaignConversation(message)); }
-      else if (intent === 'create-flow') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation()); }
-      else if (intent === 'creative-images') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('image')); }
-      else if (intent === 'creative-video') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('video')); }
-      else if (intent === 'creative-both') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('both')); }
-      else if (intent === 'connect-facebook') { setIsTyping(true); runConversationSteps(id, buildFacebookConnectFlow()); }
-      else if (intent === 'audit') { setIsTyping(true); runConversationSteps(id, buildAuditFlow()); }
-      else if (intent === 'publish') { respondWithSim(id, publishCampaignResponse()); }
-      else { respondWithSim(id, simpleResponses[intent] || simpleResponses.default); }
-    }, 100);
-  }, []);
+  // enterWorkspaceFromHome moved below respondWithSim
 
   const createThread = useCallback((workspaceId: string) => {
     pendingStepsRef.current.forEach(clearTimeout);
@@ -611,6 +612,58 @@ export function useWorkspace() {
     return timer;
   }, [appendMessage]);
 
+  const enterWorkspaceFromHome = useCallback((message: string, context?: { path: string; filters?: Record<string, string[]> }) => {
+    if (!message.trim() && !context) {
+      setIsHomeMode(true);
+      setActiveThreadId(null);
+      return;
+    }
+    const id = `thread-${Date.now()}`;
+    const intent = context?.path === 'demo' ? 'demo' as Intent : detectIntent(message);
+    const title = intent === 'demo' ? 'Full Demo — Campaign Lifecycle'
+      : context?.path === 'campaign' || intent === 'campaign' ? 'New Campaign'
+      : context?.path === 'creative' || intent === 'create-flow' || intent === 'creative-images' || intent === 'creative-video' || intent === 'creative-both' ? 'Creative Generation'
+      : context?.path === 'audit' || intent === 'audit' ? 'Account Audit'
+      : context?.path === 'performance' || intent === 'performance' ? 'Performance Analysis'
+      : context?.path === 'recommendations' || intent === 'insights' ? 'AI Recommendations'
+      : context?.path === 'automation' || intent === 'rule' ? 'Automation Setup'
+      : intent === 'connect-facebook' ? 'Facebook Setup'
+      : 'New Thread';
+
+    const newThread: Thread = {
+      id, title, workspaceId: 'ws-1',
+      messages: [],
+      artifacts: [], rules: [], createdAt: new Date(), updatedAt: new Date(), isActive: true,
+      status: 'active', pinnedArtifactIds: [],
+    };
+    setThreads(prev => ({ ...prev, [id]: newThread }));
+    setActiveThreadId(id);
+    setIsHomeMode(false);
+
+    setTimeout(() => {
+      const userMsg: ThreadMessage = { id: `msg-${Date.now()}`, role: 'user', content: message, timestamp: new Date() };
+      appendMessage(id, userMsg);
+
+      if (intent === 'demo' || context?.path === 'demo') isDemoRef.current = true;
+
+      if (intent === 'demo' || context?.path === 'demo') { setIsTyping(true); runConversationSteps(id, buildDemoFlow()); }
+      else if (context?.path === 'campaign' || intent === 'campaign') { setIsTyping(true); runConversationSteps(id, buildCampaignConversation(message, context)); }
+      else if (context?.path === 'creative') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation(undefined, context)); }
+      else if (intent === 'create-flow') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation()); }
+      else if (intent === 'creative-images') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('image')); }
+      else if (intent === 'creative-video') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('video')); }
+      else if (intent === 'creative-both') { setIsTyping(true); runConversationSteps(id, buildCreativeConversation('both')); }
+      else if (context?.path === 'audit' || intent === 'audit') { setIsTyping(true); runConversationSteps(id, buildAuditFlow()); }
+      else if (context?.path === 'automation' || intent === 'rule') { respondWithSim(id, automationRuleResponse()); }
+      else if (context?.path === 'performance' || intent === 'performance') { respondWithSim(id, simpleResponses.performance); }
+      else if (context?.path === 'recommendations' || intent === 'insights') { respondWithSim(id, simpleResponses.insights); }
+      else if (intent === 'connect-facebook') { setIsTyping(true); runConversationSteps(id, buildFacebookConnectFlow()); }
+      else if (intent === 'publish') { respondWithSim(id, publishCampaignResponse()); }
+      else { respondWithSim(id, simpleResponses[intent] || simpleResponses.default); }
+    }, 100);
+  }, [appendMessage, runConversationSteps, respondWithSim]);
+
+
   const sendMessage = useCallback((content: string) => {
     if (!activeThreadId) return;
     const userMsg: ThreadMessage = { id: `msg-${Date.now()}`, role: 'user', content, timestamp: new Date() };
@@ -639,6 +692,39 @@ export function useWorkspace() {
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
 
+    // Product-first flow actions
+    if (action === 'use-sample-product') {
+      respondWithSim(activeThreadId, styleToProductAnalysis('bold'));
+      return;
+    }
+    if (action === 'prompt-url') {
+      respondWithSim(activeThreadId, { content: "Sure! Paste your product URL below and I'll analyze it automatically. 🔗" });
+      return;
+    }
+    if (action === 'prompt-describe') {
+      respondWithSim(activeThreadId, { content: "Go ahead — describe your product (name, features, target audience) and I'll work with that. ✍️" });
+      return;
+    }
+    if (action === 'product-confirmed') {
+      // In demo/campaign mode → ask goal, in creative mode → show scripts
+      const thread = threads[activeThreadId];
+      const isCreativeThread = thread?.title?.includes('Creative');
+      if (isCreativeThread) {
+        respondWithSim(activeThreadId, showScriptsResponse);
+      } else {
+        // Campaign flow — ask for goal
+        respondWithSim(activeThreadId, {
+          content: `Product looks great! Now — **what's the primary goal for this campaign?**`,
+          actionChips: [
+            { label: '💰 Direct sales', action: isDemoRef.current ? 'demo-goal-sales' : 'goal-sales' },
+            { label: '📣 Brand awareness', action: isDemoRef.current ? 'demo-goal-awareness' : 'goal-awareness' },
+            { label: '🔗 Website traffic', action: isDemoRef.current ? 'demo-goal-traffic' : 'goal-traffic' },
+          ],
+        });
+      }
+      return;
+    }
+
     // Demo thread specific starters
     if (action === 'start-demo-planning') {
       setIsTyping(true);
@@ -659,7 +745,16 @@ export function useWorkspace() {
     }
 
     if (action.startsWith('style-')) {
-      respondWithSim(activeThreadId, styleToProductAnalysis(action.replace('style-', '')));
+      const style = action.replace('style-', '');
+      const styleLabel = style === 'bold' ? 'Bold & Trendy 😎' : style === 'minimal' ? 'Clean & Minimal 🌿' : style === 'fun' ? 'Fun & Vibrant 🎉' : 'Premium & Elegant 💎';
+      respondWithSim(activeThreadId, {
+        content: `Great choice — **${styleLabel}** style! Now I need your product details to tailor the creatives perfectly.\n\nShare a product URL or describe what you're promoting.`,
+        actionChips: [
+          { label: '🔗 Paste a URL', action: 'prompt-url' },
+          { label: '📝 Describe it', action: 'prompt-describe' },
+          { label: '⚡ Use sample product', action: 'use-sample-product' },
+        ],
+      });
       return;
     }
 

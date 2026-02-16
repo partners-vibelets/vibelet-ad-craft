@@ -24,8 +24,8 @@ const Workspace = () => {
     }
   }, [activeThread?.messages, isTyping]);
 
-  const handleHomeMessage = (message: string) => {
-    enterWorkspaceFromHome(message);
+  const handleHomeMessage = (message: string, context?: { path: string; filters?: Record<string, string[]> }) => {
+    enterWorkspaceFromHome(message, context);
   };
 
   const showSuggestions = activeThread && activeThread.messages.length <= 1 && !isTyping;
@@ -44,7 +44,7 @@ const Workspace = () => {
         threads={allThreads}
         onArchiveThread={archiveThread}
         onSummarizeThread={summarizeThread}
-        onGoHome={() => enterWorkspaceFromHome('')}
+        onGoHome={() => enterWorkspaceFromHome('', undefined)}
         isHomeMode={isHomeMode}
       />
 
