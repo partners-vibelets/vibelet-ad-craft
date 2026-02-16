@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import {
-  Plus, MessageSquare, ChevronDown, ChevronRight, ChevronLeft,
-  Search, Settings, Image, Zap, Workflow, Link2, Building2,
-  Sparkles, PanelLeftClose, PanelLeft, Archive, FileText
+  Plus, MessageSquare, ChevronDown, Search, Settings, Image, Zap, Workflow, Link2, Building2,
+  PanelLeftClose, PanelLeft, Archive, Home, Coins
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { mockWorkspaces } from '@/data/workspaceMockData';
 import { Thread, ThreadStatus } from '@/types/workspace';
+import vibeLogo from '@/assets/vibelets-logo-unified.png';
 
 type SidebarSection = 'threads' | 'creatives' | 'signals' | 'rules' | 'accounts';
 
@@ -24,6 +24,8 @@ interface WorkspaceSidebarProps {
   threads: Thread[];
   onArchiveThread?: (threadId: string) => void;
   onSummarizeThread?: (threadId: string) => void;
+  onGoHome?: () => void;
+  isHomeMode?: boolean;
 }
 
 const sectionConfig: { id: SidebarSection; label: string; icon: React.ElementType }[] = [
@@ -34,7 +36,6 @@ const sectionConfig: { id: SidebarSection; label: string; icon: React.ElementTyp
   { id: 'accounts', label: 'Connected Accounts', icon: Link2 },
 ];
 
-// Mock data for non-thread sections
 const mockCreatives = [
   { id: 'cr-1', name: 'Spring Banner v2', type: 'image', date: 'Feb 14' },
   { id: 'cr-2', name: 'Product Showcase', type: 'video', date: 'Feb 12' },
@@ -59,11 +60,7 @@ const mockAccounts = [
   { id: 'acc-3', name: 'TikTok Ads', status: 'disconnected' as const, icon: '🎵' },
 ];
 
-const severityDot: Record<string, string> = {
-  high: 'bg-amber-500',
-  medium: 'bg-amber-400/60',
-  low: 'bg-secondary',
-};
+const severityDot: Record<string, string> = { high: 'bg-amber-500', medium: 'bg-amber-400/60', low: 'bg-secondary' };
 
 const statusConfig: Record<ThreadStatus, { label: string; dotClass: string }> = {
   active: { label: 'Active', dotClass: 'bg-secondary' },
@@ -72,55 +69,42 @@ const statusConfig: Record<ThreadStatus, { label: string; dotClass: string }> = 
 };
 
 export const WorkspaceSidebar = ({
-  activeThreadId,
-  onSelectThread,
-  onNewThread,
-  isCollapsed,
-  onToggleCollapse,
-  activeWorkspaceId,
-  onSwitchWorkspace,
-  onSignalsClick,
-  threads,
-  onArchiveThread,
-  onSummarizeThread,
+  activeThreadId, onSelectThread, onNewThread, isCollapsed, onToggleCollapse,
+  activeWorkspaceId, onSwitchWorkspace, onSignalsClick, threads,
+  onArchiveThread, onSummarizeThread, onGoHome, isHomeMode,
 }: WorkspaceSidebarProps) => {
   const [activeSection, setActiveSection] = useState<SidebarSection>('threads');
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeWs = mockWorkspaces.find(w => w.id === activeWorkspaceId) || mockWorkspaces[0];
 
-  const filteredThreads = threads
-    .filter(t => t.workspaceId === activeWorkspaceId)
-    .filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Separate demo threads from regular threads
+  const allThreads = threads.filter(t => t.workspaceId === activeWorkspaceId);
+  const demoThreads = allThreads.filter(t => t.id.startsWith('demo-'));
+  const regularThreads = allThreads.filter(t => !t.id.startsWith('demo-'));
 
-  // Collapsed state — icon rail
+  const filteredRegular = regularThreads.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredDemo = demoThreads.filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+
   if (isCollapsed) {
     return (
       <div className="w-[52px] bg-card/50 border-r border-border/50 flex flex-col items-center py-3 gap-1 shrink-0">
-        <button
-          onClick={onToggleCollapse}
-          className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mb-2"
-        >
+        <button onClick={onToggleCollapse} className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mb-2">
           <PanelLeft className="w-4 h-4" />
         </button>
         <div className="w-6 h-px bg-border/50 mb-1" />
 
+        {/* Home button */}
+        <button onClick={onGoHome} title="Home" className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
+          <Home className="w-4 h-4" />
+        </button>
+
         {sectionConfig.map(sec => (
-          <button
-            key={sec.id}
-            onClick={() => { setActiveSection(sec.id); onToggleCollapse(); }}
-            title={sec.label}
-            className={cn(
-              "w-9 h-9 rounded-lg flex items-center justify-center transition-colors",
-              activeSection === sec.id
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            )}
-          >
+          <button key={sec.id} onClick={() => { setActiveSection(sec.id); onToggleCollapse(); }} title={sec.label}
+            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", activeSection === sec.id && !isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
             <sec.icon className="w-4 h-4" />
           </button>
         ))}
-
         <div className="flex-1" />
         <button className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
           <Settings className="w-4 h-4" />
@@ -131,38 +115,54 @@ export const WorkspaceSidebar = ({
 
   return (
     <div className="w-72 bg-card/50 border-r border-border/50 flex flex-col shrink-0">
-      {/* Workspace switcher + collapse */}
+      {/* Header: Logo + Company + Credits */}
       <div className="px-3 py-3 border-b border-border/50">
         <div className="flex items-center justify-between mb-2">
-          <button className="flex items-center gap-2 hover:bg-muted/50 rounded-lg px-2 py-1.5 transition-colors -ml-2 flex-1 min-w-0">
-            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-              <Building2 className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <span className="text-sm font-medium text-foreground truncate">{activeWs.name}</span>
-            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          </button>
-          <button
-            onClick={onToggleCollapse}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
-          >
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={vibeLogo} alt="Vibelets" className="h-5 shrink-0" />
+          </div>
+          <button onClick={onToggleCollapse} className="w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0">
             <PanelLeftClose className="w-4 h-4" />
           </button>
         </div>
 
+        {/* Company name + credits */}
+        <div className="flex items-center justify-between px-1 mb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-xs font-medium text-foreground block truncate">{activeWs.name}</span>
+              <span className="text-[10px] text-muted-foreground block">Alex Johnson</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 shrink-0">
+            <Coins className="w-3 h-3 text-primary" />
+            <span className="text-[11px] font-semibold text-primary">247</span>
+          </div>
+        </div>
+
+        {/* Home button */}
+        <button
+          onClick={onGoHome}
+          className={cn(
+            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors w-full text-left mb-1",
+            isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+          )}
+        >
+          <Home className="w-3.5 h-3.5 shrink-0" />
+          <span>Home</span>
+        </button>
+
         {/* Section nav */}
         <div className="flex flex-col gap-0.5">
           {sectionConfig.map(sec => (
-            <button
-              key={sec.id}
-              onClick={() => {
-                setActiveSection(sec.id);
-                if (sec.id === 'signals' && onSignalsClick) onSignalsClick();
-              }}
+            <button key={sec.id}
+              onClick={() => { setActiveSection(sec.id); if (sec.id === 'signals' && onSignalsClick) onSignalsClick(); }}
               className={cn(
                 "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors w-full text-left",
-                activeSection === sec.id
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                activeSection === sec.id && !isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
               )}
             >
               <sec.icon className="w-3.5 h-3.5 shrink-0" />
@@ -172,75 +172,72 @@ export const WorkspaceSidebar = ({
         </div>
       </div>
 
-      {/* Search (threads only) */}
+      {/* Search */}
       {activeSection === 'threads' && (
         <div className="px-3 py-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search threads..."
-              className="pl-8 h-8 text-xs bg-muted/30 border-border/50"
-            />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search threads..." className="pl-8 h-8 text-xs bg-muted/30 border-border/50" />
           </div>
         </div>
       )}
 
-      {/* Content area */}
+      {/* Content */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {activeSection === 'threads' && (
-          <div className="space-y-0.5 mt-1">
-            {filteredThreads.map(thread => {
-              const sc = statusConfig[thread.status];
-              return (
-                <button
-                  key={thread.id}
-                  onClick={() => onSelectThread(thread.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left group",
-                    activeThreadId === thread.id
-                      ? "bg-primary/8 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
-                    thread.status === 'archived' && "opacity-60"
-                  )}
-                >
-                  <MessageSquare className={cn(
-                    "w-3.5 h-3.5 shrink-0 transition-colors",
-                    activeThreadId === thread.id ? "text-primary" : ""
-                  )} />
-                  <div className="flex-1 min-w-0">
-                    <span className={cn(
-                      "block truncate",
-                      activeThreadId === thread.id ? "font-medium" : ""
-                    )}>{thread.title}</span>
-                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
-                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", sc.dotClass)} />
-                      {sc.label}
-                      <span className="mx-0.5">·</span>
-                      {thread.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
-                  {/* Archive button on hover */}
-                  {thread.status !== 'archived' && onArchiveThread && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onArchiveThread(thread.id); }}
-                      className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
-                      title="Archive thread"
-                    >
-                      <Archive className="w-3 h-3" />
-                    </button>
-                  )}
-                </button>
-              );
-            })}
-            <button
-              onClick={() => onNewThread(activeWorkspaceId)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span>New thread</span>
-            </button>
+          <div className="space-y-3 mt-1">
+            {/* Regular threads */}
+            <div className="space-y-0.5">
+              {filteredRegular.map(thread => {
+                const sc = statusConfig[thread.status];
+                return (
+                  <button key={thread.id} onClick={() => onSelectThread(thread.id)}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left group",
+                      activeThreadId === thread.id && !isHomeMode ? "bg-primary/8 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+                      thread.status === 'archived' && "opacity-60"
+                    )}>
+                    <MessageSquare className={cn("w-3.5 h-3.5 shrink-0 transition-colors", activeThreadId === thread.id && !isHomeMode ? "text-primary" : "")} />
+                    <div className="flex-1 min-w-0">
+                      <span className={cn("block truncate", activeThreadId === thread.id && !isHomeMode ? "font-medium" : "")}>{thread.title}</span>
+                      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", sc.dotClass)} />
+                        {sc.label}
+                        <span className="mx-0.5">·</span>
+                        {thread.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    {thread.status !== 'archived' && onArchiveThread && (
+                      <button onClick={(e) => { e.stopPropagation(); onArchiveThread(thread.id); }}
+                        className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
+                        title="Archive thread">
+                        <Archive className="w-3 h-3" />
+                      </button>
+                    )}
+                  </button>
+                );
+              })}
+              <button onClick={() => onNewThread(activeWorkspaceId)}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors">
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                <span>New thread</span>
+              </button>
+            </div>
+
+            {/* Demo threads section */}
+            {filteredDemo.length > 0 && (
+              <div className="space-y-0.5">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-medium px-3 block pt-1 pb-1">Demo Flows</span>
+                {filteredDemo.map(thread => (
+                  <button key={thread.id} onClick={() => onSelectThread(thread.id)}
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left",
+                      activeThreadId === thread.id && !isHomeMode ? "bg-primary/8 text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                    )}>
+                    <MessageSquare className={cn("w-3.5 h-3.5 shrink-0 transition-colors", activeThreadId === thread.id && !isHomeMode ? "text-primary" : "")} />
+                    <span className={cn("flex-1 truncate", activeThreadId === thread.id && !isHomeMode ? "font-medium" : "")}>{thread.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -278,10 +275,7 @@ export const WorkspaceSidebar = ({
               <div key={r.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors cursor-pointer">
                 <Workflow className="w-3.5 h-3.5 shrink-0" />
                 <span className="flex-1 truncate">{r.name}</span>
-                <span className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0",
-                  r.active ? "bg-secondary" : "bg-muted-foreground/30"
-                )} />
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", r.active ? "bg-secondary" : "bg-muted-foreground/30")} />
               </div>
             ))}
           </div>
@@ -293,14 +287,7 @@ export const WorkspaceSidebar = ({
               <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors cursor-pointer">
                 <span className="text-sm">{a.icon}</span>
                 <span className="flex-1 truncate">{a.name}</span>
-                <span className={cn(
-                  "text-[10px] px-1.5 py-0.5 rounded-full",
-                  a.status === 'connected'
-                    ? "bg-secondary/10 text-secondary"
-                    : "bg-muted text-muted-foreground"
-                )}>
-                  {a.status}
-                </span>
+                <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full", a.status === 'connected' ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground")}>{a.status}</span>
               </div>
             ))}
           </div>

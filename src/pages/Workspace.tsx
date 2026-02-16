@@ -1,41 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
+import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
 
-const suggestionChips = [
-  '🎬 Run full demo',
-  '📊 Plan a new campaign',
-  '🎨 Create ad creative',
-  '📈 Check performance',
-  '🔍 Run a 30-day audit',
-  '⚡ Set up automation rule',
-];
-
 const Workspace = () => {
   const {
-    activeThread,
-    activeThreadId,
-    isTyping,
-    sidebarCollapsed,
-    focusedArtifactId,
-    selectThread,
-    createThread,
-    sendMessage,
-    handleActionChip,
-    handleArtifactAction,
-    toggleArtifactCollapse,
-    updateArtifactData,
-    focusArtifact,
-    setSidebarCollapsed,
-    openSignalsDashboard,
-    archiveThread,
-    summarizeThread,
-    pinArtifact,
-    allThreads,
+    activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
+    selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
+    toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
+    openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
+    isHomeMode, enterWorkspaceFromHome,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -46,9 +24,8 @@ const Workspace = () => {
     }
   }, [activeThread?.messages, isTyping]);
 
-  const handleChipClick = (chip: string) => {
-    const text = chip.replace(/^[^\w]*\s/, '');
-    sendMessage(text);
+  const handleHomeMessage = (message: string) => {
+    enterWorkspaceFromHome(message);
   };
 
   const showSuggestions = activeThread && activeThread.messages.length <= 1 && !isTyping;
@@ -67,130 +44,152 @@ const Workspace = () => {
         threads={allThreads}
         onArchiveThread={archiveThread}
         onSummarizeThread={summarizeThread}
+        onGoHome={() => enterWorkspaceFromHome('')}
+        isHomeMode={isHomeMode}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {activeThread && (
-          <div className="h-11 border-b border-border/30 flex items-center px-5 gap-2.5 shrink-0">
-            <span className="text-sm font-medium text-foreground truncate">{activeThread.title}</span>
-            <span className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded-full ml-1",
-              activeThread.status === 'live-campaign' ? "bg-amber-400/15 text-amber-500" :
-              activeThread.status === 'archived' ? "bg-muted text-muted-foreground" :
-              "bg-secondary/10 text-secondary"
-            )}>
-              {activeThread.status === 'live-campaign' ? 'Live' : activeThread.status === 'archived' ? 'Archived' : 'Active'}
-            </span>
-            <div className="ml-auto flex items-center gap-1">
-              {activeThread.artifacts.length > 0 && (
-                <span className="text-[10px] text-muted-foreground/60 mr-2">
-                  {activeThread.artifacts.length} artifact{activeThread.artifacts.length !== 1 ? 's' : ''}
+        {isHomeMode ? (
+          <WorkspaceHome
+            onSendMessage={handleHomeMessage}
+            userName="Alex Johnson"
+            credits={247}
+          />
+        ) : (
+          <>
+            {activeThread && (
+              <div className="h-11 border-b border-border/30 flex items-center px-5 gap-2.5 shrink-0">
+                <span className="text-sm font-medium text-foreground truncate">{activeThread.title}</span>
+                <span className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full ml-1",
+                  activeThread.status === 'live-campaign' ? "bg-amber-400/15 text-amber-500" :
+                  activeThread.status === 'archived' ? "bg-muted text-muted-foreground" :
+                  "bg-secondary/10 text-secondary"
+                )}>
+                  {activeThread.status === 'live-campaign' ? 'Live' : activeThread.status === 'archived' ? 'Archived' : 'Active'}
                 </span>
+                <div className="ml-auto flex items-center gap-1">
+                  {activeThread.artifacts.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground/60 mr-2">
+                      {activeThread.artifacts.length} artifact{activeThread.artifacts.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => summarizeThread(activeThread.id)}
+                    className="h-7 px-2 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1"
+                    title="Summarize thread"
+                  >
+                    <FileText className="w-3 h-3" />
+                    Summarize
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-hidden relative">
+              {activeThread ? (
+                <>
+                  <div ref={scrollRef} className="h-full overflow-y-auto">
+                    <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
+                      {activeThread.pinnedArtifactIds.length > 0 && (
+                        <div className="space-y-2">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium flex items-center gap-1 px-1">
+                            <Pin className="w-3 h-3" /> Pinned
+                          </span>
+                          <ArtifactStream
+                            artifacts={activeThread.artifacts.filter(a => activeThread.pinnedArtifactIds.includes(a.id))}
+                            onToggleCollapse={toggleArtifactCollapse}
+                            onUpdateData={updateArtifactData}
+                            onArtifactAction={handleArtifactAction}
+                            focusedArtifactId={focusedArtifactId}
+                            pinnedIds={activeThread.pinnedArtifactIds}
+                            onPinArtifact={pinArtifact}
+                          />
+                        </div>
+                      )}
+                      {activeThread.messages.map((msg, msgIdx) => {
+                        const relatedArtifacts = msg.artifactIds
+                          ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
+                          : [];
+                        const isLastAssistantMsg = msg.role === 'assistant' &&
+                          msgIdx === activeThread.messages.length - 1;
+
+                        return (
+                          <div
+                            key={msg.id}
+                            className="space-y-3 animate-fade-in"
+                            style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}
+                          >
+                            <MessageBubble msg={msg} />
+                            {relatedArtifacts.length > 0 && (
+                              <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                                <ArtifactStream
+                                  artifacts={relatedArtifacts}
+                                  onToggleCollapse={toggleArtifactCollapse}
+                                  onUpdateData={updateArtifactData}
+                                  onArtifactAction={handleArtifactAction}
+                                  focusedArtifactId={focusedArtifactId}
+                                  pinnedIds={activeThread.pinnedArtifactIds}
+                                  onPinArtifact={pinArtifact}
+                                />
+                              </div>
+                            )}
+                            {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
+                              <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                                <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {isTyping && <TypingIndicator />}
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4">
+                    <div className="max-w-[720px] mx-auto">
+                      {showSuggestions && (
+                        <div className="flex flex-wrap gap-2 mb-3 justify-center">
+                          {suggestionChips.map(chip => (
+                            <button
+                              key={chip}
+                              onClick={() => {
+                                const text = chip.replace(/^[^\w]*\s/, '');
+                                sendMessage(text);
+                              }}
+                              className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground bg-muted/50 border border-border/50 hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                            >
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <ChatInput onSendMessage={sendMessage} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <EmptyState />
               )}
-              <button
-                onClick={() => summarizeThread(activeThread.id)}
-                className="h-7 px-2 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex items-center gap-1"
-                title="Summarize thread"
-              >
-                <FileText className="w-3 h-3" />
-                Summarize
-              </button>
             </div>
-          </div>
+          </>
         )}
-
-        <div className="flex-1 overflow-hidden relative">
-          {activeThread ? (
-            <>
-              <div ref={scrollRef} className="h-full overflow-y-auto">
-                <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
-                  {/* Pinned artifacts at top */}
-                  {activeThread.pinnedArtifactIds.length > 0 && (
-                    <div className="space-y-2">
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium flex items-center gap-1 px-1">
-                        <Pin className="w-3 h-3" /> Pinned
-                      </span>
-                      <ArtifactStream
-                        artifacts={activeThread.artifacts.filter(a => activeThread.pinnedArtifactIds.includes(a.id))}
-                        onToggleCollapse={toggleArtifactCollapse}
-                        onUpdateData={updateArtifactData}
-                        onArtifactAction={handleArtifactAction}
-                        focusedArtifactId={focusedArtifactId}
-                        pinnedIds={activeThread.pinnedArtifactIds}
-                        onPinArtifact={pinArtifact}
-                      />
-                    </div>
-                  )}
-                  {activeThread.messages.map((msg, msgIdx) => {
-                    const relatedArtifacts = msg.artifactIds
-                      ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
-                      : [];
-                    const isLastAssistantMsg = msg.role === 'assistant' &&
-                      msgIdx === activeThread.messages.length - 1;
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className="space-y-3 animate-fade-in"
-                        style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}
-                      >
-                        <MessageBubble msg={msg} />
-                        {relatedArtifacts.length > 0 && (
-                          <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
-                            <ArtifactStream
-                              artifacts={relatedArtifacts}
-                              onToggleCollapse={toggleArtifactCollapse}
-                              onUpdateData={updateArtifactData}
-                              onArtifactAction={handleArtifactAction}
-                              focusedArtifactId={focusedArtifactId}
-                              pinnedIds={activeThread.pinnedArtifactIds}
-                              onPinArtifact={pinArtifact}
-                            />
-                          </div>
-                        )}
-                        {/* Action chips below artifacts */}
-                        {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
-                          <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
-                            <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {isTyping && <TypingIndicator />}
-                </div>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4">
-                <div className="max-w-[720px] mx-auto">
-                  {showSuggestions && (
-                    <div className="flex flex-wrap gap-2 mb-3 justify-center">
-                      {suggestionChips.map(chip => (
-                        <button
-                          key={chip}
-                          onClick={() => handleChipClick(chip)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground bg-muted/50 border border-border/50 hover:bg-muted hover:text-foreground hover:border-border transition-all"
-                        >
-                          {chip}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <ChatInput onSendMessage={sendMessage} />
-                </div>
-              </div>
-            </>
-          ) : (
-            <EmptyState />
-          )}
-        </div>
       </div>
     </div>
   );
 };
 
-// --- Action chips below artifacts ---
+const suggestionChips = [
+  '🎬 Run full demo',
+  '📊 Plan a new campaign',
+  '🎨 Create ad creative',
+  '📈 Check performance',
+  '🔍 Run a 30-day audit',
+  '⚡ Set up automation rule',
+];
+
+// --- Action chips ---
 const ActionChips = ({ chips, onChipClick }: { chips: ActionChip[]; onChipClick: (action: string) => void }) => (
   <div className="flex flex-wrap gap-2 pt-1">
     {chips.map((chip, i) => (
@@ -231,7 +230,6 @@ const MessageBubble = ({ msg }: { msg: ThreadMessage }) => (
   </div>
 );
 
-// Simple markdown bold support
 function formatMarkdown(text: string): string {
   return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
@@ -256,7 +254,7 @@ const TypingIndicator = () => (
   </div>
 );
 
-// --- GPT-style input ---
+// --- Chat input ---
 const ChatInput = ({ onSendMessage }: { onSendMessage: (content: string) => void }) => {
   const [input, setInput] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
