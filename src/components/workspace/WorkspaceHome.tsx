@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { ArrowUp, Target, Palette, BarChart3, Shield, Zap, Bot, ChevronLeft, Sparkles } from 'lucide-react';
+import { ArrowUp, ChevronLeft, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { OnboardingData } from '@/components/workspace/OnboardingFlow';
 
 type PathId = 'campaign' | 'creative' | 'audit' | 'performance' | 'recommendations' | 'automation' | null;
 
@@ -9,9 +10,9 @@ interface PathOption {
   emoji: string;
   label: string;
   desc: string;
-  icon: typeof Target;
   filters?: FilterConfig[];
   placeholder: string;
+  goalTags: string[]; // which onboarding goals map to this path
 }
 
 interface FilterConfig {
@@ -21,10 +22,11 @@ interface FilterConfig {
   multi?: boolean;
 }
 
-const paths: PathOption[] = [
+const allPaths: PathOption[] = [
   {
-    id: 'campaign', emoji: '🚀', label: 'Plan a Campaign', desc: 'AI-guided campaign creation',
-    icon: Target, placeholder: 'Paste your product URL or describe what you want to promote...',
+    id: 'campaign', emoji: '🚀', label: 'Launch a Campaign', desc: 'Plan, create & publish ads',
+    placeholder: 'Paste your product URL or describe what you want to promote...',
+    goalTags: ['launch', 'scale'],
     filters: [
       { id: 'objective', label: 'Goal', options: [
         { id: 'sales', label: 'Sales', emoji: '💰' },
@@ -40,8 +42,9 @@ const paths: PathOption[] = [
     ],
   },
   {
-    id: 'creative', emoji: '🎨', label: 'Generate Creatives', desc: 'AI images, videos & ad copy',
-    icon: Palette, placeholder: 'Paste your product URL or describe what you want to create...',
+    id: 'creative', emoji: '🎬', label: 'Create Better Ads', desc: 'AI images, videos & copy',
+    placeholder: 'Paste your product URL or describe what you want to create...',
+    goalTags: ['creative'],
     filters: [
       { id: 'type', label: 'Format', options: [
         { id: 'image', label: 'Images', emoji: '🖼️' },
@@ -57,20 +60,24 @@ const paths: PathOption[] = [
     ],
   },
   {
-    id: 'audit', emoji: '🔍', label: 'Audit My Account', desc: '30-day deep analysis',
-    icon: Shield, placeholder: "Any specific areas to focus on? Or I'll run a full audit...",
+    id: 'audit', emoji: '🔍', label: 'Audit My Account', desc: '30-day deep analysis & report',
+    placeholder: "Any specific areas to focus on? Or I'll run a full audit...",
+    goalTags: ['scale', 'optimize'],
+  },
+  {
+    id: 'recommendations', emoji: '⚡', label: 'Reduce Wasted Spend', desc: 'AI-powered optimization',
+    placeholder: 'Any specific campaigns to optimize?',
+    goalTags: ['optimize', 'scale'],
   },
   {
     id: 'performance', emoji: '📊', label: 'Check Performance', desc: 'Real-time metrics & insights',
-    icon: BarChart3, placeholder: 'Which campaign or metric are you curious about?',
+    placeholder: 'Which campaign or metric are you curious about?',
+    goalTags: ['scale', 'optimize'],
   },
   {
-    id: 'recommendations', emoji: '⚡', label: 'AI Recommendations', desc: 'Smart optimization actions',
-    icon: Zap, placeholder: 'Any specific campaigns to optimize?',
-  },
-  {
-    id: 'automation', emoji: '🤖', label: 'Automation Rules', desc: 'Auto-pause, scale & optimize',
-    icon: Bot, placeholder: 'What should I automate? e.g. "pause ads with CPA > $20"',
+    id: 'automation', emoji: '🤖', label: 'Set Up Automation', desc: 'Auto-pause, scale & optimize',
+    placeholder: 'What should I automate? e.g. "pause ads with CPA > $20"',
+    goalTags: ['optimize', 'scale'],
     filters: [
       { id: 'trigger', label: 'Trigger type', options: [
         { id: 'cpa', label: 'High CPA', emoji: '📈' },
@@ -82,20 +89,97 @@ const paths: PathOption[] = [
   },
 ];
 
+// Maps onboarding goals to personalized primary paths (shown as cards)
+function getPersonalizedPaths(onboardingData?: OnboardingData | null): { primary: PathOption[]; secondary: PathOption[] } {
+  const goals = onboardingData?.goals || [];
+  
+  if (goals.length === 0) {
+    // No onboarding data — show top 4 as primary, rest as secondary chips
+    return { primary: allPaths.slice(0, 4), secondary: allPaths.slice(4) };
+  }
+
+  // Score paths by how many of user's goals match
+  const scored = allPaths.map(p => ({
+    path: p,
+    score: p.goalTags.filter(tag => goals.includes(tag)).length,
+  }));
+  scored.sort((a, b) => b.score - a.score);
+
+  const primary = scored.filter(s => s.score > 0).map(s => s.path).slice(0, 4);
+  const secondary = scored.filter(s => s.score === 0).map(s => s.path);
+
+  // Ensure we have at least 2 primary
+  if (primary.length < 2) {
+    const remaining = allPaths.filter(p => !primary.includes(p));
+    primary.push(...remaining.slice(0, 2 - primary.length));
+  }
+
+  return { primary, secondary };
+}
+
+function getPersonalizedGreeting(onboardingData?: OnboardingData | null, userName?: string): { title: string; subtitle: string } {
+  const firstName = userName?.split(' ')[0] || '';
+  const experience = onboardingData?.ad_experience;
+  const businessType = onboardingData?.business_type;
+  const goals = onboardingData?.goals || [];
+
+  const businessLabel: Record<string, string> = {
+    ecommerce: 'your store',
+    saas: 'your product',
+    services: 'your business',
+    creator: 'your brand',
+  };
+
+  const biz = businessType ? businessLabel[businessType] || 'your business' : '';
+
+  if (goals.includes('launch') && (experience === 'beginner' || experience === 'some')) {
+    return {
+      title: firstName ? `Let's get ${biz} live, ${firstName}` : `Let's get ${biz} live`,
+      subtitle: "I'll handle the complexity — just tell me about your product and I'll create everything.",
+    };
+  }
+  if (goals.includes('scale')) {
+    return {
+      title: firstName ? `Ready to scale, ${firstName}?` : 'Ready to scale?',
+      subtitle: `I've analyzed what typically works for ${biz || 'businesses like yours'}. Let's find your next growth lever.`,
+    };
+  }
+  if (goals.includes('creative')) {
+    return {
+      title: firstName ? `Let's create something great, ${firstName}` : "Let's create something great",
+      subtitle: 'AI-powered images, videos, and copy — tailored to your brand and audience.',
+    };
+  }
+  if (goals.includes('optimize')) {
+    return {
+      title: firstName ? `Let's cut the waste, ${firstName}` : "Let's optimize your spend",
+      subtitle: "I'll audit your campaigns, find what's underperforming, and give you one-click fixes.",
+    };
+  }
+
+  return {
+    title: firstName ? `Welcome back, ${firstName}` : 'Welcome to Vibelets',
+    subtitle: 'Your AI marketing operating system. Tell me what you need, or pick a path below.',
+  };
+}
+
 interface WorkspaceHomeProps {
   onSendMessage: (message: string, context?: { path: string; filters?: Record<string, string[]> }) => void;
   userName?: string;
   credits?: number;
   onboardingComplete?: boolean;
+  onboardingData?: OnboardingData | null;
 }
 
-export const WorkspaceHome = ({ onSendMessage, userName, credits, onboardingComplete }: WorkspaceHomeProps) => {
+export const WorkspaceHome = ({ onSendMessage, userName, credits, onboardingData }: WorkspaceHomeProps) => {
   const [input, setInput] = useState('');
   const [selectedPath, setSelectedPath] = useState<PathId>(null);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  const activePath = paths.find(p => p.id === selectedPath);
+  const { primary, secondary } = getPersonalizedPaths(onboardingData);
+  const greeting = getPersonalizedGreeting(onboardingData, userName);
+  const activePath = allPaths.find(p => p.id === selectedPath);
 
   const handleSubmit = () => {
     if (!input.trim() && !selectedPath) return;
@@ -146,42 +230,60 @@ export const WorkspaceHome = ({ onSendMessage, userName, credits, onboardingComp
           <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-7 h-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            {userName ? `Welcome back, ${userName.split(' ')[0]}` : 'Welcome to Vibelets'}
-          </h1>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Your AI marketing operating system. Tell me what you need, or pick a path below.
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">{greeting.title}</h1>
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">{greeting.subtitle}</p>
         </div>
 
-        {/* Chat input + path area */}
+        {/* Path selection area */}
         <div className="space-y-3">
-          {/* Path selection OR filter chips */}
           {!selectedPath ? (
-            <div className="flex flex-wrap gap-2 justify-center">
-              {paths.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePathSelect(p.id)}
-                  className={cn(
-                    "px-3.5 py-2 rounded-xl text-xs font-medium transition-all",
-                    "bg-muted/40 border border-border/50 text-muted-foreground",
-                    "hover:bg-muted hover:text-foreground hover:border-border"
-                  )}
-                >
-                  {p.emoji} {p.label}
-                </button>
-              ))}
-              <button
-                onClick={() => onSendMessage('Run full demo', { path: 'demo' })}
-                className={cn(
-                  "px-3.5 py-2 rounded-xl text-xs font-medium transition-all",
-                  "bg-primary/10 border border-primary/20 text-primary",
-                  "hover:bg-primary/20 hover:border-primary/30"
-                )}
-              >
-                🎬 Run full demo
-              </button>
+            <div className="space-y-3">
+              {/* Primary paths as cards */}
+              <div className="grid grid-cols-2 gap-3">
+                {primary.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handlePathSelect(p.id)}
+                    className={cn(
+                      "flex flex-col items-start gap-1.5 p-4 rounded-xl border text-left transition-all duration-200",
+                      "border-border/50 bg-card/50 hover:border-border hover:bg-muted/30 hover:shadow-sm"
+                    )}
+                  >
+                    <span className="text-xl">{p.emoji}</span>
+                    <span className="text-sm font-medium text-foreground">{p.label}</span>
+                    <span className="text-[11px] text-muted-foreground leading-snug">{p.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Secondary paths as small chips + demo */}
+              {(secondary.length > 0) && (
+                <div className="flex flex-wrap gap-2 justify-center pt-1">
+                  {secondary.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => handlePathSelect(p.id)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all",
+                        "bg-muted/30 border border-border/40 text-muted-foreground",
+                        "hover:bg-muted/60 hover:text-foreground hover:border-border"
+                      )}
+                    >
+                      {p.emoji} {p.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => onSendMessage('Run full demo', { path: 'demo' })}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-[11px] font-medium transition-all",
+                      "bg-primary/10 border border-primary/20 text-primary",
+                      "hover:bg-primary/20 hover:border-primary/30"
+                    )}
+                  >
+                    🎬 Run full demo
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
