@@ -202,7 +202,7 @@ const CampaignBlueprintBody = ({ artifact, onUpdateData }: { artifact: Artifact;
         <p>
           <span className="font-semibold">{d.campaignName}</span> — a <span className="font-medium text-primary">{d.objective}</span> campaign
           on {d.platform}, running <span className="font-medium">{d.schedule?.startDate} → {d.schedule?.endDate}</span> with{' '}
-          <span className="font-medium">{d.adSets} ad sets</span>.
+          <span className="font-medium">{d.adSets} ad set{d.adSets !== 1 ? 's' : ''}</span>.
         </p>
       </div>
 
@@ -213,7 +213,23 @@ const CampaignBlueprintBody = ({ artifact, onUpdateData }: { artifact: Artifact;
           <EditableField label="Daily Budget" value={`$${d.budget?.daily}`} onSave={v => updateNested('budget', 'daily', parseInt(v.replace('$', '')))} className="flex-1" />
           <EditableField label="Total Budget" value={`$${d.budget?.total}`} onSave={v => updateNested('budget', 'total', parseInt(v.replace('$', '')))} className="flex-1" />
         </div>
+        {d.budgetStrategy && (
+          <ReadOnlyField label="Budget Strategy" value={d.budgetStrategy} />
+        )}
       </div>
+
+      {/* Facebook Account Info */}
+      {d.facebookAccount && (
+        <div className="px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/20 space-y-1">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Facebook className="w-3 h-3" /> Facebook Account</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-foreground">
+              <span className="font-medium">{d.facebookAccount.name}</span> · {d.facebookAccount.pageName}
+            </p>
+            <Badge variant="secondary" className="text-[10px]">Pixel: {d.facebookAccount.pixelId}</Badge>
+          </div>
+        </div>
+      )}
 
       {/* Targeting narrative */}
       <div className="px-3 py-2.5 rounded-lg bg-muted/15 border border-border/30 space-y-1">
@@ -222,6 +238,22 @@ const CampaignBlueprintBody = ({ artifact, onUpdateData }: { artifact: Artifact;
           Ages {d.targeting?.ageRange} interested in <span className="font-medium">{d.targeting?.interests?.join(', ')}</span> in {d.targeting?.locations?.join(', ')}.
         </p>
       </div>
+
+      {/* Ad Set Breakdown (multi-variant) */}
+      {d.adSetBreakdown && d.adSetBreakdown.length > 0 && (
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Ad Sets ({d.adSetBreakdown.length})</p>
+          <div className="space-y-1.5">
+            {d.adSetBreakdown.map((adSet: any, i: number) => (
+              <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/20">
+                <Package className="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                <span className="text-xs text-foreground font-medium flex-1">{adSet.name}</span>
+                <span className="text-[10px] text-muted-foreground">{adSet.ads} ads · min {adSet.minBudget}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Ad copy */}
       <EditableField label="Primary Text" value={d.primaryText} onSave={v => update('primaryText', v)} />
@@ -919,13 +951,25 @@ const CampaignConfigBody = ({ artifact, onUpdateData }: { artifact: Artifact; on
         </div>
       </DisclosureSection>
 
-      <DisclosureSection icon={<Layers className="w-3.5 h-3.5" />} title="Ad Set">
+      <DisclosureSection icon={<Layers className="w-3.5 h-3.5" />} title={`Ad Set${d.adSetLevel?.adSetBreakdown ? 's (' + d.adSetLevel.adSetBreakdown.length + ')' : ''}`}>
         <div className="space-y-2 pt-1">
           <EditableField label="Ad Set Name" value={d.adSetLevel?.name} onSave={v => updateAdSet('name', v)} />
           <EditableField label="Budget" value={`$${d.adSetLevel?.budget}`} onSave={v => updateAdSet('budget', parseInt(v.replace('$', '')))} />
           <p className="text-xs text-muted-foreground">
             {d.adSetLevel?.duration} · Pixel: {d.adSetLevel?.pixelId} · {d.adSetLevel?.targeting?.ageRange}, {d.adSetLevel?.targeting?.locations?.join(', ')}
           </p>
+          {d.adSetLevel?.adSetBreakdown && (
+            <div className="space-y-1 mt-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Per-Variant Ad Sets</p>
+              {d.adSetLevel.adSetBreakdown.map((adSet: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/20 text-xs">
+                  <Package className="w-3 h-3 text-primary/50 shrink-0" />
+                  <span className="font-medium text-foreground flex-1">{adSet.name}</span>
+                  <span className="text-muted-foreground">{adSet.ads} ads</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </DisclosureSection>
 

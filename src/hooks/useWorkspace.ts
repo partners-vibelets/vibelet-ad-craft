@@ -79,26 +79,74 @@ function buildCampaignConversation(userMessage: string, context?: { filters?: Re
 }
 
 // After product analysis, ask ALL planning questions in one intelligent message
-function planningQuestionsResponse(isDemo = false): SimResponse {
+function planningQuestionsResponse(isDemo = false, hasVariants = false, variantCount = 0): SimResponse {
   const prefix = isDemo ? 'demo-' : '';
+  const variantSection = hasVariants
+    ? `\n\n**4. I found ${variantCount} product variants.** How do you want to handle them?`
+    : '';
+  const fbSection = `\n\n${hasVariants ? '**5' : '**4'}. **Facebook account:** I'll use your connected account (Primary Ad Account — Summer Style Co.) with Pixel auto-detected. ✅`;
+  
+  const baseChips: ActionChip[] = [
+    { label: '💰 Drive sales · $50-80/day', action: `${prefix}plan-sales-medium${hasVariants ? '-variants' : ''}` },
+    { label: '💰 Drive sales · $100+/day', action: `${prefix}plan-sales-high${hasVariants ? '-variants' : ''}` },
+    { label: '📣 Build awareness · $30-60/day', action: `${prefix}plan-awareness-medium${hasVariants ? '-variants' : ''}` },
+    { label: '🔗 Drive traffic · $40-70/day', action: `${prefix}plan-traffic-medium${hasVariants ? '-variants' : ''}` },
+    { label: '🤏 Just exploring · minimal budget', action: `${prefix}plan-sales-low${hasVariants ? '-variants' : ''}` },
+  ];
+
   return {
-    content: `Product looks great! ✅ Now I need a few things to build your complete plan. **Answer below or type naturally** — I'll figure out the rest.\n\n**1. What's the main goal?**\n**2. How much are you comfortable spending per day?**\n**3. Any creative preferences?** (I'll generate images + video by default)`,
-    actionChips: [
-      { label: '💰 Drive sales · $50-80/day', action: `${prefix}plan-sales-medium` },
-      { label: '💰 Drive sales · $100+/day', action: `${prefix}plan-sales-high` },
-      { label: '📣 Build awareness · $30-60/day', action: `${prefix}plan-awareness-medium` },
-      { label: '🔗 Drive traffic · $40-70/day', action: `${prefix}plan-traffic-medium` },
-      { label: '🤏 Just exploring · minimal budget', action: `${prefix}plan-sales-low` },
-    ],
+    content: `Product looks great! ✅ Now let me gather everything to build your complete plan.\n\n**1. What's the main goal?**\n**2. How much are you comfortable spending per day?**\n**3. Creative preferences?** (I'll generate images + video by default)${variantSection}${fbSection}\n\n*Click a quick option below, or type naturally — I'll figure out the rest.*`,
+    actionChips: baseChips,
   };
 }
 
 // Complete execution plan presented to user for approval
-function executionPlanResponse(objective: string, budgetDaily: number, isDemo = false): SimResponse {
+function executionPlanResponse(objective: string, budgetDaily: number, isDemo = false, multiVariant = false): SimResponse {
   const prefix = isDemo ? 'demo-' : '';
   const objectiveLabel = objective === 'Sales' ? 'drive sales' : objective === 'Awareness' ? 'build awareness' : 'drive traffic';
+  
+  if (multiVariant) {
+    const perVariantBudget = Math.round(budgetDaily / 5);
+    return {
+      content: `Here's your **multi-variant campaign plan**. I've structured it using Meta's best practices — one campaign with **separate ad sets per variant** so each flavor gets optimized independently.\n\n📋 **The Plan:**\n1. ✅ Product analyzed — Whey Protein (5 flavors)\n2. 🎯 Goal: **${objectiveLabel}** at **$${budgetDaily}/day** (CBO)\n3. 🏗️ Structure: **1 Campaign → 5 Ad Sets → 3 Ads each**\n4. 🎨 Generate **15 creatives** (per-variant images + video)\n5. 📱 Publish via **Primary Ad Account** (Pixel: px_987654)\n6. 📊 Monitor & auto-optimize budget across variants\n\n**Campaign Budget Optimization (CBO)** will automatically shift spend toward top-performing flavors.\n\n*Everything below is editable — click any field to change it.*`,
+      artifacts: [{
+        type: 'campaign-blueprint',
+        titleSuffix: 'Multi-Variant Campaign Blueprint',
+        dataOverrides: {
+          campaignName: 'Whey Protein — All Flavors 2026', objective, platform: 'Facebook & Instagram',
+          budget: { daily: budgetDaily, total: budgetDaily * 30 },
+          budgetStrategy: 'CBO (Campaign Budget Optimization)',
+          targeting: { ageRange: '18-45', interests: ['Fitness', 'Gym', 'Protein Supplements', 'Health & Wellness'], locations: ['US', 'UK', 'CA', 'AU'] },
+          schedule: { startDate: '2026-03-01', endDate: '2026-05-31' },
+          adSets: 5,
+          adSetBreakdown: [
+            { name: 'Chocolate Flavor', variant: 'Chocolate', ads: 3, minBudget: `$${perVariantBudget}`, creatives: ['Hero shot', 'Lifestyle gym', 'AI video'] },
+            { name: 'Vanilla Flavor', variant: 'Vanilla', ads: 3, minBudget: `$${perVariantBudget}`, creatives: ['Hero shot', 'Lifestyle gym', 'AI video'] },
+            { name: 'Strawberry Flavor', variant: 'Strawberry', ads: 3, minBudget: `$${perVariantBudget}`, creatives: ['Hero shot', 'Lifestyle gym', 'AI video'] },
+            { name: 'Cookies & Cream', variant: 'Cookies & Cream', ads: 3, minBudget: `$${perVariantBudget}`, creatives: ['Hero shot', 'Lifestyle gym', 'AI video'] },
+            { name: 'Mango Flavor', variant: 'Mango', ads: 3, minBudget: `$${perVariantBudget}`, creatives: ['Hero shot', 'Lifestyle gym', 'AI video'] },
+          ],
+          primaryText: 'Fuel your gains with premium whey protein 💪 25g protein per serving. Available in 5 delicious flavors!',
+          cta: 'Shop Now',
+          facebookAccount: { name: 'Primary Ad Account', pixelId: 'px_987654', pageName: 'FitFuel Nutrition' },
+          suggestedCreatives: [
+            'Per-variant hero shots with flavor-matched backgrounds',
+            'Lifestyle gym shots with product placement',
+            'Short-form AI avatar video per flavor',
+            'Carousel — all 5 flavors side by side',
+          ],
+        },
+      }],
+      actionChips: [
+        { label: '✅ Approve — start execution', action: `${prefix}approve-plan-multi` },
+        { label: '✏️ I want to change something', action: 'edit-plan' },
+        { label: '💰 Adjust budget', action: 'adjust-budget' },
+      ],
+    };
+  }
+  
   return {
-    content: `Here's your complete plan. **Review it, tweak anything, then approve** — I'll handle everything from there.\n\n📋 **The Plan:**\n1. ✅ Product analyzed — Summer T-Shirt Collection\n2. 🎯 Campaign goal: **${objectiveLabel}** at **$${budgetDaily}/day**\n3. 🎨 Generate **4 creatives** (3 images + 1 AI video)\n4. 📱 Connect your Facebook ad account\n5. 🚀 Configure & publish campaign\n6. 📊 Monitor performance & send you insights\n\n*Everything below is editable — click any field to change it.*`,
+    content: `Here's your complete plan. **Review it, tweak anything, then approve** — I'll handle everything from there.\n\n📋 **The Plan:**\n1. ✅ Product analyzed — Summer T-Shirt Collection\n2. 🎯 Campaign goal: **${objectiveLabel}** at **$${budgetDaily}/day**\n3. 🎨 Generate **4 creatives** (3 images + 1 AI video)\n4. 📱 Publish via **Primary Ad Account** (Pixel: px_987654, Page: Summer Style Co.)\n5. 🚀 Configure & publish campaign\n6. 📊 Monitor performance & send you insights\n\n*Everything below is editable — click any field to change it.*`,
     artifacts: [{
       type: 'campaign-blueprint',
       titleSuffix: 'Campaign Blueprint',
@@ -109,6 +157,7 @@ function executionPlanResponse(objective: string, budgetDaily: number, isDemo = 
         schedule: { startDate: '2026-06-01', endDate: '2026-08-31' }, adSets: 3,
         primaryText: 'Summer is here ☀️ Fresh styles, bold designs. Shop now and get free shipping!',
         cta: 'Shop Now',
+        facebookAccount: { name: 'Primary Ad Account', pixelId: 'px_987654', pageName: 'Summer Style Co.' },
         suggestedCreatives: ['Lifestyle photo — model outdoors', 'Flat-lay product shot', 'Short-form video ad with AI avatar', 'Carousel — color variants'],
       },
     }],
@@ -121,11 +170,13 @@ function executionPlanResponse(objective: string, budgetDaily: number, isDemo = 
 }
 
 // Parse plan selection from action chip
-function parsePlanAction(action: string): { objective: string; budget: number } {
-  const parts = action.replace('demo-', '').replace('plan-', '').split('-');
+function parsePlanAction(action: string): { objective: string; budget: number; multiVariant: boolean } {
+  const clean = action.replace('demo-', '').replace('plan-', '');
+  const multiVariant = clean.includes('-variants');
+  const parts = clean.replace('-variants', '').split('-');
   const goalMap: Record<string, string> = { sales: 'Sales', awareness: 'Awareness', traffic: 'Traffic' };
   const budgetMap: Record<string, number> = { low: 25, medium: 60, high: 120 };
-  return { objective: goalMap[parts[0]] || 'Sales', budget: budgetMap[parts[1]] || 60 };
+  return { objective: goalMap[parts[0]] || 'Sales', budget: budgetMap[parts[1]] || 60, multiVariant };
 }
 
 // ========== CREATIVE FLOW ==========
@@ -165,34 +216,67 @@ function buildCreativeConversation(creativeType?: 'image' | 'video' | 'both', co
   ] } }];
 }
 
-const styleToProductAnalysis = (style: string): SimResponse => ({
-  content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
-  artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
-    productName: 'Summer T-Shirt Collection', 
-    images: [
-      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=450&fit=crop',
-      'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=450&fit=crop',
-      'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=600&h=450&fit=crop',
-      'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=450&fit=crop',
-      'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&h=450&fit=crop',
+const styleToProductAnalysis = (style: string, productType: 'tshirt' | 'whey' = 'tshirt'): SimResponse => {
+  if (productType === 'whey') {
+    return {
+      content: `I've analyzed your product and pulled the key details — including **5 flavor variants**. Take a look:`,
+      artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
+        productName: 'FitFuel Premium Whey Protein',
+        images: [
+          'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=600&h=450&fit=crop',
+          'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=600&h=450&fit=crop',
+          'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=600&h=450&fit=crop',
+          'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&h=450&fit=crop',
+        ],
+        price: '$44.99', category: 'Health & Nutrition / Protein',
+        description: 'Premium whey protein isolate with 25g protein per serving, low sugar, and fast absorption. Available in 5 delicious flavors. 30 servings per container.',
+        hasVariants: true,
+        variants: [
+          { id: 'v-choco', label: 'Chocolate', value: '$44.99', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=100&h=100&fit=crop', inStock: true },
+          { id: 'v-vanilla', label: 'Vanilla', value: '$44.99', image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=100&h=100&fit=crop', inStock: true },
+          { id: 'v-straw', label: 'Strawberry', value: '$44.99', inStock: true },
+          { id: 'v-cookies', label: 'Cookies & Cream', value: '$49.99', inStock: true },
+          { id: 'v-mango', label: 'Mango', value: '$44.99', inStock: true },
+        ],
+        keyFeatures: ['25g Protein/Serving', 'Low Sugar', 'Fast Absorption', '5 Flavors', 'No Artificial Colors', 'Third-Party Tested'],
+        targetAudience: 'Fitness enthusiasts, gym-goers, and health-conscious individuals aged 18-45.',
+      } }],
+      actionChips: [
+        { label: '✅ Looks good — continue', action: 'product-confirmed-variants' },
+        { label: '✏️ Edit product details', action: 'edit-product' },
+      ],
+    };
+  }
+  
+  return {
+    content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
+    artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
+      productName: 'Summer T-Shirt Collection', 
+      images: [
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=450&fit=crop',
+        'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=450&fit=crop',
+        'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=600&h=450&fit=crop',
+        'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=450&fit=crop',
+        'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600&h=450&fit=crop',
+      ],
+      price: '$29.99', category: 'Apparel / T-Shirts',
+      description: 'Premium quality t-shirts made from 100% organic cotton. Modern fit with reinforced stitching and soft-touch finish. Available in 8 colorways.',
+      variants: [
+        { id: 'v-black', label: 'Black', value: '$29.99', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop' },
+        { id: 'v-white', label: 'White', value: '$29.99', image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=100&h=100&fit=crop' },
+        { id: 'v-navy', label: 'Navy', value: '$29.99', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=100&h=100&fit=crop' },
+        { id: 'v-olive', label: 'Olive', value: '$34.99' },
+        { id: 'v-rust', label: 'Rust', value: '$34.99' },
+      ],
+      keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
+      targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35.',
+    } }],
+    actionChips: [
+      { label: '✅ Looks good — continue', action: 'product-confirmed' },
+      { label: '✏️ Edit product details', action: 'edit-product' },
     ],
-    price: '$29.99', category: 'Apparel / T-Shirts',
-    description: 'Premium quality t-shirts made from 100% organic cotton. Modern fit with reinforced stitching and soft-touch finish. Available in 8 colorways.',
-    variants: [
-      { id: 'v-black', label: 'Black', value: '$29.99', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop' },
-      { id: 'v-white', label: 'White', value: '$29.99', image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=100&h=100&fit=crop' },
-      { id: 'v-navy', label: 'Navy', value: '$29.99', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=100&h=100&fit=crop' },
-      { id: 'v-olive', label: 'Olive', value: '$34.99' },
-      { id: 'v-rust', label: 'Rust', value: '$34.99' },
-    ],
-    keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
-    targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35.',
-  } }],
-  actionChips: [
-    { label: '✅ Looks good — continue', action: 'product-confirmed' },
-    { label: '✏️ Edit product details', action: 'edit-product' },
-  ],
-});
+  };
+};
 
 const showScriptsResponse: SimResponse = {
   content: "I've crafted 3 script options with different angles. **Click one to select it** — you can always change your mind.",
@@ -506,6 +590,7 @@ function createDemoThreads(): Record<string, Thread> {
   const now = new Date();
   const demoThreadDefs: { id: string; title: string; emoji: string; firstMessage: string }[] = [
     { id: 'demo-planning', title: '📊 Demo: Campaign Planning', emoji: '📊', firstMessage: "Welcome to the **Campaign Planning** demo! Type anything or click below to start planning a campaign from scratch.\n\nI'll walk you through goal selection, budget, and blueprint generation." },
+    { id: 'demo-multi-variant', title: '🧪 Demo: Multi-Variant Campaign', emoji: '🧪', firstMessage: "Welcome to the **Multi-Variant Campaign** demo! I'll show you how to run ads for a product with multiple variants (e.g., flavors, sizes) — each with its own ad set and creatives.\n\nClick below to start with a sample product." },
     { id: 'demo-creatives', title: '🎨 Demo: Creative Generation', emoji: '🎨', firstMessage: "Welcome to the **Creative Generation** demo! I'll show you how to generate AI-powered ad images and videos.\n\nType anything or click below to begin." },
     { id: 'demo-publishing', title: '🚀 Demo: Publishing', emoji: '🚀', firstMessage: "Welcome to the **Publishing** demo! I'll walk you through connecting Facebook, configuring campaigns, and going live.\n\nClick below to start." },
     { id: 'demo-audit', title: '🔍 Demo: Account Audit', emoji: '🔍', firstMessage: "Welcome to the **30-Day Audit** demo! I'll analyze your ad account and surface actionable insights.\n\nClick below to run the audit." },
@@ -515,6 +600,7 @@ function createDemoThreads(): Record<string, Thread> {
 
   const demoChips: Record<string, ActionChip[]> = {
     'demo-planning': [{ label: '🚀 Plan a campaign', action: 'start-demo-planning' }],
+    'demo-multi-variant': [{ label: '🧪 Start multi-variant demo', action: 'start-demo-multi-variant' }],
     'demo-creatives': [{ label: '🎨 Generate creatives', action: 'start-demo-creatives' }],
     'demo-publishing': [{ label: '📱 Connect Facebook', action: 'connect-facebook' }],
     'demo-audit': [{ label: '🔍 Run 30-day audit', action: 'audit' }],
@@ -755,7 +841,10 @@ export function useWorkspace() {
 
     // Product-first flow actions
     if (action === 'use-sample-product') {
-      respondWithSim(activeThreadId, styleToProductAnalysis('bold'));
+      // Check if this is a multi-variant demo thread
+      const thread = threads[activeThreadId];
+      const isMultiVariant = thread?.title?.includes('Multi-Variant');
+      respondWithSim(activeThreadId, styleToProductAnalysis('bold', isMultiVariant ? 'whey' : 'tshirt'));
       return;
     }
     if (action === 'prompt-url') {
@@ -767,16 +856,18 @@ export function useWorkspace() {
       return;
     }
     if (action === 'product-confirmed') {
-      // In demo/campaign mode → ask all planning questions at once
-      // In creative mode → show scripts
       const thread = threads[activeThreadId];
       const isCreativeThread = thread?.title?.includes('Creative');
       if (isCreativeThread) {
         respondWithSim(activeThreadId, showScriptsResponse);
       } else {
-        // Campaign flow — ask all questions in one go
-        respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current));
+        respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, false, 0));
       }
+      return;
+    }
+    if (action === 'product-confirmed-variants') {
+      // Product has variants — ask planning questions with variant context
+      respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, true, 5));
       return;
     }
 
@@ -784,6 +875,18 @@ export function useWorkspace() {
     if (action === 'start-demo-planning') {
       setIsTyping(true);
       runConversationSteps(activeThreadId, buildCampaignConversation('Plan a new campaign'));
+      return;
+    }
+    if (action === 'start-demo-multi-variant') {
+      isDemoRef.current = true;
+      setIsTyping(true);
+      const steps: ConversationStep[] = [
+        { delay: 1200, response: {
+          content: `Great! Let me show you how Vibelets handles a product with **multiple variants** — think flavors, sizes, or colors — each getting its own optimized ad set.\n\nI'll use a sample whey protein with 5 flavors. Let me pull the product details...`,
+        }},
+        { delay: 3500, response: styleToProductAnalysis('bold', 'whey') },
+      ];
+      runConversationSteps(activeThreadId, steps);
       return;
     }
     if (action === 'start-demo-creatives') {
@@ -815,26 +918,65 @@ export function useWorkspace() {
 
     // Plan selection chips (combined goal + budget in one click)
     if (action.startsWith('demo-plan-') || action.startsWith('plan-')) {
-      const { objective, budget } = parsePlanAction(action);
+      const { objective, budget, multiVariant } = parsePlanAction(action);
       const isDemo = action.startsWith('demo-');
-      respondWithSim(activeThreadId, executionPlanResponse(objective, budget, isDemo));
+      respondWithSim(activeThreadId, executionPlanResponse(objective, budget, isDemo, multiVariant));
       return;
     }
 
-    // Approve plan → auto-execute the entire pipeline
+    // Approve multi-variant plan → auto-execute with per-variant creatives
+    if (action === 'approve-plan-multi' || action === 'demo-approve-plan-multi') {
+      const isDemo = action.startsWith('demo-');
+      setIsTyping(true);
+      const flavors = ['Chocolate', 'Vanilla', 'Strawberry', 'Cookies & Cream', 'Mango'];
+      const steps: ConversationStep[] = [
+        { delay: 800, response: { content: `🚀 **Multi-variant plan approved!** Starting execution for all 5 flavors...\n\nI'll generate per-variant creatives, set up 5 ad sets with CBO, and configure everything. Sit back — this is the fun part.` } },
+        { delay: 3000, response: { content: `🎨 **Generating creatives for all variants...**\n\n${flavors.map((f, i) => `${i < 2 ? '✅' : '⏳'} ${f} — ${i < 2 ? '3/3 done' : 'queued'}`).join('\n')}\n\nCreating hero shots, lifestyle images, and AI videos per flavor...` } },
+        { delay: 6000, response: { content: `🎨 **Creative generation progress:**\n\n${flavors.map(f => `✅ ${f} — 3 creatives ready`).join('\n')}\n\n**15 total creatives** across 5 flavors — hero shots, lifestyle gym photos, and AI avatar videos.`,
+          artifacts: [{ type: 'creative-result' as ArtifactType, titleSuffix: 'Multi-Variant Creatives (15 total)', dataOverrides: {
+            outputs: [
+              { id: 'mv-1', type: 'image', label: 'Chocolate — Hero Shot', url: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=1200&h=628&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&h=200&fit=crop', format: 'jpg', dimensions: '1200×628' },
+              { id: 'mv-2', type: 'image', label: 'Vanilla — Hero Shot', url: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=1200&h=628&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300&h=200&fit=crop', format: 'jpg', dimensions: '1200×628' },
+              { id: 'mv-3', type: 'image', label: 'Strawberry — Lifestyle Gym', url: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1080&h=1080&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=300&h=300&fit=crop', format: 'jpg', dimensions: '1080×1080' },
+              { id: 'mv-4', type: 'video', label: 'Cookies & Cream — AI Video', url: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=1080&h=1920&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=200&h=350&fit=crop', format: 'mp4', dimensions: '1080×1920', duration: '30s' },
+              { id: 'mv-5', type: 'image', label: 'Mango — Hero Shot', url: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=1200&h=628&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&h=200&fit=crop', format: 'jpg', dimensions: '1200×628' },
+            ],
+            selectedIndex: 0,
+          } }],
+        } },
+        { delay: 9000, response: { content: `📱 **Using connected Facebook account:** Primary Ad Account (px_987654, FitFuel Nutrition page). ✅` } },
+        { delay: 11000, response: { content: `📋 **Configuring multi-ad-set campaign...**\n\nStructure: **1 Campaign → 5 Ad Sets (CBO) → 3 Ads each**\n\n${flavors.map(f => `• 📦 ${f} Ad Set → Hero shot + Lifestyle + AI video`).join('\n')}\n\nCampaign Budget Optimization enabled — Meta will auto-distribute spend to top performers.`,
+          artifacts: [{ type: 'campaign-config' as ArtifactType, titleSuffix: 'Multi-Variant Campaign Config', dataOverrides: {
+            campaignLevel: { name: 'Whey Protein — All Flavors 2026', objective: 'Sales', budgetType: 'Daily (CBO)', budget: 60 },
+            adSetLevel: { name: '5 Ad Sets (per flavor)', budget: 60, duration: '90 days', pixelId: 'px_987654',
+              targeting: { ageRange: '18-45', locations: ['US', 'UK', 'CA', 'AU'], interests: ['Fitness', 'Gym', 'Protein'] },
+              adSetBreakdown: flavors.map(f => ({ name: `${f} Flavor`, ads: 3 })),
+            },
+            adLevel: { name: 'Per-variant ads (15 total)', pageName: 'FitFuel Nutrition', primaryText: 'Fuel your gains with premium whey protein 💪 25g protein per serving!', headline: 'Premium Whey Protein', cta: 'Shop Now', websiteUrl: 'https://fitfuel.co/whey', creative: { type: 'image', url: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=600&h=400&fit=crop', label: 'Chocolate Hero' } },
+          } }],
+        } },
+        { delay: 14000, response: { content: `✅ **Everything's ready!** Your multi-variant campaign is fully configured with 5 ad sets and 15 ads total. CBO will optimize budget across flavors automatically.\n\nWant me to publish?`, actionChips: [
+          { label: '🚀 Publish now', action: 'publish-campaign' },
+          { label: '📱 Preview on device first', action: 'preview-device' },
+          { label: '✏️ Let me review first', action: 'edit-plan' },
+        ] } },
+      ];
+      runConversationSteps(activeThreadId, steps);
+      return;
+    }
+
+    // Approve single plan → auto-execute the entire pipeline
     if (action === 'approve-plan' || action === 'demo-approve-plan') {
       const isDemo = action.startsWith('demo-');
-      // Auto-execution sequence: scripts → avatar → generate → FB connect → config → publish
       setIsTyping(true);
       const steps: ConversationStep[] = [
         { delay: 800, response: { content: `🚀 **Plan approved!** Starting execution now...\n\nI'll generate your creatives, connect your ad account, and prepare everything for launch. Sit back — I've got this.` } },
         { delay: 2500, response: { content: `🎨 **Generating creatives...** I'm creating 3 images + 1 AI video ad based on your product and campaign goals.` } },
         { delay: 5000, response: creativeResultResponse('Sofia') },
-        { delay: 8000, response: { content: `📱 **Connecting your Facebook account...** Setting up your ad account, Pixel, and Page.` } },
-        { delay: 10000, response: isDemo ? demoFacebookConnectedResponse() : facebookConnectedResponse() },
-        { delay: 12000, response: { content: `📋 **Configuring your campaign...** Applying your blueprint settings and assigning creatives.` } },
-        { delay: 14000, response: campaignConfigResponse() },
-        { delay: 16000, response: { content: `✅ **Everything's ready!** Your campaign is fully configured. Want me to publish it now?`, actionChips: [
+        { delay: 8000, response: { content: `📱 **Using connected Facebook account:** Primary Ad Account (px_987654, Summer Style Co. page). ✅` } },
+        { delay: 10000, response: { content: `📋 **Configuring your campaign...** Applying your blueprint settings and assigning creatives.` } },
+        { delay: 12000, response: campaignConfigResponse() },
+        { delay: 14000, response: { content: `✅ **Everything's ready!** Your campaign is fully configured. Want me to publish it now?`, actionChips: [
           { label: '🚀 Publish now', action: 'publish-campaign' },
           { label: '📱 Preview on device first', action: 'preview-device' },
           { label: '✏️ Let me review first', action: 'edit-plan' },
