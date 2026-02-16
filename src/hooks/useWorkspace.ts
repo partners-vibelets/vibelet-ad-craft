@@ -58,41 +58,17 @@ function buildCampaignConversation(userMessage: string, context?: { filters?: Re
   const hasUrl = /https?:\/\/|www\.|\.com|\.shop|\.store/i.test(userMessage);
   const productName = extractProductName(userMessage);
   
-  // If user provided a product URL, skip to product analysis
   if (hasUrl) {
-    return [{
-      delay: 1200,
-      response: {
-        content: `🔍 Analyzing your product page... Let me pull the details.`,
-      },
-    }, {
-      delay: 3000,
-      response: styleToProductAnalysis('bold'),
-    }];
+    return [
+      { delay: 1200, response: { content: `🔍 Analyzing your product page... Let me pull the details.` } },
+      { delay: 3000, response: styleToProductAnalysis('bold') },
+    ];
   }
 
-  // If filters provided goal already, skip to budget
-  if (context?.filters?.objective?.length) {
-    const goalMap: Record<string, string> = { sales: 'goal-sales', awareness: 'goal-awareness', traffic: 'goal-traffic', leads: 'goal-sales' };
-    const goalAction = goalMap[context.filters.objective[0]] || 'goal-sales';
-    return [{
-      delay: 1200,
-      response: {
-        content: `I see you want to create a campaign for **${productName}**. First, I need to know about your product so I can optimize everything.\n\n**Share your product URL** or describe what you're promoting, and I'll analyze it automatically.`,
-        actionChips: [
-          { label: '🔗 Paste a URL', action: 'prompt-url' },
-          { label: '📝 Describe it', action: 'prompt-describe' },
-          { label: '⚡ Use sample product', action: 'use-sample-product' },
-        ],
-      },
-    }];
-  }
-
-  // Default: ask for product info first
   return [{
     delay: 1200,
     response: {
-      content: `Let's create a campaign for **${productName}**! 🚀\n\nFirst, share your product URL or describe what you're promoting — I'll pull everything I need automatically.`,
+      content: `Let's get started! 🚀 I need to understand your product first — share a URL and I'll pull everything automatically, or describe what you're promoting.`,
       actionChips: [
         { label: '🔗 Paste a URL', action: 'prompt-url' },
         { label: '📝 Describe it', action: 'prompt-describe' },
@@ -102,15 +78,27 @@ function buildCampaignConversation(userMessage: string, context?: { filters?: Re
   }];
 }
 
-const goalFollowUps: Record<string, ConversationStep[]> = {
-  'goal-sales': [{ delay: 0, response: { content: `Great — optimizing for **sales** 💰\n\n**What's your budget comfort zone?**\nI typically recommend $40–80/day for this type of campaign.`, actionChips: [{ label: '✅ $40-80/day works', action: 'budget-medium' }, { label: '💵 Higher — $100+/day', action: 'budget-high' }, { label: '🤏 Lower — under $30/day', action: 'budget-low' }] } }],
-  'goal-awareness': [{ delay: 0, response: { content: `Smart play — **awareness** campaigns have great long-term ROI 📣\n\n**Budget range?** For awareness I'd suggest $30–60/day.`, actionChips: [{ label: '✅ $30-60/day works', action: 'budget-medium' }, { label: '💵 Higher — $80+/day', action: 'budget-high' }, { label: '🤏 Lower — under $25/day', action: 'budget-low' }] } }],
-  'goal-traffic': [{ delay: 0, response: { content: `**Traffic** it is 🔗 Let's drive quality clicks.\n\n**Budget range?** For traffic campaigns, $35–70/day is the sweet spot.`, actionChips: [{ label: '✅ $35-70/day works', action: 'budget-medium' }, { label: '💵 Higher — $90+/day', action: 'budget-high' }, { label: '🤏 Lower — under $30/day', action: 'budget-low' }] } }],
-};
-
-function buildBlueprintResponse(objective: string, budgetDaily: number): SimResponse {
+// After product analysis, ask ALL planning questions in one intelligent message
+function planningQuestionsResponse(isDemo = false): SimResponse {
+  const prefix = isDemo ? 'demo-' : '';
   return {
-    content: `Perfect! Here's your campaign blueprint — I've pre-filled targeting, schedule, and creatives based on similar campaigns. **Click any field to edit.**`,
+    content: `Product looks great! ✅ Now I need a few things to build your complete plan. **Answer below or type naturally** — I'll figure out the rest.\n\n**1. What's the main goal?**\n**2. How much are you comfortable spending per day?**\n**3. Any creative preferences?** (I'll generate images + video by default)`,
+    actionChips: [
+      { label: '💰 Drive sales · $50-80/day', action: `${prefix}plan-sales-medium` },
+      { label: '💰 Drive sales · $100+/day', action: `${prefix}plan-sales-high` },
+      { label: '📣 Build awareness · $30-60/day', action: `${prefix}plan-awareness-medium` },
+      { label: '🔗 Drive traffic · $40-70/day', action: `${prefix}plan-traffic-medium` },
+      { label: '🤏 Just exploring · minimal budget', action: `${prefix}plan-sales-low` },
+    ],
+  };
+}
+
+// Complete execution plan presented to user for approval
+function executionPlanResponse(objective: string, budgetDaily: number, isDemo = false): SimResponse {
+  const prefix = isDemo ? 'demo-' : '';
+  const objectiveLabel = objective === 'Sales' ? 'drive sales' : objective === 'Awareness' ? 'build awareness' : 'drive traffic';
+  return {
+    content: `Here's your complete plan. **Review it, tweak anything, then approve** — I'll handle everything from there.\n\n📋 **The Plan:**\n1. ✅ Product analyzed — Summer T-Shirt Collection\n2. 🎯 Campaign goal: **${objectiveLabel}** at **$${budgetDaily}/day**\n3. 🎨 Generate **4 creatives** (3 images + 1 AI video)\n4. 📱 Connect your Facebook ad account\n5. 🚀 Configure & publish campaign\n6. 📊 Monitor performance & send you insights\n\n*Everything below is editable — click any field to change it.*`,
     artifacts: [{
       type: 'campaign-blueprint',
       titleSuffix: 'Campaign Blueprint',
@@ -125,12 +113,19 @@ function buildBlueprintResponse(objective: string, budgetDaily: number): SimResp
       },
     }],
     actionChips: [
-      { label: '🎨 Generate creatives', action: 'create-flow-from-campaign' },
-      { label: '📱 Connect Facebook', action: 'connect-facebook' },
-      { label: '🎯 Refine targeting', action: 'refine-targeting' },
+      { label: '✅ Approve — start execution', action: `${prefix}approve-plan` },
+      { label: '✏️ I want to change something', action: 'edit-plan' },
       { label: '💰 Adjust budget', action: 'adjust-budget' },
     ],
   };
+}
+
+// Parse plan selection from action chip
+function parsePlanAction(action: string): { objective: string; budget: number } {
+  const parts = action.replace('demo-', '').replace('plan-', '').split('-');
+  const goalMap: Record<string, string> = { sales: 'Sales', awareness: 'Awareness', traffic: 'Traffic' };
+  const budgetMap: Record<string, number> = { low: 25, medium: 60, high: 120 };
+  return { objective: goalMap[parts[0]] || 'Sales', budget: budgetMap[parts[1]] || 60 };
 }
 
 // ========== CREATIVE FLOW ==========
@@ -373,11 +368,8 @@ function buildDemoFlow(): ConversationStep[] {
 }
 
 function demoBlueprintResponse(objective: string, budgetDaily: number): SimResponse {
-  const base = buildBlueprintResponse(objective, budgetDaily);
-  return { ...base,
-    content: `I've put together a full campaign blueprint based on your product. Targeting, schedule, creatives — all pre-filled. **Click any field to tweak it.**`,
-    actionChips: [{ label: '🎨 Generate creatives', action: 'demo-creatives' }, { label: '✏️ Edit blueprint', action: 'refine-targeting' }],
-  };
+  const base = executionPlanResponse(objective, budgetDaily, true);
+  return base;
 }
 
 function demoCreativeResultResponse(avatarName: string): SimResponse {
@@ -717,33 +709,16 @@ export function useWorkspace() {
       return;
     }
 
-    // If asking for goal and user types something matching
-    if (wasAskingForGoal) {
+    // If asking for planning questions and user types naturally
+    if (wasAskingForGoal || wasAskingForBudget) {
       const l = content.toLowerCase();
-      let goalAction = 'goal-sales';
-      if (l.includes('aware') || l.includes('brand')) goalAction = 'goal-awareness';
-      else if (l.includes('traffic') || l.includes('click') || l.includes('visit')) goalAction = 'goal-traffic';
-      else if (l.includes('lead')) goalAction = 'goal-sales';
-      const prefix = isDemoRef.current ? 'demo-' : '';
-      const followUp = goalFollowUps[goalAction];
-      if (followUp) {
-        const mapped = isDemoRef.current ? followUp.map(step => ({
-          ...step, response: { ...step.response, actionChips: step.response.actionChips?.map(c => ({ ...c, action: c.action.replace('budget-', 'demo-budget-') })) },
-        })) : followUp;
-        setIsTyping(true);
-        runConversationSteps(activeThreadId, mapped);
-      }
-      return;
-    }
-
-    // If asking for budget and user types something
-    if (wasAskingForBudget) {
-      const l = content.toLowerCase();
-      let budgetLevel = 'budget-medium';
-      if (l.includes('low') || l.includes('small') || l.includes('under') || l.includes('less')) budgetLevel = 'budget-low';
-      else if (l.includes('high') || l.includes('big') || l.includes('more') || l.includes('100') || l.includes('150')) budgetLevel = 'budget-high';
-      const budgetMap: Record<string, number> = { 'budget-low': 25, 'budget-medium': 60, 'budget-high': 120 };
-      const response = isDemoRef.current ? demoBlueprintResponse('Sales', budgetMap[budgetLevel] || 60) : buildBlueprintResponse('Sales', budgetMap[budgetLevel] || 60);
+      let objective = 'Sales';
+      let budget = 60;
+      if (l.includes('aware') || l.includes('brand')) objective = 'Awareness';
+      else if (l.includes('traffic') || l.includes('click')) objective = 'Traffic';
+      if (l.includes('low') || l.includes('small') || l.includes('under') || l.includes('less') || l.includes('minimal')) budget = 25;
+      else if (l.includes('high') || l.includes('big') || l.includes('100') || l.includes('150')) budget = 120;
+      const response = executionPlanResponse(objective, budget, isDemoRef.current);
       respondWithSim(activeThreadId, response);
       return;
     }
@@ -792,21 +767,15 @@ export function useWorkspace() {
       return;
     }
     if (action === 'product-confirmed') {
-      // In demo/campaign mode → ask goal, in creative mode → show scripts
+      // In demo/campaign mode → ask all planning questions at once
+      // In creative mode → show scripts
       const thread = threads[activeThreadId];
       const isCreativeThread = thread?.title?.includes('Creative');
       if (isCreativeThread) {
         respondWithSim(activeThreadId, showScriptsResponse);
       } else {
-        // Campaign flow — ask for goal
-        respondWithSim(activeThreadId, {
-          content: `Product looks great! Now — **what's the primary goal for this campaign?**`,
-          actionChips: [
-            { label: '💰 Direct sales', action: isDemoRef.current ? 'demo-goal-sales' : 'goal-sales' },
-            { label: '📣 Brand awareness', action: isDemoRef.current ? 'demo-goal-awareness' : 'goal-awareness' },
-            { label: '🔗 Website traffic', action: isDemoRef.current ? 'demo-goal-traffic' : 'goal-traffic' },
-          ],
-        });
+        // Campaign flow — ask all questions in one go
+        respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current));
       }
       return;
     }
@@ -844,23 +813,44 @@ export function useWorkspace() {
       return;
     }
 
-    if (action.startsWith('demo-goal-')) {
-      const goalKey = action.replace('demo-', '');
-      const followUp = goalFollowUps[goalKey];
-      if (followUp) {
-        const demoFollowUp: ConversationStep[] = followUp.map(step => ({
-          ...step, response: { ...step.response, actionChips: step.response.actionChips?.map(c => ({ ...c, action: c.action.replace('budget-', 'demo-budget-') })) },
-        }));
-        setIsTyping(true);
-        runConversationSteps(activeThreadId, demoFollowUp);
-      }
+    // Plan selection chips (combined goal + budget in one click)
+    if (action.startsWith('demo-plan-') || action.startsWith('plan-')) {
+      const { objective, budget } = parsePlanAction(action);
+      const isDemo = action.startsWith('demo-');
+      respondWithSim(activeThreadId, executionPlanResponse(objective, budget, isDemo));
       return;
     }
 
-    if (action.startsWith('demo-budget-')) {
-      const budgetKey = action.replace('demo-', '');
-      const budgetMap: Record<string, number> = { 'budget-low': 25, 'budget-medium': 60, 'budget-high': 120 };
-      respondWithSim(activeThreadId, demoBlueprintResponse('Sales', budgetMap[budgetKey] || 60));
+    // Approve plan → auto-execute the entire pipeline
+    if (action === 'approve-plan' || action === 'demo-approve-plan') {
+      const isDemo = action.startsWith('demo-');
+      // Auto-execution sequence: scripts → avatar → generate → FB connect → config → publish
+      setIsTyping(true);
+      const steps: ConversationStep[] = [
+        { delay: 800, response: { content: `🚀 **Plan approved!** Starting execution now...\n\nI'll generate your creatives, connect your ad account, and prepare everything for launch. Sit back — I've got this.` } },
+        { delay: 2500, response: { content: `🎨 **Generating creatives...** I'm creating 3 images + 1 AI video ad based on your product and campaign goals.` } },
+        { delay: 5000, response: creativeResultResponse('Sofia') },
+        { delay: 8000, response: { content: `📱 **Connecting your Facebook account...** Setting up your ad account, Pixel, and Page.` } },
+        { delay: 10000, response: isDemo ? demoFacebookConnectedResponse() : facebookConnectedResponse() },
+        { delay: 12000, response: { content: `📋 **Configuring your campaign...** Applying your blueprint settings and assigning creatives.` } },
+        { delay: 14000, response: campaignConfigResponse() },
+        { delay: 16000, response: { content: `✅ **Everything's ready!** Your campaign is fully configured. Want me to publish it now?`, actionChips: [
+          { label: '🚀 Publish now', action: 'publish-campaign' },
+          { label: '📱 Preview on device first', action: 'preview-device' },
+          { label: '✏️ Let me review first', action: 'edit-plan' },
+        ] } },
+      ];
+      runConversationSteps(activeThreadId, steps);
+      return;
+    }
+
+    if (action === 'edit-plan') {
+      respondWithSim(activeThreadId, {
+        content: `No problem! You can edit any field in the blueprint above — just click on it. Let me know when you're ready and I'll continue. 👆`,
+        actionChips: [
+          { label: '✅ Looks good — continue', action: isDemoRef.current ? 'demo-approve-plan' : 'approve-plan' },
+        ],
+      });
       return;
     }
 
@@ -875,29 +865,17 @@ export function useWorkspace() {
 
     if (action === 'demo-act-recommendation') {
       respondWithSim(activeThreadId, {
-        content: `⚡ **Done — budget reallocated!** I've shifted $400/month from underperforming broad campaigns to your retargeting campaign (5.2x ROAS).\n\n• Expected impact: **+$2,000/month revenue**\n• I'll monitor this for 7 days and auto-revert if ROAS drops below 3x\n\nWant me to set up an automation rule so I can handle these optimizations automatically going forward?`,
+        content: `⚡ **Done — budget reallocated!** I've shifted $400/month from underperforming broad campaigns to your retargeting campaign (making ~3.5x more per dollar spent vs 1.8x for broad).\n\n• Expected impact: **+$2,000/month revenue**\n• I'll monitor this for 7 days and auto-revert if performance drops\n\nWant me to set up an automation rule so I can handle these optimizations automatically going forward?`,
         artifacts: [{ type: 'ai-insights' as ArtifactType, titleSuffix: 'Budget Reallocation — Applied', dataOverrides: { insights: [{
           type: 'opportunity', severity: 'high', title: 'Reallocate budget to retargeting',
-          description: 'Change applied. Retargeting campaign has 5.2x ROAS vs 1.8x for broad. Monitoring for 7 days with auto-revert safety net.',
-          metric: 'ROAS', change: 52, suggestedAction: 'Monitor for 7 days — auto-revert if ROAS drops below 3x',
+          description: 'Change applied. Retargeting campaign making ~3.5x per dollar vs 1.8x for broad. Monitoring for 7 days with auto-revert safety net.',
+          metric: 'Return', change: 52, suggestedAction: 'Monitor for 7 days — auto-revert if performance drops',
         }] } }],
         actionChips: [
           { label: '🤖 Yes, set up automation', action: 'setup-rule' },
           { label: '📊 View performance', action: 'performance' },
         ],
       });
-      return;
-    }
-
-    if (action.startsWith('goal-')) {
-      const followUp = goalFollowUps[action];
-      if (followUp) { setIsTyping(true); runConversationSteps(activeThreadId, followUp); }
-      return;
-    }
-
-    if (action.startsWith('budget-')) {
-      const budgetMap: Record<string, number> = { 'budget-low': 25, 'budget-medium': 60, 'budget-high': 120 };
-      respondWithSim(activeThreadId, buildBlueprintResponse('Sales', budgetMap[action] || 60));
       return;
     }
 
