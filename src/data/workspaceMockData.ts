@@ -340,6 +340,14 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       outputs: [],
     },
   },
+  'creative-result': {
+    type: 'creative-result',
+    title: 'Creative Results',
+    data: {
+      outputs: [],
+      selectedIndex: 0,
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [

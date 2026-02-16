@@ -76,7 +76,6 @@ function buildCampaignConversation(userMessage: string): ConversationStep[] {
 
 // Multi-step creative creation flow: product → scripts → avatar → generate
 function buildCreativeConversation(userMessage: string): ConversationStep[] {
-  // Extract product name from message
   const productMatch = userMessage.match(/(?:create|make|generate|build|design)\s+(?:a\s+|an\s+|some\s+)?(?:creative|creatives|ad|ads|video|videos|content)?\s*(?:for\s+)?(?:my\s+|a\s+|the\s+)?(.+?)(?:\s+product|\s+brand|\s+store|$)/i);
   const productName = productMatch?.[1]?.trim() || 'your product';
   const capName = productName.charAt(0).toUpperCase() + productName.slice(1);
@@ -85,36 +84,77 @@ function buildCreativeConversation(userMessage: string): ConversationStep[] {
     {
       delay: 1200,
       response: {
-        content: `Let's create some amazing creatives for **${capName}**! 🎨\n\nFirst, let me analyze the product so I can tailor everything — scripts, visuals, and targeting.`,
+        content: `Let's create some amazing creatives for **${capName}**! 🎨\n\nBefore I start, a couple of quick questions to make sure I nail the direction:`,
       },
     },
     {
-      delay: 3200,
+      delay: 3000,
       response: {
-        content: `Here's what I found about your product. Take a look and let me know if anything needs adjusting before we move to scripts.`,
-        artifacts: [
-          {
-            type: 'product-analysis' as ArtifactType,
-            titleSuffix: `${capName} — Product Analysis`,
-            dataOverrides: {
-              productName: capName,
-              imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-              price: '$29.99',
-              category: 'Apparel / T-Shirts',
-              description: `Premium quality ${productName} made from 100% organic cotton. Features a modern fit with reinforced stitching and a soft-touch finish. Available in 8 colorways.`,
-              keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
-              targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35, interested in streetwear and sustainable fashion.',
-            },
-          },
-        ],
+        content: `**🎯 What type of creatives do you need?**\nI can generate static images, avatar-presented videos, or both. What works best for your campaign?`,
         actionChips: [
-          { label: '✅ Looks good — show me scripts', icon: 'check', action: 'show-scripts' },
-          { label: '✏️ Edit product details', icon: 'edit', action: 'edit-product' },
+          { label: '🖼️ Static images only', icon: 'image', action: 'creative-type-image' },
+          { label: '🎬 Video with AI avatar', icon: 'video', action: 'creative-type-video' },
+          { label: '✨ Both images & video', icon: 'both', action: 'creative-type-both' },
         ],
       },
     },
   ];
 }
+
+// Responses for creative type selection questions
+const creativeTypeResponses: Record<string, (productName?: string) => SimResponse> = {
+  'creative-type-image': () => ({
+    content: `Great choice! 🖼️ **What tone and style should the images have?**\nThis helps me pick the right visual direction and copy angle.`,
+    actionChips: [
+      { label: '😎 Bold & trendy', icon: 'style', action: 'style-bold' },
+      { label: '🌿 Clean & minimal', icon: 'style', action: 'style-minimal' },
+      { label: '🎉 Fun & vibrant', icon: 'style', action: 'style-fun' },
+      { label: '💎 Premium & elegant', icon: 'style', action: 'style-premium' },
+    ],
+  }),
+  'creative-type-video': () => ({
+    content: `Awesome — video it is! 🎬 **What vibe should the avatar have?**\nThis determines the script tone and avatar personality.`,
+    actionChips: [
+      { label: '💬 Conversational & friendly', icon: 'style', action: 'style-bold' },
+      { label: '🔥 Hype & energetic', icon: 'style', action: 'style-fun' },
+      { label: '📖 Storytelling & emotional', icon: 'style', action: 'style-premium' },
+    ],
+  }),
+  'creative-type-both': () => ({
+    content: `Perfect — we'll create a full creative package! 🚀 **What tone should we go for?**\nI'll match the images and video to the same style.`,
+    actionChips: [
+      { label: '😎 Bold & trendy', icon: 'style', action: 'style-bold' },
+      { label: '🌿 Clean & minimal', icon: 'style', action: 'style-minimal' },
+      { label: '🎉 Fun & vibrant', icon: 'style', action: 'style-fun' },
+      { label: '💎 Premium & elegant', icon: 'style', action: 'style-premium' },
+    ],
+  }),
+};
+
+const styleToProductAnalysis: Record<string, SimResponse> = {
+  'style-bold': {
+    content: `Love it — bold & trendy it is! 😎 Let me analyze your product first so I can tailor everything perfectly.`,
+    artifacts: [
+      {
+        type: 'product-analysis' as ArtifactType,
+        titleSuffix: 'Product Analysis',
+        dataOverrides: {
+          productName: 'Summer T-Shirt Collection',
+          imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
+          price: '$29.99',
+          category: 'Apparel / T-Shirts',
+          description: 'Premium quality t-shirts made from 100% organic cotton. Features a modern fit with reinforced stitching and a soft-touch finish. Available in 8 colorways.',
+          keyFeatures: ['100% Organic Cotton', 'Modern Fit', 'Reinforced Stitching', '8 Colorways', 'Unisex'],
+          targetAudience: 'Style-conscious millennials and Gen Z, ages 18-35, interested in streetwear and sustainable fashion.',
+        },
+      },
+    ],
+    actionChips: [
+      { label: '✅ Looks good — show me scripts', icon: 'check', action: 'show-scripts' },
+      { label: '✏️ Edit product details', icon: 'edit', action: 'edit-product' },
+    ],
+  },
+};
 
 // Script and avatar follow-up responses for creative flow
 const creativeFlowResponses: Record<string, (payload?: any) => SimResponse> = {
@@ -529,7 +569,47 @@ export function useWorkspace() {
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
 
-    // Check creative flow responses first
+    // Check creative type questions first
+    const creativeTypeFn = creativeTypeResponses[action];
+    if (creativeTypeFn) {
+      setIsTyping(true);
+      setTimeout(() => {
+        const response = creativeTypeFn();
+        const aiMsg: ThreadMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: response.content,
+          timestamp: new Date(),
+          actionChips: response.actionChips,
+        };
+        appendMessage(activeThreadId, aiMsg);
+        setIsTyping(false);
+      }, 800 + Math.random() * 600);
+      return;
+    }
+
+    // Check style selection → product analysis
+    if (action.startsWith('style-')) {
+      setIsTyping(true);
+      setTimeout(() => {
+        const response = styleToProductAnalysis['style-bold']; // All styles use same product for now
+        const { artifacts: newArtifacts, ids: artifactIds } = createArtifactsFromSpec(response.artifacts);
+        const aiMsg: ThreadMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: response.content,
+          timestamp: new Date(),
+          artifactIds: artifactIds.length > 0 ? artifactIds : undefined,
+          actionChips: response.actionChips,
+        };
+        appendMessage(activeThreadId, aiMsg, newArtifacts);
+        setIsTyping(false);
+        if (artifactIds.length > 0) setFocusedArtifactId(artifactIds[0]);
+      }, 800 + Math.random() * 600);
+      return;
+    }
+
+    // Check creative flow responses
     const creativeFlowFn = creativeFlowResponses[action];
     const response = creativeFlowFn ? creativeFlowFn() : chipResponses[action];
     if (!response) return;
@@ -580,7 +660,7 @@ export function useWorkspace() {
       setIsTyping(false);
       if (artifactIds.length > 0) setFocusedArtifactId(artifactIds[0]);
 
-      // If this was avatar-selected, simulate progress updates
+      // If this was avatar-selected, simulate progress then show creative results
       if (action === 'avatar-selected' && artifactIds.length > 0) {
         const progressArtId = artifactIds[0];
         const progressSteps = [
@@ -621,6 +701,49 @@ export function useWorkspace() {
           }, delay);
           pendingStepsRef.current.push(timer);
         });
+
+        // After generation completes, spawn creative-result artifact
+        const completionTimer = setTimeout(() => {
+          const avatar = AVATARS.find(a => a.id === payload?.avatarId);
+          const avatarName = avatar?.name || 'Avatar';
+          const resultResponse: SimResponse = {
+            content: `🎉 **Your creatives are ready!** Here's the full set — preview each one and download what you need, or use them directly in a campaign.`,
+            artifacts: [
+              {
+                type: 'creative-result' as ArtifactType,
+                titleSuffix: 'Generated Creatives',
+                dataOverrides: {
+                  outputs: [
+                    { id: 'res-1', type: 'image', label: 'Hero Banner (Feed)', url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1200&h=628&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&h=200&fit=crop', format: 'jpg', dimensions: '1200×628' },
+                    { id: 'res-2', type: 'image', label: 'Instagram Story', url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=1080&h=1920&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=200&h=350&fit=crop', format: 'jpg', dimensions: '1080×1920' },
+                    { id: 'res-3', type: 'image', label: 'Square Post', url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=1080&h=1080&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=300&h=300&fit=crop', format: 'jpg', dimensions: '1080×1080' },
+                    { id: 'res-4', type: 'video', label: `Video Ad — ${avatarName}`, url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1080&h=1920&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=350&fit=crop', format: 'mp4', dimensions: '1080×1920', duration: '30s' },
+                  ],
+                  selectedIndex: 0,
+                },
+              },
+            ],
+            actionChips: [
+              { label: '📥 Download all', icon: 'download', action: 'download-all' },
+              { label: '🚀 Use in campaign', icon: 'campaign', action: 'campaign' },
+              { label: '🔄 Generate more variants', icon: 'variant', action: 'variant' },
+              { label: '✏️ Edit & regenerate', icon: 'edit', action: 'edit-product' },
+            ],
+          };
+
+          const { artifacts: resultArtifacts, ids: resultIds } = createArtifactsFromSpec(resultResponse.artifacts);
+          const resultMsg: ThreadMessage = {
+            id: `msg-${Date.now()}-result`,
+            role: 'assistant',
+            content: resultResponse.content,
+            timestamp: new Date(),
+            artifactIds: resultIds.length > 0 ? resultIds : undefined,
+            actionChips: resultResponse.actionChips,
+          };
+          appendMessage(activeThreadId, resultMsg, resultArtifacts);
+          if (resultIds.length > 0) setFocusedArtifactId(resultIds[0]);
+        }, 9500);
+        pendingStepsRef.current.push(completionTimer);
       }
     }, 800 + Math.random() * 600);
   }, [activeThreadId, appendMessage]);

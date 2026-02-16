@@ -4,7 +4,7 @@ import {
   FileText, BarChart3, Zap, Settings2, Image as ImageIcon,
   Video, CheckCircle2, Send, Activity, AlertTriangle, Play, Pause,
   TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
-  Loader2, Star, ShoppingBag
+  Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye
 } from 'lucide-react';
 import { Artifact, ArtifactType } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'script-options': 'Scripts',
   'avatar-selection': 'Avatars',
   'generation-progress': 'Generating',
+  'creative-result': 'Results',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -50,6 +51,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'script-options': <ScrollText className="w-3.5 h-3.5" />,
   'avatar-selection': <User className="w-3.5 h-3.5" />,
   'generation-progress': <Loader2 className="w-3.5 h-3.5" />,
+  'creative-result': <Eye className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -118,6 +120,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'script-options': return <ScriptOptionsBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'avatar-selection': return <AvatarSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'generation-progress': return <GenerationProgressBody data={artifact.data} />;
+    case 'creative-result': return <CreativeResultBody artifact={artifact} onUpdateData={onUpdateData} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -571,15 +574,112 @@ const GenerationProgressBody = ({ data: d }: { data: Record<string, any> }) => {
             <div key={out.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20">
               {out.type === 'video' ? <Video className="w-3.5 h-3.5 text-primary/50" /> : <ImageIcon className="w-3.5 h-3.5 text-primary/50" />}
               <span className="text-sm text-foreground flex-1">{out.label}</span>
-              <span className="text-[10px] text-muted-foreground">
-                {out.status === 'ready' ? '✓ Ready' : '⏳ Generating'}
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                {out.status === 'ready' ? <><CheckCircle2 className="w-3 h-3 text-secondary" /> Ready</> : <><Loader2 className="w-3 h-3 animate-spin" /> Generating</>}
               </span>
               {out.duration && <span className="text-[10px] text-muted-foreground">{out.duration}</span>}
-              <span className="text-[10px] text-muted-foreground">{out.format} · {out.dimensions}</span>
+              <span className="text-[10px] text-muted-foreground">{out.dimensions}</span>
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+// ========== CREATIVE RESULT PREVIEW ==========
+
+const CreativeResultBody = ({ artifact, onUpdateData }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void }) => {
+  const d = artifact.data;
+  const outputs = d.outputs || [];
+  const selectedIndex = d.selectedIndex || 0;
+  const selectedOutput = outputs[selectedIndex];
+
+  if (outputs.length === 0) return null;
+
+  const isVideo = selectedOutput?.type === 'video';
+
+  return (
+    <div className="space-y-4">
+      {/* Main preview */}
+      <div className="rounded-xl overflow-hidden border border-border/40 bg-muted/20">
+        <div className="aspect-video relative">
+          {isVideo ? (
+            <div className="relative w-full h-full bg-black flex items-center justify-center">
+              <img
+                src={selectedOutput.thumbnailUrl || selectedOutput.url}
+                alt={selectedOutput.label}
+                className="w-full h-full object-cover opacity-80"
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center shadow-lg">
+                  <Play className="w-6 h-6 text-primary-foreground ml-0.5" />
+                </div>
+              </div>
+              {selectedOutput.duration && (
+                <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 text-[10px] text-white flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {selectedOutput.duration}
+                </span>
+              )}
+            </div>
+          ) : (
+            <img
+              src={selectedOutput.url}
+              alt={selectedOutput.label}
+              className="w-full h-full object-cover"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Variation thumbnails */}
+      {outputs.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {outputs.map((out: any, idx: number) => (
+            <button
+              key={out.id}
+              onClick={() => onUpdateData(artifact.id, { ...d, selectedIndex: idx })}
+              className={cn(
+                "relative w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all",
+                idx === selectedIndex
+                  ? "border-primary ring-1 ring-primary/20"
+                  : "border-border/40 hover:border-border"
+              )}
+            >
+              <img
+                src={out.thumbnailUrl || out.url}
+                alt={out.label}
+                className="w-full h-full object-cover"
+              />
+              {out.type === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <Play className="w-3 h-3 text-white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Info & actions */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">{selectedOutput.label}</p>
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+            {isVideo ? <Video className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
+            {selectedOutput.dimensions} · {selectedOutput.format.toUpperCase()}
+            {selectedOutput.duration && ` · ${selectedOutput.duration}`}
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+            <Download className="w-3 h-3" /> Download
+          </Button>
+          <Button size="sm" className="h-7 text-xs gap-1.5">
+            <ArrowRight className="w-3 h-3" /> Use in Campaign
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
