@@ -865,8 +865,11 @@ export function useWorkspace() {
     }
 
     if (action === 'demo-creatives') {
-      setIsTyping(true);
-      runConversationSteps(activeThreadId, buildCreativeConversation('both'));
+      // Product already analyzed — skip to scripts directly
+      respondWithSim(activeThreadId, {
+        content: `Great — I already have your product details! Let me generate **images + video** for your campaign. First, pick a script style for the video ad. 🎬`,
+      }, 600);
+      setTimeout(() => respondWithSim(activeThreadId, showScriptsResponse, 800), 1600);
       return;
     }
 
@@ -911,7 +914,22 @@ export function useWorkspace() {
       respondWithSim(activeThreadId, isDemoRef.current ? demoPublishResponse() : publishCampaignResponse());
       return;
     }
-    if (action === 'create-flow-from-campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCreativeConversation()); return; }
+    if (action === 'create-flow-from-campaign') {
+      // Check if product was already analyzed in this thread
+      const thread = threads[activeThreadId];
+      const hasProduct = thread?.artifacts.some(a => a.type === 'product-analysis');
+      if (hasProduct) {
+        // Skip product step — go straight to scripts
+        respondWithSim(activeThreadId, {
+          content: `I already have your product details — let's create some fresh creatives! Pick a script style for the video. 🎨`,
+        }, 600);
+        setTimeout(() => respondWithSim(activeThreadId, showScriptsResponse, 800), 1600);
+      } else {
+        setIsTyping(true);
+        runConversationSteps(activeThreadId, buildCreativeConversation());
+      }
+      return;
+    }
     if (action === 'show-scripts') { respondWithSim(activeThreadId, showScriptsResponse); return; }
     if (action === 'setup-rule') { respondWithSim(activeThreadId, automationRuleResponse()); return; }
     if (action === 'setup-rule-2') { respondWithSim(activeThreadId, automationRule2Response()); return; }
@@ -924,7 +942,7 @@ export function useWorkspace() {
     const simple = simpleResponses[action];
     if (simple) { respondWithSim(activeThreadId, simple); return; }
     respondWithSim(activeThreadId, simpleResponses.default);
-  }, [activeThreadId, runConversationSteps, respondWithSim]);
+  }, [activeThreadId, threads, runConversationSteps, respondWithSim]);
 
   const handleArtifactAction = useCallback((artifactId: string, action: string, payload?: any) => {
     if (!activeThreadId) return;
