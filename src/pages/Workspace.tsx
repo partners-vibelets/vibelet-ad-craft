@@ -2,10 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { useWorkspace } from '@/hooks/useWorkspace';
-import { Sparkles, Send, ArrowUp, Paperclip } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles, ArrowUp, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ThreadMessage } from '@/types/workspace';
+import { ThreadMessage, ActionChip } from '@/types/workspace';
 
 const suggestionChips = [
   '📊 Plan a new campaign',
@@ -26,6 +25,7 @@ const Workspace = () => {
     selectThread,
     createThread,
     sendMessage,
+    handleActionChip,
     toggleArtifactCollapse,
     updateArtifactData,
     focusArtifact,
@@ -41,7 +41,6 @@ const Workspace = () => {
   }, [activeThread?.messages, isTyping]);
 
   const handleChipClick = (chip: string) => {
-    // Strip emoji prefix
     const text = chip.replace(/^[^\w]*\s/, '');
     sendMessage(text);
   };
@@ -50,7 +49,6 @@ const Workspace = () => {
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
-      {/* Sidebar */}
       <WorkspaceSidebar
         activeThreadId={activeThreadId}
         onSelectThread={selectThread}
@@ -61,9 +59,7 @@ const Workspace = () => {
         onSwitchWorkspace={() => {}}
       />
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Minimal thread header */}
         {activeThread && (
           <div className="h-11 border-b border-border/30 flex items-center px-5 gap-2.5 shrink-0">
             <span className="text-sm font-medium text-foreground truncate">{activeThread.title}</span>
@@ -73,16 +69,17 @@ const Workspace = () => {
           </div>
         )}
 
-        {/* Scrollable conversation + artifacts */}
         <div className="flex-1 overflow-hidden relative">
           {activeThread ? (
             <>
               <div ref={scrollRef} className="h-full overflow-y-auto">
                 <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
-                  {activeThread.messages.map(msg => {
+                  {activeThread.messages.map((msg, msgIdx) => {
                     const relatedArtifacts = msg.artifactIds
                       ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
                       : [];
+                    const isLastAssistantMsg = msg.role === 'assistant' &&
+                      msgIdx === activeThread.messages.length - 1;
 
                     return (
                       <div key={msg.id} className="space-y-3">
@@ -97,6 +94,12 @@ const Workspace = () => {
                             />
                           </div>
                         )}
+                        {/* Action chips below artifacts */}
+                        {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
+                          <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                            <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -105,10 +108,8 @@ const Workspace = () => {
                 </div>
               </div>
 
-              {/* Bottom input area — fixed */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4">
                 <div className="max-w-[720px] mx-auto">
-                  {/* Suggestion chips */}
                   {showSuggestions && (
                     <div className="flex flex-wrap gap-2 mb-3 justify-center">
                       {suggestionChips.map(chip => (
@@ -122,7 +123,6 @@ const Workspace = () => {
                       ))}
                     </div>
                   )}
-
                   <ChatInput onSendMessage={sendMessage} />
                 </div>
               </div>
@@ -135,6 +135,28 @@ const Workspace = () => {
     </div>
   );
 };
+
+// --- Action chips below artifacts ---
+const ActionChips = ({ chips, onChipClick }: { chips: ActionChip[]; onChipClick: (action: string) => void }) => (
+  <div className="flex flex-wrap gap-2 pt-1">
+    {chips.map((chip, i) => (
+      <button
+        key={chip.action}
+        onClick={() => onChipClick(chip.action)}
+        style={{ animationDelay: `${i * 60}ms` }}
+        className={cn(
+          "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200",
+          "bg-muted/40 border border-border/50 text-foreground",
+          "hover:bg-muted hover:border-primary/30 hover:shadow-sm",
+          "active:scale-[0.97]",
+          "animate-fade-in"
+        )}
+      >
+        {chip.label}
+      </button>
+    ))}
+  </div>
+);
 
 // --- Message bubble ---
 const MessageBubble = ({ msg }: { msg: ThreadMessage }) => (
@@ -150,10 +172,15 @@ const MessageBubble = ({ msg }: { msg: ThreadMessage }) => (
         ? "bg-primary text-primary-foreground max-w-[75%] rounded-br-sm"
         : "text-foreground max-w-[85%]"
     )}>
-      <p className="whitespace-pre-wrap">{msg.content}</p>
+      <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }} />
     </div>
   </div>
 );
+
+// Simple markdown bold support
+function formatMarkdown(text: string): string {
+  return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+}
 
 // --- Typing indicator ---
 const TypingIndicator = () => (
