@@ -348,6 +348,32 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       selectedIndex: 0,
     },
   },
+  'facebook-connect': {
+    type: 'facebook-connect',
+    title: 'Facebook Connect',
+    data: {
+      status: 'disconnected',
+      accountName: null,
+      adAccounts: [],
+    },
+  },
+  'campaign-config': {
+    type: 'campaign-config',
+    title: 'Campaign Configuration',
+    data: {
+      campaignLevel: { name: '', objective: '', budgetType: '', budget: 0 },
+      adSetLevel: { name: '', budget: 0, duration: '', pixelId: '', targeting: {} },
+      adLevel: { name: '', pageName: '', primaryText: '', headline: '', cta: '', websiteUrl: '', creative: null },
+    },
+  },
+  'device-preview': {
+    type: 'device-preview',
+    title: 'Device Preview',
+    data: {
+      activeDevice: 'mobile',
+      ad: { pageName: '', primaryText: '', headline: '', cta: '', imageUrl: '', websiteUrl: '' },
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [
