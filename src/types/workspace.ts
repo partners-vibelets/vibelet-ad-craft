@@ -55,7 +55,8 @@ export type ArtifactType =
   | 'creative-result'
   | 'facebook-connect'
   | 'campaign-config'
-  | 'device-preview';
+  | 'device-preview'
+  | 'ai-signals-dashboard';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
