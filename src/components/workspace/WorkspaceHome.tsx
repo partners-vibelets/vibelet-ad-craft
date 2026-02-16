@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowUp, Target, Palette, BarChart3, Shield, Zap, Bot, ChevronLeft, Image, Video, Sparkles } from 'lucide-react';
+import { ArrowUp, Target, Palette, BarChart3, Shield, Zap, Bot, ChevronLeft, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type PathId = 'campaign' | 'creative' | 'audit' | 'performance' | 'recommendations' | 'automation' | null;
@@ -58,7 +58,7 @@ const paths: PathOption[] = [
   },
   {
     id: 'audit', emoji: '🔍', label: 'Audit My Account', desc: '30-day deep analysis',
-    icon: Shield, placeholder: 'Any specific areas to focus on? Or I\'ll run a full audit...',
+    icon: Shield, placeholder: "Any specific areas to focus on? Or I'll run a full audit...",
   },
   {
     id: 'performance', emoji: '📊', label: 'Check Performance', desc: 'Real-time metrics & insights',
@@ -86,9 +86,10 @@ interface WorkspaceHomeProps {
   onSendMessage: (message: string, context?: { path: string; filters?: Record<string, string[]> }) => void;
   userName?: string;
   credits?: number;
+  onboardingComplete?: boolean;
 }
 
-export const WorkspaceHome = ({ onSendMessage, userName, credits }: WorkspaceHomeProps) => {
+export const WorkspaceHome = ({ onSendMessage, userName, credits, onboardingComplete }: WorkspaceHomeProps) => {
   const [input, setInput] = useState('');
   const [selectedPath, setSelectedPath] = useState<PathId>(null);
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({});
@@ -120,7 +121,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, credits }: WorkspaceHom
       const current = prev[filterId] || [];
       const updated = current.includes(optionId)
         ? current.filter(id => id !== optionId)
-        : [optionId]; // single select
+        : [optionId];
       return { ...prev, [filterId]: updated };
     });
   };
@@ -184,7 +185,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, credits }: WorkspaceHom
             </div>
           ) : (
             <div className="space-y-2">
-              {/* Selected path header + back */}
               <div className="flex items-center gap-2 justify-center">
                 <button
                   onClick={handleBack}
@@ -198,7 +198,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, credits }: WorkspaceHom
                 <span className="text-[11px] text-muted-foreground">— {activePath?.desc}</span>
               </div>
 
-              {/* Context filters */}
               {activePath?.filters && activePath.filters.map(filter => (
                 <div key={filter.id} className="flex items-center gap-2 justify-center flex-wrap">
                   <span className="text-[11px] text-muted-foreground/70 font-medium min-w-[50px] text-right">{filter.label}:</span>
