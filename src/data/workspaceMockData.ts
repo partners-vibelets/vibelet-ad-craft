@@ -29,6 +29,8 @@ export const mockThreads: Thread[] = [
     createdAt: new Date('2026-02-10'),
     updatedAt: new Date('2026-02-16'),
     isActive: true,
+    status: 'live-campaign',
+    pinnedArtifactIds: [],
   },
   {
     id: 'thread-2',
@@ -40,6 +42,8 @@ export const mockThreads: Thread[] = [
     createdAt: new Date('2026-02-08'),
     updatedAt: new Date('2026-02-15'),
     isActive: false,
+    status: 'archived',
+    pinnedArtifactIds: [],
   },
   {
     id: 'thread-3',
@@ -52,6 +56,8 @@ export const mockThreads: Thread[] = [
     createdAt: new Date('2026-02-12'),
     updatedAt: new Date('2026-02-16'),
     isActive: true,
+    status: 'active',
+    pinnedArtifactIds: [],
   },
 ];
 

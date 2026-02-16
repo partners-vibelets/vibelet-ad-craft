@@ -8,6 +8,8 @@ export interface Workspace {
   createdAt: Date;
 }
 
+export type ThreadStatus = 'active' | 'archived' | 'live-campaign';
+
 export interface Thread {
   id: string;
   title: string;
@@ -19,6 +21,8 @@ export interface Thread {
   createdAt: Date;
   updatedAt: Date;
   isActive: boolean;
+  status: ThreadStatus;
+  pinnedArtifactIds: string[];
 }
 
 export interface ActionChip {

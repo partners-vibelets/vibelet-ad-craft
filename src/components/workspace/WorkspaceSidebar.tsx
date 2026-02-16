@@ -2,12 +2,13 @@ import { useState } from 'react';
 import {
   Plus, MessageSquare, ChevronDown, ChevronRight, ChevronLeft,
   Search, Settings, Image, Zap, Workflow, Link2, Building2,
-  Sparkles, PanelLeftClose, PanelLeft
+  Sparkles, PanelLeftClose, PanelLeft, Archive, FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { mockWorkspaces, mockThreads } from '@/data/workspaceMockData';
+import { mockWorkspaces } from '@/data/workspaceMockData';
+import { Thread, ThreadStatus } from '@/types/workspace';
 
 type SidebarSection = 'threads' | 'creatives' | 'signals' | 'rules' | 'accounts';
 
@@ -20,6 +21,9 @@ interface WorkspaceSidebarProps {
   activeWorkspaceId: string;
   onSwitchWorkspace: (id: string) => void;
   onSignalsClick?: () => void;
+  threads: Thread[];
+  onArchiveThread?: (threadId: string) => void;
+  onSummarizeThread?: (threadId: string) => void;
 }
 
 const sectionConfig: { id: SidebarSection; label: string; icon: React.ElementType }[] = [
@@ -61,6 +65,12 @@ const severityDot: Record<string, string> = {
   low: 'bg-secondary',
 };
 
+const statusConfig: Record<ThreadStatus, { label: string; dotClass: string }> = {
+  active: { label: 'Active', dotClass: 'bg-secondary' },
+  archived: { label: 'Archived', dotClass: 'bg-muted-foreground/40' },
+  'live-campaign': { label: 'Live', dotClass: 'bg-amber-400' },
+};
+
 export const WorkspaceSidebar = ({
   activeThreadId,
   onSelectThread,
@@ -70,13 +80,16 @@ export const WorkspaceSidebar = ({
   activeWorkspaceId,
   onSwitchWorkspace,
   onSignalsClick,
+  threads,
+  onArchiveThread,
+  onSummarizeThread,
 }: WorkspaceSidebarProps) => {
   const [activeSection, setActiveSection] = useState<SidebarSection>('threads');
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeWs = mockWorkspaces.find(w => w.id === activeWorkspaceId) || mockWorkspaces[0];
 
-  const filteredThreads = mockThreads
+  const filteredThreads = threads
     .filter(t => t.workspaceId === activeWorkspaceId)
     .filter(t => !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -178,32 +191,49 @@ export const WorkspaceSidebar = ({
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {activeSection === 'threads' && (
           <div className="space-y-0.5 mt-1">
-            {filteredThreads.map(thread => (
-              <button
-                key={thread.id}
-                onClick={() => onSelectThread(thread.id)}
-                className={cn(
-                  "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left group",
-                  activeThreadId === thread.id
-                    ? "bg-primary/8 text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                )}
-              >
-                <MessageSquare className={cn(
-                  "w-3.5 h-3.5 shrink-0 transition-colors",
-                  activeThreadId === thread.id ? "text-primary" : ""
-                )} />
-                <div className="flex-1 min-w-0">
-                  <span className={cn(
-                    "block truncate",
-                    activeThreadId === thread.id ? "font-medium" : ""
-                  )}>{thread.title}</span>
-                  <span className="block text-[10px] text-muted-foreground mt-0.5">
-                    {thread.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              </button>
-            ))}
+            {filteredThreads.map(thread => {
+              const sc = statusConfig[thread.status];
+              return (
+                <button
+                  key={thread.id}
+                  onClick={() => onSelectThread(thread.id)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all text-left group",
+                    activeThreadId === thread.id
+                      ? "bg-primary/8 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+                    thread.status === 'archived' && "opacity-60"
+                  )}
+                >
+                  <MessageSquare className={cn(
+                    "w-3.5 h-3.5 shrink-0 transition-colors",
+                    activeThreadId === thread.id ? "text-primary" : ""
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <span className={cn(
+                      "block truncate",
+                      activeThreadId === thread.id ? "font-medium" : ""
+                    )}>{thread.title}</span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-0.5">
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", sc.dotClass)} />
+                      {sc.label}
+                      <span className="mx-0.5">·</span>
+                      {thread.updatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                  {/* Archive button on hover */}
+                  {thread.status !== 'archived' && onArchiveThread && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onArchiveThread(thread.id); }}
+                      className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-all shrink-0"
+                      title="Archive thread"
+                    >
+                      <Archive className="w-3 h-3" />
+                    </button>
+                  )}
+                </button>
+              );
+            })}
             <button
               onClick={() => onNewThread(activeWorkspaceId)}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
