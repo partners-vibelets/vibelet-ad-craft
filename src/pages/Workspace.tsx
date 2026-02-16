@@ -9,9 +9,7 @@ import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
 
 const Workspace = () => {
-  const [onboardingComplete, setOnboardingComplete] = useState(() => {
-    return localStorage.getItem('vibelets-onboarded') === 'true';
-  });
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(() => {
     const saved = localStorage.getItem('vibelets-onboarding-data');
     return saved ? JSON.parse(saved) : null;
