@@ -3,7 +3,8 @@ import {
   ChevronDown, ChevronRight, Edit3, Copy, Check, X,
   FileText, BarChart3, Zap, Settings2, Image as ImageIcon,
   Video, CheckCircle2, Send, Activity, AlertTriangle, Play, Pause,
-  TrendingUp, Lightbulb, Target, Clock
+  TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
+  Loader2, Star, ShoppingBag
 } from 'lucide-react';
 import { Artifact, ArtifactType } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ interface ArtifactRendererProps {
   artifact: Artifact;
   onToggleCollapse: (id: string) => void;
   onUpdateData: (id: string, data: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
 }
 
 const typeLabels: Record<ArtifactType, string> = {
@@ -27,6 +29,10 @@ const typeLabels: Record<ArtifactType, string> = {
   'automation-rule': 'Rule',
   'publish-confirmation': 'Published',
   'ai-signals-summary': 'Signals',
+  'product-analysis': 'Product',
+  'script-options': 'Scripts',
+  'avatar-selection': 'Avatars',
+  'generation-progress': 'Generating',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -40,6 +46,10 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'automation-rule': <Settings2 className="w-3.5 h-3.5" />,
   'publish-confirmation': <CheckCircle2 className="w-3.5 h-3.5" />,
   'ai-signals-summary': <Activity className="w-3.5 h-3.5" />,
+  'product-analysis': <ShoppingBag className="w-3.5 h-3.5" />,
+  'script-options': <ScrollText className="w-3.5 h-3.5" />,
+  'avatar-selection': <User className="w-3.5 h-3.5" />,
+  'generation-progress': <Loader2 className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -48,7 +58,7 @@ const statusStyles: Record<string, string> = {
   archived: 'bg-muted/60 text-muted-foreground/60',
 };
 
-export const ArtifactRenderer = ({ artifact, onToggleCollapse, onUpdateData }: ArtifactRendererProps) => {
+export const ArtifactRenderer = ({ artifact, onToggleCollapse, onUpdateData, onArtifactAction }: ArtifactRendererProps) => {
   return (
     <div className={cn(
       "border border-border/60 rounded-xl overflow-hidden transition-all duration-200",
@@ -78,7 +88,7 @@ export const ArtifactRenderer = ({ artifact, onToggleCollapse, onUpdateData }: A
       {!artifact.isCollapsed && (
         <div className="px-4 pb-3 border-t border-border/30">
           <div className="pt-3">
-            <ArtifactBody artifact={artifact} onUpdateData={onUpdateData} />
+            <ArtifactBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />
           </div>
           <div className="flex items-center gap-1 mt-3 pt-2 border-t border-border/20">
             <span className="text-[10px] text-muted-foreground/50">
@@ -92,7 +102,7 @@ export const ArtifactRenderer = ({ artifact, onToggleCollapse, onUpdateData }: A
 };
 
 // --- Dynamic body renderer ---
-const ArtifactBody = ({ artifact, onUpdateData }: { artifact: Artifact; onUpdateData: (id: string, data: Record<string, any>) => void }) => {
+const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, data: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
   switch (artifact.type) {
     case 'campaign-blueprint': return <CampaignBlueprintBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'campaign-live': return <CampaignLiveBody data={artifact.data} />;
@@ -104,6 +114,10 @@ const ArtifactBody = ({ artifact, onUpdateData }: { artifact: Artifact; onUpdate
     case 'automation-rule': return <AutomationRuleBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'publish-confirmation': return <PublishConfirmationBody data={artifact.data} />;
     case 'ai-signals-summary': return <AISignalsSummaryBody data={artifact.data} />;
+    case 'product-analysis': return <ProductAnalysisBody data={artifact.data} />;
+    case 'script-options': return <ScriptOptionsBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'avatar-selection': return <AvatarSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'generation-progress': return <GenerationProgressBody data={artifact.data} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -386,6 +400,186 @@ const AISignalsSummaryBody = ({ data: d }: { data: Record<string, any> }) => {
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+// ========== CREATIVE FLOW ARTIFACT BODIES ==========
+
+const ProductAnalysisBody = ({ data: d }: { data: Record<string, any> }) => (
+  <div className="space-y-3">
+    <div className="flex gap-3">
+      <div className="w-20 h-20 rounded-lg bg-muted/30 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+        {d.imageUrl ? (
+          <img src={d.imageUrl} alt={d.productName} className="w-full h-full object-cover" />
+        ) : (
+          <ShoppingBag className="w-6 h-6 text-muted-foreground/40" />
+        )}
+      </div>
+      <div className="flex-1 space-y-1">
+        <p className="text-sm font-medium text-foreground">{d.productName}</p>
+        <p className="text-xs text-muted-foreground">{d.category}</p>
+        {d.price && <p className="text-sm font-semibold text-secondary">{d.price}</p>}
+      </div>
+    </div>
+    <p className="text-xs text-muted-foreground leading-relaxed">{d.description}</p>
+    {d.keyFeatures?.length > 0 && (
+      <div className="space-y-1">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Key Features</p>
+        <div className="flex flex-wrap gap-1.5">
+          {d.keyFeatures.map((f: string, i: number) => (
+            <span key={i} className="px-2 py-0.5 rounded-full text-[11px] bg-primary/8 text-primary border border-primary/10">
+              {f}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+    {d.targetAudience && (
+      <div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Target Audience</p>
+        <p className="text-xs text-foreground">{d.targetAudience}</p>
+      </div>
+    )}
+  </div>
+);
+
+const ScriptOptionsBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const selectedId = d.selectedScriptId;
+
+  const handleSelect = (scriptId: string) => {
+    const updated = {
+      ...d,
+      selectedScriptId: scriptId,
+      scripts: d.scripts.map((s: any) => ({ ...s, selected: s.id === scriptId })),
+    };
+    onUpdateData(artifact.id, updated);
+    onArtifactAction?.(artifact.id, 'script-selected', { scriptId });
+  };
+
+  return (
+    <div className="space-y-2">
+      {d.scripts?.map((script: any) => (
+        <button
+          key={script.id}
+          onClick={() => handleSelect(script.id)}
+          className={cn(
+            "w-full text-left rounded-lg p-3 border transition-all duration-200",
+            script.id === selectedId
+              ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+              : "border-border/40 bg-muted/10 hover:border-border hover:bg-muted/20"
+          )}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className={cn(
+              "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+              script.id === selectedId ? "border-primary bg-primary" : "border-muted-foreground/30"
+            )}>
+              {script.id === selectedId && <Check className="w-3 h-3 text-primary-foreground" />}
+            </span>
+            <span className="text-sm font-medium text-foreground">{script.label}</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal ml-auto">
+              {script.style}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">{script.duration}</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed pl-7 line-clamp-3">
+            {script.script}
+          </p>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const AvatarSelectionBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const selectedId = d.selectedAvatarId;
+
+  const handleSelect = (avatarId: string) => {
+    const updated = {
+      ...d,
+      selectedAvatarId: avatarId,
+      avatars: d.avatars.map((a: any) => ({ ...a, selected: a.id === avatarId })),
+    };
+    onUpdateData(artifact.id, updated);
+    onArtifactAction?.(artifact.id, 'avatar-selected', { avatarId });
+  };
+
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {d.avatars?.map((avatar: any) => (
+        <button
+          key={avatar.id}
+          onClick={() => handleSelect(avatar.id)}
+          className={cn(
+            "relative rounded-xl overflow-hidden border-2 transition-all duration-200 group",
+            avatar.id === selectedId
+              ? "border-primary ring-2 ring-primary/20 scale-[1.02]"
+              : "border-transparent hover:border-border"
+          )}
+        >
+          <div className="aspect-[3/4] bg-muted/30 overflow-hidden">
+            <img
+              src={avatar.imageUrl}
+              alt={avatar.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
+            <p className="text-[11px] font-medium text-white">{avatar.name}</p>
+            <p className="text-[9px] text-white/70">{avatar.style}</p>
+          </div>
+          {avatar.id === selectedId && (
+            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+              <Check className="w-3 h-3 text-primary-foreground" />
+            </div>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+const GenerationProgressBody = ({ data: d }: { data: Record<string, any> }) => {
+  const stageLabels: Record<string, string> = {
+    analyzing: 'Analyzing product...',
+    scripting: 'Writing scripts...',
+    rendering: 'Rendering creatives...',
+    complete: 'Generation complete!',
+  };
+  const isComplete = d.stage === 'complete';
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        {!isComplete && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
+        {isComplete && <CheckCircle2 className="w-4 h-4 text-secondary" />}
+        <span className="text-sm text-foreground">{stageLabels[d.stage] || 'Processing...'}</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">{d.progress}%</span>
+      </div>
+      <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all duration-700", isComplete ? "bg-secondary" : "bg-primary")}
+          style={{ width: `${d.progress}%` }}
+        />
+      </div>
+      {d.outputs?.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          {d.outputs.map((out: any) => (
+            <div key={out.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20">
+              {out.type === 'video' ? <Video className="w-3.5 h-3.5 text-primary/50" /> : <ImageIcon className="w-3.5 h-3.5 text-primary/50" />}
+              <span className="text-sm text-foreground flex-1">{out.label}</span>
+              <span className="text-[10px] text-muted-foreground">
+                {out.status === 'ready' ? '✓ Ready' : '⏳ Generating'}
+              </span>
+              {out.duration && <span className="text-[10px] text-muted-foreground">{out.duration}</span>}
+              <span className="text-[10px] text-muted-foreground">{out.format} · {out.dimensions}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
