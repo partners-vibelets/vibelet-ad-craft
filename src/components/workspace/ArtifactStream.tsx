@@ -1,5 +1,6 @@
 import { Artifact } from '@/types/workspace';
 import { ArtifactRenderer } from './ArtifactRenderer';
+import { cn } from '@/lib/utils';
 
 interface ArtifactStreamProps {
   artifacts: Artifact[];
@@ -14,11 +15,15 @@ export const ArtifactStream = ({ artifacts, onToggleCollapse, onUpdateData, onAr
 
   return (
     <div className="space-y-2.5">
-      {artifacts.map(artifact => (
+      {artifacts.map((artifact, idx) => (
         <div
           key={artifact.id}
           id={`artifact-${artifact.id}`}
-          className={focusedArtifactId === artifact.id ? 'ring-2 ring-primary/20 rounded-xl transition-all' : 'transition-all'}
+          className={cn(
+            'animate-fade-in transition-all duration-300',
+            focusedArtifactId === artifact.id && 'ring-2 ring-primary/20 rounded-xl'
+          )}
+          style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'backwards' }}
         >
           <ArtifactRenderer
             artifact={artifact}

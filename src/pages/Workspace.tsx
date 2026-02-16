@@ -85,7 +85,11 @@ const Workspace = () => {
                       msgIdx === activeThread.messages.length - 1;
 
                     return (
-                      <div key={msg.id} className="space-y-3">
+                      <div
+                        key={msg.id}
+                        className="space-y-3 animate-fade-in"
+                        style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}
+                      >
                         <MessageBubble msg={msg} />
                         {relatedArtifacts.length > 0 && (
                           <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>

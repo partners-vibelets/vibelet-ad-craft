@@ -96,9 +96,9 @@ export const ArtifactRenderer = ({ artifact, onToggleCollapse, onUpdateData, onA
         <span className="text-[10px] text-muted-foreground/40 ml-0.5">v{artifact.version}</span>
       </button>
 
-      {/* Body */}
+      {/* Body — animated expand */}
       {!artifact.isCollapsed && (
-        <div className="px-4 pb-3 border-t border-border/30">
+        <div className="px-4 pb-3 border-t border-border/30 animate-fade-in" style={{ animationDuration: '0.25s' }}>
           <div className="pt-3">
             <ArtifactBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />
           </div>
@@ -196,20 +196,40 @@ const CampaignBlueprintBody = ({ artifact, onUpdateData }: { artifact: Artifact;
   const updateNested = (parent: string, key: string, value: any) => onUpdateData(artifact.id, { ...d, [parent]: { ...d[parent], [key]: value } });
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <EditableField label="Campaign Name" value={d.campaignName} onSave={v => update('campaignName', v)} className="col-span-2" />
-      <ReadOnlyField label="Objective" value={d.objective} />
-      <ReadOnlyField label="Platform" value={d.platform} />
-      <EditableField label="Daily Budget" value={`$${d.budget?.daily}`} onSave={v => updateNested('budget', 'daily', parseInt(v.replace('$', '')))} />
-      <EditableField label="Total Budget" value={`$${d.budget?.total}`} onSave={v => updateNested('budget', 'total', parseInt(v.replace('$', '')))} />
-      <ReadOnlyField label="Age Range" value={d.targeting?.ageRange} />
-      <ReadOnlyField label="Ad Sets" value={d.adSets} />
-      <ReadOnlyField label="Locations" value={d.targeting?.locations?.join(', ')} />
-      <ReadOnlyField label="Schedule" value={`${d.schedule?.startDate} → ${d.schedule?.endDate}`} />
-      <EditableField label="Primary Text" value={d.primaryText} onSave={v => update('primaryText', v)} className="col-span-2" />
+    <div className="space-y-4">
+      {/* Narrative summary */}
+      <div className="text-sm text-foreground leading-relaxed">
+        <p>
+          <span className="font-semibold">{d.campaignName}</span> — a <span className="font-medium text-primary">{d.objective}</span> campaign
+          on {d.platform}, running <span className="font-medium">{d.schedule?.startDate} → {d.schedule?.endDate}</span> with{' '}
+          <span className="font-medium">{d.adSets} ad sets</span>.
+        </p>
+      </div>
+
+      {/* Key editable fields */}
+      <div className="space-y-2">
+        <EditableField label="Campaign Name" value={d.campaignName} onSave={v => update('campaignName', v)} />
+        <div className="flex gap-4">
+          <EditableField label="Daily Budget" value={`$${d.budget?.daily}`} onSave={v => updateNested('budget', 'daily', parseInt(v.replace('$', '')))} className="flex-1" />
+          <EditableField label="Total Budget" value={`$${d.budget?.total}`} onSave={v => updateNested('budget', 'total', parseInt(v.replace('$', '')))} className="flex-1" />
+        </div>
+      </div>
+
+      {/* Targeting narrative */}
+      <div className="px-3 py-2.5 rounded-lg bg-muted/15 border border-border/30 space-y-1">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Target className="w-3 h-3" /> Targeting</p>
+        <p className="text-xs text-foreground">
+          Ages {d.targeting?.ageRange} interested in <span className="font-medium">{d.targeting?.interests?.join(', ')}</span> in {d.targeting?.locations?.join(', ')}.
+        </p>
+      </div>
+
+      {/* Ad copy */}
+      <EditableField label="Primary Text" value={d.primaryText} onSave={v => update('primaryText', v)} />
       <EditableField label="CTA" value={d.cta} onSave={v => update('cta', v)} />
+
+      {/* Suggested creatives */}
       {d.suggestedCreatives && d.suggestedCreatives.length > 0 && (
-        <div className="col-span-2 mt-1">
+        <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Suggested Creatives</p>
           <div className="space-y-1">
             {d.suggestedCreatives.map((cr: string, i: number) => (
@@ -291,30 +311,50 @@ const VideoCreativeBody = ({ artifact, onUpdateData }: { artifact: Artifact; onU
   );
 };
 
-const PerformanceBody = ({ data: d }: { data: Record<string, any> }) => (
-  <div className="space-y-3">
-    <p className="text-xs text-muted-foreground">{d.dateRange}</p>
-    <div className="grid grid-cols-3 gap-2">
-      <MetricCard label="Spent" value={`$${d.metrics?.spent}`} />
-      <MetricCard label="Revenue" value={`$${d.metrics?.revenue}`} />
-      <MetricCard label="ROI" value={`${d.metrics?.roi}x`} accent />
-      <MetricCard label="Conversions" value={d.metrics?.conversions} />
-      <MetricCard label="CTR" value={`${d.metrics?.ctr}%`} />
-      <MetricCard label="Impressions" value={d.metrics?.impressions?.toLocaleString()} />
-    </div>
-    {d.recommendations?.length > 0 && (
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-foreground">Recommendations</p>
-        {d.recommendations.map((r: string, i: number) => (
-          <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-            <CheckCircle2 className="w-3.5 h-3.5 text-secondary mt-0.5 shrink-0" />
-            <span>{r}</span>
-          </div>
-        ))}
+const PerformanceBody = ({ data: d }: { data: Record<string, any> }) => {
+  const m = d.metrics || {};
+  const roiColor = m.roi >= 3 ? 'text-secondary' : m.roi >= 1.5 ? 'text-foreground' : 'text-amber-500';
+
+  return (
+    <div className="space-y-3">
+      {/* Narrative summary */}
+      <div className="text-sm text-foreground leading-relaxed">
+        <p>
+          Over <span className="font-medium">{d.dateRange || 'the last 7 days'}</span>, you spent{' '}
+          <span className="font-semibold">${m.spent?.toLocaleString()}</span> and generated{' '}
+          <span className="font-semibold">${m.revenue?.toLocaleString()}</span> in revenue — a{' '}
+          <span className={cn("font-bold", roiColor)}>{m.roi}x return</span>.
+        </p>
+        {m.conversions && (
+          <p className="mt-1.5 text-muted-foreground text-xs">
+            {m.conversions} conversions · {m.ctr}% click rate · {m.impressions?.toLocaleString()} impressions
+          </p>
+        )}
       </div>
-    )}
-  </div>
-);
+
+      {/* Top campaign */}
+      {d.topCampaign && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/5 border border-secondary/15 text-xs">
+          <TrendingUp className="w-3.5 h-3.5 text-secondary shrink-0" />
+          <span className="text-foreground">Top performer: <span className="font-medium">{d.topCampaign}</span></span>
+        </div>
+      )}
+
+      {/* Recommendations as narrative */}
+      {d.recommendations?.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">What I'd do next</p>
+          {d.recommendations.map((r: string, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Lightbulb className="w-3.5 h-3.5 text-primary/50 mt-0.5 shrink-0" />
+              <span>{r}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AIInsightsBody = ({ data: d }: { data: Record<string, any> }) => {
   const severityColor: Record<string, string> = { high: 'text-amber-500', medium: 'text-amber-400/80', low: 'text-muted-foreground' };
@@ -793,62 +833,58 @@ const CampaignConfigBody = ({ artifact, onUpdateData }: { artifact: Artifact; on
 
   return (
     <div className="space-y-4">
-      {/* Campaign Level */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-xs font-medium text-primary">
-          <Target className="w-3.5 h-3.5" />
-          <span>Campaign Level</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 pl-5">
-          <EditableField label="Campaign Name" value={d.campaignLevel?.name} onSave={v => updateCampaign('name', v)} className="col-span-2" />
-          <ReadOnlyField label="Objective" value={d.campaignLevel?.objective} />
-          <ReadOnlyField label="Budget Type" value={d.campaignLevel?.budgetType} />
-        </div>
+      {/* Narrative summary */}
+      <div className="text-sm text-foreground leading-relaxed">
+        <p>
+          <span className="font-semibold">{d.campaignLevel?.name}</span> optimizing for{' '}
+          <span className="font-medium text-primary">{d.campaignLevel?.objective}</span> at{' '}
+          <span className="font-medium">${d.adSetLevel?.budget}/day</span> for {d.adSetLevel?.duration}, targeting{' '}
+          ages {d.adSetLevel?.targeting?.ageRange} in {d.adSetLevel?.targeting?.locations?.join(', ')}.
+        </p>
       </div>
 
-      {/* Ad Set Level */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-xs font-medium text-primary">
-          <Layers className="w-3.5 h-3.5" />
-          <span>Ad Set Level</span>
+      {/* Progressive disclosure sections */}
+      <DisclosureSection icon={<Target className="w-3.5 h-3.5" />} title="Campaign" defaultOpen>
+        <div className="space-y-2 pt-1">
+          <EditableField label="Campaign Name" value={d.campaignLevel?.name} onSave={v => updateCampaign('name', v)} />
+          <div className="flex gap-4">
+            <ReadOnlyField label="Objective" value={d.campaignLevel?.objective} className="flex-1" />
+            <ReadOnlyField label="Budget Type" value={d.campaignLevel?.budgetType} className="flex-1" />
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 pl-5">
-          <EditableField label="Ad Set Name" value={d.adSetLevel?.name} onSave={v => updateAdSet('name', v)} className="col-span-2" />
+      </DisclosureSection>
+
+      <DisclosureSection icon={<Layers className="w-3.5 h-3.5" />} title="Ad Set">
+        <div className="space-y-2 pt-1">
+          <EditableField label="Ad Set Name" value={d.adSetLevel?.name} onSave={v => updateAdSet('name', v)} />
           <EditableField label="Budget" value={`$${d.adSetLevel?.budget}`} onSave={v => updateAdSet('budget', parseInt(v.replace('$', '')))} />
-          <ReadOnlyField label="Duration" value={d.adSetLevel?.duration} />
-          <ReadOnlyField label="Pixel ID" value={d.adSetLevel?.pixelId} />
-          <ReadOnlyField label="Targeting" value={`${d.adSetLevel?.targeting?.ageRange}, ${d.adSetLevel?.targeting?.locations?.join(', ')}`} />
+          <p className="text-xs text-muted-foreground">
+            {d.adSetLevel?.duration} · Pixel: {d.adSetLevel?.pixelId} · {d.adSetLevel?.targeting?.ageRange}, {d.adSetLevel?.targeting?.locations?.join(', ')}
+          </p>
         </div>
-      </div>
+      </DisclosureSection>
 
-      {/* Ad Level */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-xs font-medium text-primary">
-          <ImageIcon className="w-3.5 h-3.5" />
-          <span>Ad Level</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2 pl-5">
-          <EditableField label="Ad Name" value={d.adLevel?.name} onSave={v => updateAd('name', v)} className="col-span-2" />
-          <ReadOnlyField label="Page" value={d.adLevel?.pageName} />
-          <ReadOnlyField label="CTA" value={d.adLevel?.cta} />
-          <EditableField label="Primary Text" value={d.adLevel?.primaryText} onSave={v => updateAd('primaryText', v)} className="col-span-2" />
-          <EditableField label="Headline" value={d.adLevel?.headline} onSave={v => updateAd('headline', v)} className="col-span-2" />
-          <ReadOnlyField label="Website" value={d.adLevel?.websiteUrl} />
-        </div>
-
-        {/* Creative preview */}
-        {d.adLevel?.creative && (
-          <div className="pl-5 mt-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Creative</p>
-            <div className="rounded-lg overflow-hidden border border-border/40 w-48">
-              <img src={d.adLevel.creative.url} alt={d.adLevel.creative.label} className="w-full aspect-video object-cover" />
-              <div className="px-2 py-1.5 bg-muted/20">
-                <p className="text-[10px] text-muted-foreground">{d.adLevel.creative.label}</p>
+      <DisclosureSection icon={<ImageIcon className="w-3.5 h-3.5" />} title="Ad Creative & Copy">
+        <div className="space-y-2 pt-1">
+          <EditableField label="Ad Name" value={d.adLevel?.name} onSave={v => updateAd('name', v)} />
+          <EditableField label="Primary Text" value={d.adLevel?.primaryText} onSave={v => updateAd('primaryText', v)} />
+          <EditableField label="Headline" value={d.adLevel?.headline} onSave={v => updateAd('headline', v)} />
+          <div className="flex gap-4">
+            <ReadOnlyField label="Page" value={d.adLevel?.pageName} className="flex-1" />
+            <ReadOnlyField label="CTA" value={d.adLevel?.cta} className="flex-1" />
+          </div>
+          {d.adLevel?.creative && (
+            <div className="mt-2">
+              <div className="rounded-lg overflow-hidden border border-border/40 w-48">
+                <img src={d.adLevel.creative.url} alt={d.adLevel.creative.label} className="w-full aspect-video object-cover" />
+                <div className="px-2 py-1.5 bg-muted/20">
+                  <p className="text-[10px] text-muted-foreground">{d.adLevel.creative.label}</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </DisclosureSection>
     </div>
   );
 };
@@ -926,8 +962,41 @@ const DevicePreviewBody = ({ artifact, onUpdateData }: { artifact: Artifact; onU
 // ========== AI SIGNALS DASHBOARD ==========
 
 const healthScoreColor = (score: number) => score >= 70 ? 'text-secondary' : score >= 40 ? 'text-amber-500' : 'text-destructive';
-const healthScoreBg = (score: number) => score >= 70 ? 'bg-secondary/15' : score >= 40 ? 'bg-amber-500/10' : 'bg-destructive/10';
 const healthScoreRing = (score: number) => score >= 70 ? 'stroke-secondary' : score >= 40 ? 'stroke-amber-500' : 'stroke-destructive';
+
+// Progressive disclosure section
+const DisclosureSection = ({ icon, title, badge, defaultOpen = false, children }: {
+  icon: React.ReactNode;
+  title: string;
+  badge?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-border/30 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-muted/10 transition-colors text-left"
+      >
+        <span className="text-primary/60 shrink-0">{icon}</span>
+        <span className="text-xs font-medium text-foreground flex-1">{title}</span>
+        {badge && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/8 text-primary font-medium">{badge}</span>
+        )}
+        {open
+          ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        }
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3 animate-fade-in" style={{ animationDuration: '0.2s' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
   const d = artifact.data;
@@ -936,10 +1005,10 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
   const strokeDashoffset = circumference - (healthScore / 100) * circumference;
 
   return (
-    <div className="space-y-5">
-      {/* Account Health */}
+    <div className="space-y-4">
+      {/* Account Health — always visible narrative */}
       <div className="flex items-center gap-5">
-        <div className="relative w-24 h-24 shrink-0">
+        <div className="relative w-20 h-20 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
             <circle cx="50" cy="50" r="40" fill="none" strokeWidth="6" strokeLinecap="round"
@@ -948,93 +1017,48 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn("text-xl font-bold", healthScoreColor(healthScore))}>{healthScore}</span>
-            <span className="text-[9px] text-muted-foreground">Health</span>
+            <span className={cn("text-lg font-bold", healthScoreColor(healthScore))}>{healthScore}</span>
+            <span className="text-[8px] text-muted-foreground uppercase tracking-wider">Health</span>
           </div>
         </div>
-        <div className="flex-1 space-y-1.5">
+        <div className="flex-1">
           <p className="text-sm font-medium text-foreground">{d.verdict || 'Your account needs attention'}</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{d.verdictDetail || 'Budget allocation is off, some ads are fatigued, and there\'s wasted spend on non-converting areas.'}</p>
-          <div className="flex gap-2 mt-2">
-            {d.healthMetrics?.map((m: any) => (
-              <div key={m.label} className={cn("px-2 py-1 rounded-md text-[10px] font-medium", m.status === 'good' ? 'bg-secondary/10 text-secondary' : 'bg-amber-500/10 text-amber-500')}>
-                {m.label}: {m.value}%
-              </div>
-            ))}
-          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1">{d.verdictDetail}</p>
+          {d.healthMetrics && (
+            <div className="flex gap-1.5 mt-2">
+              {d.healthMetrics.map((m: any) => (
+                <span key={m.label} className={cn("px-2 py-0.5 rounded-md text-[10px] font-medium", m.status === 'good' ? 'bg-secondary/10 text-secondary' : 'bg-amber-500/10 text-amber-500')}>
+                  {m.label} {m.value}%
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Why This Is Happening */}
-      {d.reasons?.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <CircleAlert className="w-3.5 h-3.5 text-amber-500" />
-            <p className="text-xs font-medium text-foreground">Why This Is Happening</p>
-          </div>
-          <div className="space-y-2">
-            {d.reasons.map((reason: any) => {
-              const iconMap: Record<string, React.ReactNode> = {
-                budget: <DollarSign className="w-4 h-4" />,
-                fatigue: <Flame className="w-4 h-4" />,
-                waste: <AlertTriangle className="w-4 h-4" />,
-              };
-              return (
-                <div key={reason.id} className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-1.5">
-                  <div className="flex items-start gap-2.5">
-                    <span className="text-amber-500 mt-0.5 shrink-0">{iconMap[reason.icon] || <CircleAlert className="w-4 h-4" />}</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{reason.title}</p>
-                      {reason.explanation?.map((ex: string, i: number) => (
-                        <p key={i} className="text-xs text-muted-foreground mt-0.5">• {ex}</p>
-                      ))}
-                      <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
-                        <span>{reason.dataWindow}</span>
-                        <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> {reason.confidence}% confidence</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Action Stack */}
+      {/* Progressive disclosure sections */}
       {d.actions?.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Zap className="w-3.5 h-3.5 text-primary" />
-            <p className="text-xs font-medium text-foreground">Recommended Actions</p>
-          </div>
-          <div className="space-y-2">
+        <DisclosureSection
+          icon={<Zap className="w-3.5 h-3.5" />}
+          title="Recommended Actions"
+          badge={`${d.actions.length} actions`}
+          defaultOpen
+        >
+          <div className="space-y-2 pt-1">
             {d.actions.map((action: any, idx: number) => (
-              <div key={action.id} className="p-3 rounded-xl border border-border/40 bg-card/60 space-y-2">
+              <div key={action.id} className="p-3 rounded-xl border border-border/40 bg-card/60 space-y-2 animate-fade-in" style={{ animationDelay: `${idx * 60}ms`, animationFillMode: 'backwards' }}>
                 <div className="flex items-start gap-2.5">
                   <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">{idx + 1}</span>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">{action.title}</p>
-                    <div className="flex items-center gap-3 mt-1 text-[10px]">
-                      <span className="text-secondary font-medium flex items-center gap-0.5"><ArrowUpRight className="w-3 h-3" /> {action.impact}</span>
-                      <span className="text-muted-foreground">Risk: {action.risk}</span>
-                      <span className="text-muted-foreground flex items-center gap-0.5"><Gauge className="w-3 h-3" /> {action.confidence}%</span>
-                    </div>
-                    {action.whyWorks?.length > 0 && (
-                      <div className="mt-1.5 space-y-0.5">
-                        {action.whyWorks.map((w: string, i: number) => (
-                          <p key={i} className="text-[11px] text-muted-foreground">• {w}</p>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-[10px] text-amber-500/80 mt-1.5 italic">{action.consequence}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Expected <span className="text-secondary font-medium">{action.impact}</span> · {action.risk} risk · {action.confidence}% confidence
+                    </p>
+                    <p className="text-[10px] text-amber-500/70 mt-1 italic">{action.consequence}</p>
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
                     onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', { actionId: action.id, title: action.title, impact: action.impact, confidence: action.confidence })}
                   >
                     <Zap className="w-3 h-3" /> Act on this signal
@@ -1043,43 +1067,72 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
               </div>
             ))}
           </div>
-        </div>
+        </DisclosureSection>
       )}
 
-      {/* Waste & Risk */}
-      {d.wasteItems?.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-            <p className="text-xs font-medium text-foreground">Wasted Spend</p>
+      {d.reasons?.length > 0 && (
+        <DisclosureSection
+          icon={<CircleAlert className="w-3.5 h-3.5" />}
+          title="Why This Is Happening"
+          badge={`${d.reasons.length} factors`}
+        >
+          <div className="space-y-2 pt-1">
+            {d.reasons.map((reason: any) => {
+              const iconMap: Record<string, React.ReactNode> = {
+                budget: <DollarSign className="w-4 h-4" />,
+                fatigue: <Flame className="w-4 h-4" />,
+                waste: <AlertTriangle className="w-4 h-4" />,
+              };
+              return (
+                <div key={reason.id} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/10">
+                  <span className="text-amber-500 mt-0.5 shrink-0">{iconMap[reason.icon] || <CircleAlert className="w-4 h-4" />}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{reason.title}</p>
+                    {reason.explanation?.map((ex: string, i: number) => (
+                      <p key={i} className="text-xs text-muted-foreground mt-0.5">• {ex}</p>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground mt-1">{reason.dataWindow} · {reason.confidence}% confidence</p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="space-y-1.5">
+        </DisclosureSection>
+      )}
+
+      {d.wasteItems?.length > 0 && (
+        <DisclosureSection
+          icon={<AlertTriangle className="w-3.5 h-3.5" />}
+          title="Wasted Spend"
+          badge={`${d.wasteItems.length} items`}
+        >
+          <div className="space-y-1.5 pt-1">
             {d.wasteItems.map((w: any) => (
-              <div key={w.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-amber-500/5 border border-amber-500/15">
+              <div key={w.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                 <DollarSign className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-foreground">{w.name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground truncate">{w.name}</p>
                   <p className="text-[10px] text-muted-foreground">{w.reason}</p>
                 </div>
-                <span className="text-sm font-semibold text-amber-500">{w.amount}</span>
+                <span className="text-sm font-semibold text-amber-500 shrink-0">{w.amount}</span>
               </div>
             ))}
           </div>
-        </div>
+        </DisclosureSection>
       )}
 
-      {/* Live Alerts */}
       {d.liveAlerts?.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 text-primary" />
-            <p className="text-xs font-medium text-foreground">Live Signals</p>
-          </div>
-          <div className="space-y-1.5">
+        <DisclosureSection
+          icon={<Activity className="w-3.5 h-3.5" />}
+          title="Live Signals"
+          badge={`${d.liveAlerts.length} signals`}
+          defaultOpen
+        >
+          <div className="space-y-1.5 pt-1">
             {d.liveAlerts.map((alert: any) => (
               <div key={alert.id} className={cn(
                 "p-3 rounded-xl border space-y-1.5",
-                alert.type === 'positive' ? "bg-secondary/5 border-secondary/20" : "bg-amber-500/5 border-amber-500/20"
+                alert.type === 'positive' ? "bg-secondary/5 border-secondary/15" : "bg-amber-500/5 border-amber-500/15"
               )}>
                 <div className="flex items-start gap-2">
                   {alert.type === 'positive'
@@ -1092,20 +1145,15 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
                   </div>
                 </div>
                 {alert.suggestedAction && (
-                  <div className="ml-5.5 flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                  <div className="ml-5 flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
                     <div>
                       <p className="text-xs text-primary font-medium">💡 {alert.suggestedAction.title}</p>
                       <p className="text-[10px] text-muted-foreground">{alert.suggestedAction.impact}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-[10px] text-primary hover:bg-primary/10"
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:bg-primary/10"
                       onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
-                        actionId: alert.id,
-                        title: alert.suggestedAction.title,
-                        impact: alert.suggestedAction.impact,
-                        confidence: 85,
+                        actionId: alert.id, title: alert.suggestedAction.title,
+                        impact: alert.suggestedAction.impact, confidence: 85,
                       })}
                     >
                       <Zap className="w-3 h-3 mr-1" /> Act
@@ -1115,36 +1163,27 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
               </div>
             ))}
           </div>
-        </div>
+        </DisclosureSection>
       )}
 
-      {/* Quick Wins */}
       {d.quickWins?.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="w-3.5 h-3.5 text-secondary" />
-            <p className="text-xs font-medium text-foreground">Quick Wins</p>
-          </div>
-          <div className="space-y-1.5">
+        <DisclosureSection
+          icon={<Lightbulb className="w-3.5 h-3.5" />}
+          title="Quick Wins"
+          badge={`${d.quickWins.length} wins`}
+        >
+          <div className="space-y-1.5 pt-1">
             {d.quickWins.map((qw: any) => (
-              <div key={qw.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-muted/20 border border-border/40">
+              <div key={qw.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/15 border border-border/30">
                 <div className="flex-1">
                   <p className="text-sm text-foreground">{qw.title}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                    <span className="text-secondary font-medium">{qw.impact}</span>
-                    <span>· {qw.timeToApply}</span>
-                    <span>· {qw.confidence}% confidence</span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <span className="text-secondary font-medium">{qw.impact}</span> · {qw.timeToApply} · {qw.confidence}% confidence
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-primary"
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-primary"
                   onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
-                    actionId: qw.id,
-                    title: qw.title,
-                    impact: qw.impact,
-                    confidence: qw.confidence,
+                    actionId: qw.id, title: qw.title, impact: qw.impact, confidence: qw.confidence,
                   })}
                 >
                   <Zap className="w-3 h-3 mr-1" /> Act
@@ -1152,7 +1191,7 @@ const AISignalsDashboardBody = ({ artifact, onArtifactAction }: { artifact: Arti
               </div>
             ))}
           </div>
-        </div>
+        </DisclosureSection>
       )}
     </div>
   );
