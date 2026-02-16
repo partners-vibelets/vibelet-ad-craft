@@ -177,6 +177,19 @@ const CampaignBlueprintBody = ({ artifact, onUpdateData }: { artifact: Artifact;
       <ReadOnlyField label="Schedule" value={`${d.schedule?.startDate} → ${d.schedule?.endDate}`} />
       <EditableField label="Primary Text" value={d.primaryText} onSave={v => update('primaryText', v)} className="col-span-2" />
       <EditableField label="CTA" value={d.cta} onSave={v => update('cta', v)} />
+      {d.suggestedCreatives && d.suggestedCreatives.length > 0 && (
+        <div className="col-span-2 mt-1">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Suggested Creatives</p>
+          <div className="space-y-1">
+            {d.suggestedCreatives.map((cr: string, i: number) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                <ImageIcon className="w-3.5 h-3.5 text-primary/40 mt-0.5 shrink-0" />
+                <span>{cr}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

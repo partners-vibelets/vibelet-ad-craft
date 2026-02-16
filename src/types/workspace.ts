@@ -21,12 +21,19 @@ export interface Thread {
   isActive: boolean;
 }
 
+export interface ActionChip {
+  label: string;
+  icon?: string;
+  action: string; // intent key to trigger
+}
+
 export interface ThreadMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   artifactIds?: string[];
+  actionChips?: ActionChip[];
   isStreaming?: boolean;
 }
 
