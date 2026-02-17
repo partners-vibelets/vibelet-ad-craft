@@ -49,6 +49,8 @@ const typeLabels: Record<ArtifactType, string> = {
   'post-publish-feedback': 'Feedback',
   'performance-dashboard': 'Dashboard',
   'audit-report': 'Audit',
+  'variant-selector': 'Variants',
+  'creative-assignment': 'Assignment',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -75,6 +77,8 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'post-publish-feedback': <PartyPopper className="w-3.5 h-3.5" />,
   'performance-dashboard': <Activity className="w-3.5 h-3.5" />,
   'audit-report': <Shield className="w-3.5 h-3.5" />,
+  'variant-selector': <Package className="w-3.5 h-3.5" />,
+  'creative-assignment': <Layers className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -152,6 +156,8 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'post-publish-feedback': return <PostPublishFeedbackBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'performance-dashboard': return <PerformanceDashboardBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'audit-report': return <AuditReportBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'variant-selector': return <VariantSelectorBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'creative-assignment': return <CreativeAssignmentBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -2716,6 +2722,298 @@ const AuditReportBody = ({ artifact, onUpdateData, onArtifactAction }: {
             ))}
           </div>
         </DisclosureSection>
+      )}
+    </div>
+  );
+};
+
+// ========== VARIANT SELECTOR ==========
+
+const VariantSelectorBody = ({ artifact, onUpdateData, onArtifactAction }: {
+  artifact: Artifact;
+  onUpdateData: (id: string, d: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
+}) => {
+  const d = artifact.data;
+  const variants: any[] = d.variants || [];
+  const selectedIds: string[] = d.selectedIds || [];
+  const recommended: string[] = d.recommendedIds || [];
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  const isSelected = (id: string) => selectedIds.includes(id);
+
+  const toggle = (id: string) => {
+    const next = isSelected(id)
+      ? selectedIds.filter((s: string) => s !== id)
+      : [...selectedIds, id];
+    onUpdateData(artifact.id, { ...d, selectedIds: next });
+  };
+
+  const selectAll = () => onUpdateData(artifact.id, { ...d, selectedIds: variants.map((v: any) => v.id) });
+  const selectNone = () => onUpdateData(artifact.id, { ...d, selectedIds: [] });
+  const selectRecommended = () => onUpdateData(artifact.id, { ...d, selectedIds: [...recommended] });
+
+  // Get unique attribute values for filtering
+  const attributes: string[] = d.attributes || [];
+  const attrValues: Record<string, string[]> = {};
+  attributes.forEach((attr: string) => {
+    attrValues[attr] = [...new Set(variants.map((v: any) => v.attrs?.[attr]).filter(Boolean))] as string[];
+  });
+
+  const filtered = activeFilter
+    ? variants.filter((v: any) => Object.entries(activeFilter).some(([k, val]) => v.attrs?.[k] === val))
+    : variants;
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* AI Recommendation */}
+      {recommended.length > 0 && (
+        <div className="flex items-start gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">AI Recommendation</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Based on sales data and market trends, I recommend these {recommended.length} variants:
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {recommended.map((rid: string) => {
+                const v = variants.find((vv: any) => vv.id === rid);
+                return v ? <Badge key={rid} variant="secondary" className="text-[10px]">{v.label}</Badge> : null;
+              })}
+            </div>
+            <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={selectRecommended}>
+              <Check className="w-3 h-3 mr-1" /> Select Recommended
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={selectAll}>Select All</Button>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectNone}>Clear</Button>
+        <div className="ml-auto text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{selectedIds.length}</span> / {variants.length} selected
+        </div>
+      </div>
+
+      {/* Variant Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
+        {filtered.map((variant: any) => {
+          const selected = isSelected(variant.id);
+          const isRec = recommended.includes(variant.id);
+          return (
+            <button
+              key={variant.id}
+              onClick={() => variant.inStock !== false && toggle(variant.id)}
+              className={cn(
+                "text-left rounded-xl border p-0 overflow-hidden transition-all duration-200",
+                selected
+                  ? "border-primary ring-1 ring-primary/20"
+                  : "border-border/40 hover:border-border",
+                variant.inStock === false && "opacity-50 pointer-events-none"
+              )}
+            >
+              {/* Image */}
+              <div className="relative aspect-square bg-muted/30">
+                {variant.image ? (
+                  <img src={variant.image} alt={variant.label} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-6 h-6 text-muted-foreground/40" />
+                  </div>
+                )}
+                {/* Checkbox overlay */}
+                <div className="absolute top-1.5 left-1.5">
+                  <div className={cn(
+                    "w-5 h-5 rounded-full flex items-center justify-center transition-colors",
+                    selected ? "bg-primary text-primary-foreground" : "bg-background/80 border border-border"
+                  )}>
+                    {selected && <Check className="w-3 h-3" />}
+                  </div>
+                </div>
+                {/* Badges */}
+                <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
+                  {isRec && (
+                    <Badge className="bg-primary/90 text-[9px] px-1.5 py-0">
+                      <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> Top
+                    </Badge>
+                  )}
+                  {variant.inStock === false && (
+                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0">OOS</Badge>
+                  )}
+                </div>
+              </div>
+              {/* Info */}
+              <div className="p-2 space-y-0.5">
+                <div className="flex items-start justify-between gap-1">
+                  <p className="text-xs font-medium text-foreground leading-tight">{variant.label}</p>
+                  <span className="text-xs font-semibold text-primary shrink-0">{variant.value}</span>
+                </div>
+                {variant.attrs && (
+                  <div className="flex flex-wrap gap-1">
+                    {Object.entries(variant.attrs).map(([k, v]) => (
+                      <span key={k} className="text-[9px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{v as string}</span>
+                    ))}
+                  </div>
+                )}
+                {variant.recReason && (
+                  <p className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Sparkles className="w-2.5 h-2.5 text-primary" /> {variant.recReason}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Continue */}
+      {selectedIds.length > 0 && (
+        <Button className="w-full" onClick={() => onArtifactAction?.(artifact.id, 'variants-confirmed', { selectedIds })}>
+          Continue with {selectedIds.length} variant{selectedIds.length !== 1 ? 's' : ''}
+        </Button>
+      )}
+    </div>
+  );
+};
+
+// ========== CREATIVE ASSIGNMENT MATRIX ==========
+
+const CreativeAssignmentBody = ({ artifact, onUpdateData, onArtifactAction }: {
+  artifact: Artifact;
+  onUpdateData: (id: string, d: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
+}) => {
+  const d = artifact.data;
+  const variants: any[] = d.variants || [];
+  const creatives: any[] = d.creatives || [];
+  // assignments: Record<variantId, creativeId[]>
+  const assignments: Record<string, string[]> = d.assignments || {};
+
+  const toggleAssignment = (variantId: string, creativeId: string) => {
+    const current = assignments[variantId] || [];
+    const next = current.includes(creativeId)
+      ? current.filter(c => c !== creativeId)
+      : [...current, creativeId];
+    const updated = { ...assignments, [variantId]: next };
+    onUpdateData(artifact.id, { ...d, assignments: updated });
+  };
+
+  const autoAssign = () => {
+    const auto: Record<string, string[]> = {};
+    variants.forEach(v => {
+      auto[v.id] = creatives.map(c => c.id);
+    });
+    onUpdateData(artifact.id, { ...d, assignments: auto });
+  };
+
+  const totalAssigned = Object.values(assignments).reduce((sum, arr) => sum + arr.length, 0);
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Assign Creatives to Variants</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Map which creatives run for each variant. Each variant becomes an ad set.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={autoAssign}>
+          <Wand2 className="w-3 h-3" /> Auto-assign all
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-3">
+        <div className="px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+          <p className="text-lg font-bold text-foreground">{variants.length}</p>
+          <p className="text-[10px] text-muted-foreground">Variants</p>
+        </div>
+        <div className="px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+          <p className="text-lg font-bold text-foreground">{creatives.length}</p>
+          <p className="text-[10px] text-muted-foreground">Creatives</p>
+        </div>
+        <div className="px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+          <p className="text-lg font-bold text-primary">{totalAssigned}</p>
+          <p className="text-[10px] text-muted-foreground">Total Ads</p>
+        </div>
+      </div>
+
+      {/* Assignment Matrix */}
+      <div className="border border-border/40 rounded-xl overflow-hidden">
+        {/* Column headers */}
+        <div className="flex bg-muted/20 border-b border-border/30">
+          <div className="w-28 shrink-0 px-3 py-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Variant</p>
+          </div>
+          {creatives.map((c: any) => (
+            <div key={c.id} className="flex-1 min-w-[80px] px-2 py-2 text-center border-l border-border/20">
+              <div className="w-10 h-10 mx-auto rounded-md overflow-hidden bg-muted/30 mb-1">
+                {c.thumbnail ? (
+                  <img src={c.thumbnail} alt={c.label} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    {c.type === 'video' ? <Video className="w-3.5 h-3.5 text-muted-foreground" /> : <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />}
+                  </div>
+                )}
+              </div>
+              <p className="text-[9px] text-muted-foreground leading-tight truncate">{c.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Variant rows */}
+        {variants.map((v: any, idx: number) => {
+          const varAssign = assignments[v.id] || [];
+          return (
+            <div key={v.id} className={cn(
+              "flex items-center border-b border-border/20 last:border-b-0",
+              idx % 2 === 0 ? "bg-card/30" : "bg-transparent"
+            )}>
+              <div className="w-28 shrink-0 px-3 py-2.5 flex items-center gap-2">
+                {v.image && <img src={v.image} alt={v.label} className="w-6 h-6 rounded object-cover shrink-0" />}
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">{v.label}</p>
+                  <p className="text-[9px] text-muted-foreground">{varAssign.length} ads</p>
+                </div>
+              </div>
+              {creatives.map((c: any) => {
+                const assigned = varAssign.includes(c.id);
+                return (
+                  <div key={c.id} className="flex-1 min-w-[80px] flex items-center justify-center py-2.5 border-l border-border/20">
+                    <button
+                      onClick={() => toggleAssignment(v.id, c.id)}
+                      className={cn(
+                        "w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all duration-150",
+                        assigned
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-muted-foreground/20 hover:border-primary/40"
+                      )}
+                    >
+                      {assigned && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary & Continue */}
+      {totalAssigned > 0 && (
+        <div className="flex items-center justify-between pt-2 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">{totalAssigned} ads</span> across {variants.length} ad sets with CBO
+          </p>
+          <Button className="gap-1.5" onClick={() => onArtifactAction?.(artifact.id, 'assignment-confirmed', { assignments })}>
+            <ArrowRight className="w-3.5 h-3.5" /> Continue
+          </Button>
+        </div>
       )}
     </div>
   );

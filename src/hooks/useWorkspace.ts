@@ -1038,8 +1038,22 @@ export function useWorkspace() {
       return;
     }
     if (action === 'product-confirmed-variants') {
-      // Product has variants — ask planning questions with variant context
-      respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, true, 5));
+      // Product has variants — show variant selector
+      respondWithSim(activeThreadId, {
+        content: `I found **5 product variants**. Select which ones you'd like to advertise — I recommend the top sellers. 📦`,
+        artifacts: [{ type: 'variant-selector' as ArtifactType, titleSuffix: 'Select Variants', dataOverrides: {
+          variants: [
+            { id: 'v-choco', label: 'Chocolate', value: '$44.99', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Chocolate', size: '2lb' }, recReason: 'Best seller — 38% of revenue' },
+            { id: 'v-vanilla', label: 'Vanilla', value: '$44.99', image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Vanilla', size: '2lb' }, recReason: '2nd highest margin' },
+            { id: 'v-straw', label: 'Strawberry', value: '$44.99', inStock: true, attrs: { flavor: 'Strawberry', size: '2lb' } },
+            { id: 'v-cookies', label: 'Cookies & Cream', value: '$49.99', image: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Cookies & Cream', size: '2lb' }, recReason: 'Trending — 120% growth' },
+            { id: 'v-mango', label: 'Mango', value: '$44.99', inStock: false, attrs: { flavor: 'Mango', size: '2lb' } },
+          ],
+          selectedIds: [],
+          recommendedIds: ['v-choco', 'v-vanilla', 'v-cookies'],
+          attributes: ['flavor', 'size'],
+        } }],
+      });
       return;
     }
 
@@ -1251,6 +1265,23 @@ export function useWorkspace() {
             selectedIndex: 0,
           } }],
         } },
+        { delay: 8500, response: { content: `Now let's assign which creatives go to which variants. **Click checkboxes** in the matrix below — or auto-assign all.`,
+          artifacts: [{ type: 'creative-assignment' as ArtifactType, titleSuffix: 'Creative → Variant Assignment', dataOverrides: {
+            variants: [
+              { id: 'v-choco', label: 'Chocolate', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=100&h=100&fit=crop' },
+              { id: 'v-vanilla', label: 'Vanilla', image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=100&h=100&fit=crop' },
+              { id: 'v-straw', label: 'Strawberry' },
+              { id: 'v-cookies', label: 'Cookies & Cream', image: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=100&h=100&fit=crop' },
+              { id: 'v-mango', label: 'Mango' },
+            ],
+            creatives: [
+              { id: 'mv-1', label: 'Hero Shot', type: 'image', thumbnail: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=100&h=100&fit=crop' },
+              { id: 'mv-3', label: 'Lifestyle Gym', type: 'image', thumbnail: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=100&h=100&fit=crop' },
+              { id: 'mv-4', label: 'AI Video', type: 'video', thumbnail: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=100&h=100&fit=crop' },
+            ],
+            assignments: {},
+          } }],
+        } },
         { delay: 9000, response: { content: `📱 **Using connected Facebook account:** Primary Ad Account (px_987654, FitFuel Nutrition page). ✅` } },
         { delay: 11000, response: { content: `📋 **Configuring multi-ad-set campaign...**\n\nStructure: **1 Campaign → 5 Ad Sets (CBO) → 3 Ads each**\n\n${flavors.map(f => `• 📦 ${f} Ad Set → Hero shot + Lifestyle + AI video`).join('\n')}\n\nCampaign Budget Optimization enabled — Meta will auto-distribute spend to top performers.`,
           artifacts: [{ type: 'campaign-config' as ArtifactType, titleSuffix: 'Multi-Variant Campaign Config', dataOverrides: {
@@ -1429,6 +1460,24 @@ export function useWorkspace() {
           metric: 'Impact', change: payload.confidence, suggestedAction: `Apply: ${payload.title}`,
         }] } }],
         actionChips: [{ label: '✅ Apply now', action: 'apply-recommendation' }, { label: '⏳ Defer', action: 'defer-recommendation' }, { label: '❌ Dismiss', action: 'dismiss-recommendation' }],
+      });
+      return;
+    }
+    // Variant selector confirmed — show planning questions with variant context
+    if (action === 'variants-confirmed' && payload?.selectedIds) {
+      const count = payload.selectedIds.length;
+      respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, true, count));
+      return;
+    }
+    // Creative assignment confirmed — proceed to campaign config
+    if (action === 'assignment-confirmed' && payload?.assignments) {
+      const totalAds = Object.values(payload.assignments as Record<string, string[]>).reduce((sum: number, arr: string[]) => sum + arr.length, 0);
+      respondWithSim(activeThreadId, {
+        content: `✅ **Creative assignment locked!** ${totalAds} ads across ${Object.keys(payload.assignments).length} ad sets with CBO.\n\nNow let me configure the campaign and connect your Facebook account.`,
+        actionChips: [
+          { label: '📱 Connect Facebook', action: 'connect-facebook' },
+          { label: '📋 Configure campaign', action: 'configure-campaign' },
+        ],
       });
       return;
     }

@@ -64,7 +64,9 @@ export type ArtifactType =
   | 'data-table'
   | 'post-publish-feedback'
   | 'performance-dashboard'
-  | 'audit-report';
+  | 'audit-report'
+  | 'variant-selector'
+  | 'creative-assignment';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
