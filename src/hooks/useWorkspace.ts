@@ -413,21 +413,62 @@ function publishCampaignResponse(): SimResponse {
 
 function buildAuditFlow(isDemo = false): ConversationStep[] {
   return [
-    { delay: 1200, response: { content: `🔍 Running a deep audit of your Facebook ad account. Analyzing campaigns, spend patterns, and creative performance...` } },
-    { delay: 4000, response: {
-      content: `Here's your **30-day account audit**. I've identified what's working, what's not, and specific actions to improve performance.`,
-      artifacts: [
-        { type: 'performance-snapshot' as ArtifactType, titleSuffix: 'Account Overview — Last 30 Days', dataOverrides: {
-          dateRange: 'Jan 16 — Feb 16, 2026', metrics: { spent: 2450, revenue: 8900, roi: 3.6, conversions: 245, ctr: 2.8, impressions: 156000 },
-          topCampaign: 'Winter Sale — Retargeting', recommendations: [],
-        } },
-        { type: 'ai-insights' as ArtifactType, titleSuffix: 'Audit Findings', dataOverrides: { insights: [
-          { type: 'opportunity', severity: 'high', title: '🟢 Top performer underinvested', description: 'Your retargeting campaign has 5.2x ROAS but only gets 15% of budget. Reallocating 30% from underperformers could add $2k+/mo revenue.', metric: 'ROAS', change: 52, suggestedAction: 'Shift $400/mo budget to retargeting' },
-          { type: 'anomaly', severity: 'high', title: '🔴 Creative fatigue detected', description: '3 ad sets have the same creatives running 45+ days. CTR dropped 40% in the last 2 weeks. Fresh creatives needed.', metric: 'CTR', change: -40, suggestedAction: 'Generate new creatives for fatigued ad sets' },
-          { type: 'trend', severity: 'medium', title: '📈 Weekend spend spike', description: 'You\'re spending 35% more on weekends but conversion rate drops 20%. Consider dayparting or reducing weekend bids.', metric: 'CPA', change: 28, suggestedAction: 'Enable dayparting: reduce weekend bids by 25%' },
-          { type: 'opportunity', severity: 'low', title: '💡 Untapped lookalike audiences', description: 'Your top purchasers form a strong signal. A 1% lookalike audience could expand reach with high intent.', metric: 'Reach', change: 45, suggestedAction: 'Create 1% lookalike from top 500 purchasers' },
-        ] } },
-      ],
+    { delay: 1200, response: {
+      content: `🔍 Running a deep audit of your Facebook ad account...`,
+      artifacts: [{ type: 'audit-report' as ArtifactType, titleSuffix: '30-Day Account Audit', dataOverrides: {
+        loadingComplete: false,
+        initialPeriod: '30-day',
+        healthScore: 62,
+        verdict: 'Your account needs attention',
+        verdictDetail: 'Budget allocation is off, some ads are fatigued, and there\'s wasted spend. Let\'s fix it.',
+        healthMetrics: mockHealthMetrics,
+        reasons: mockReasons,
+        actions: mockActions,
+        wasteItems: mockWasteItems,
+        liveAlerts: mockLiveAlerts,
+        quickWins: mockQuickWins,
+        trendingChanges: [
+          { id: 'tc-1', metric: 'Cost per Sale', change: '-15%', direction: 'down', context: 'Getting cheaper to convert', since: 'vs last week' },
+          { id: 'tc-2', metric: 'Click Rate', change: '+8%', direction: 'up', context: 'More people clicking ads', since: 'vs last week' },
+          { id: 'tc-3', metric: 'Reach', change: '-22%', direction: 'down', context: 'Fewer people seeing ads', since: 'vs yesterday' },
+        ],
+        periodData: {
+          '30-day': {
+            reasons: mockReasons,
+            actions: mockActions,
+            wasteItems: mockWasteItems,
+            quickWins: mockQuickWins,
+            liveAlerts: mockLiveAlerts,
+          },
+          '15-day': {
+            reasons: mockReasons.slice(0, 2),
+            actions: mockActions.slice(0, 2),
+            wasteItems: mockWasteItems.slice(0, 2),
+            quickWins: mockQuickWins,
+            trendingChanges: [
+              { id: 'tc-1', metric: 'Cost per Sale', change: '-15%', direction: 'down', context: 'Getting cheaper to convert', since: 'vs last week' },
+              { id: 'tc-2', metric: 'Click Rate', change: '+8%', direction: 'up', context: 'More people clicking ads', since: 'vs last week' },
+            ],
+            stats: { spend: '₹8,920', sales: 98, roi: '3.4x' },
+          },
+          '7-day': {
+            actions: mockActions.slice(0, 1),
+            quickWins: mockQuickWins.slice(0, 2),
+            trendingChanges: [
+              { id: 'tc-1', metric: 'Cost per Sale', change: '-15%', direction: 'down', context: 'Getting cheaper to convert', since: 'vs last week' },
+              { id: 'tc-2', metric: 'Click Rate', change: '+8%', direction: 'up', context: 'More people clicking ads', since: 'vs last week' },
+              { id: 'tc-3', metric: 'Reach', change: '-22%', direction: 'down', context: 'Fewer people seeing ads', since: 'vs yesterday' },
+            ],
+            stats: { spend: '₹4,230', sales: 47, roi: '3.2x' },
+          },
+          'today': {
+            actions: [mockActions[0]],
+            quickWins: [mockQuickWins[0]],
+            liveAlerts: mockLiveAlerts,
+            stats: { spend: '₹342', sales: 4, activeAds: 12 },
+          },
+        },
+      } }],
       actionChips: isDemo ? demoAuditActionChips() : [
         { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
         { label: '💰 Reallocate budget', action: 'adjust-budget' },
