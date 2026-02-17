@@ -435,6 +435,38 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       footnote: '',
     },
   },
+  'post-publish-feedback': {
+    type: 'post-publish-feedback',
+    title: 'Post-Publish Feedback',
+    data: {
+      campaignName: '',
+      platform: '',
+      adCount: 0,
+      budget: { daily: 0, total: 0 },
+      rating: 0,
+      selectedTags: [],
+      selectedReasons: [],
+      feedback: '',
+      submitted: false,
+    },
+  },
+  'performance-dashboard': {
+    type: 'performance-dashboard',
+    title: 'Performance Dashboard',
+    data: {
+      campaignName: '',
+      dateRange: '',
+      lifecycleStage: 'testing',
+      stageProgress: 0,
+      stageDescription: '',
+      daysSincePublish: 0,
+      metrics: { spent: 0, revenue: 0, roi: 0, conversions: 0, ctr: 0, aov: 0 },
+      recentChanges: [],
+      recommendations: [],
+      lastRefreshed: '',
+      isAutoRefreshing: false,
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [

@@ -61,7 +61,9 @@ export type ArtifactType =
   | 'campaign-config'
   | 'device-preview'
   | 'ai-signals-dashboard'
-  | 'data-table';
+  | 'data-table'
+  | 'post-publish-feedback'
+  | 'performance-dashboard';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
@@ -296,4 +298,59 @@ export interface DevicePreviewData {
     imageUrl: string;
     websiteUrl: string;
   };
+}
+
+export interface PostPublishFeedbackData {
+  campaignName: string;
+  platform: string;
+  adCount: number;
+  budget: { daily: number; total: number };
+  rating: number;
+  selectedTags: string[];
+  selectedReasons: string[];
+  feedback: string;
+  submitted: boolean;
+}
+
+export type LifecycleStage = 'testing' | 'optimizing' | 'scaling';
+
+export interface PerformanceDashboardData {
+  campaignName: string;
+  dateRange: string;
+  lifecycleStage: LifecycleStage;
+  stageProgress: number;
+  stageDescription: string;
+  daysSincePublish: number;
+  metrics: {
+    spent: number;
+    revenue: number;
+    roi: number;
+    conversions: number;
+    ctr: number;
+    aov: number;
+  };
+  previousMetrics?: {
+    spent: number;
+    revenue: number;
+    roi: number;
+    conversions: number;
+    ctr: number;
+    aov: number;
+  };
+  recentChanges: {
+    time: string;
+    message: string;
+    type: 'positive' | 'negative' | 'neutral';
+  }[];
+  recommendations: {
+    id: string;
+    title: string;
+    description: string;
+    impact: string;
+    confidence: number;
+    priority: 'high' | 'medium' | 'low';
+    state: 'pending' | 'applied' | 'deferred' | 'dismissed';
+  }[];
+  lastRefreshed: string;
+  isAutoRefreshing: boolean;
 }
