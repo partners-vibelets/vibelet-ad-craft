@@ -323,8 +323,8 @@ function creativeResultResponse(avatarName: string): SimResponse {
       selectedIndex: 0,
     } }],
     actionChips: [
+      { label: '📱 Connect Facebook & publish', action: 'connect-facebook' },
       { label: '📥 Download all', action: 'download-all' },
-      { label: '🚀 Use in campaign', action: 'use-in-campaign' },
       { label: '🔄 Generate more variants', action: 'create-flow-from-campaign' },
     ],
   };
@@ -1303,24 +1303,12 @@ export function useWorkspace() {
       return;
     }
 
-    // Approve single plan → auto-execute the entire pipeline
+    // Approve single plan → interactive step-by-step flow (user drives each step)
     if (action === 'approve-plan' || action === 'demo-approve-plan') {
-      const isDemo = action.startsWith('demo-');
-      setIsTyping(true);
-      const steps: ConversationStep[] = [
-        { delay: 800, response: { content: `🚀 **Plan approved!** Starting execution now...\n\nI'll generate your creatives, connect your ad account, and prepare everything for launch. Sit back — I've got this.` } },
-        { delay: 2500, response: { content: `🎨 **Generating creatives...** I'm creating 3 images + 1 AI video ad based on your product and campaign goals.` } },
-        { delay: 5000, response: creativeResultResponse('Sofia') },
-        { delay: 8000, response: { content: `📱 **Using connected Facebook account:** Primary Ad Account (px_987654, Summer Style Co. page). ✅` } },
-        { delay: 10000, response: { content: `📋 **Configuring your campaign...** Applying your blueprint settings and assigning creatives.` } },
-        { delay: 12000, response: campaignConfigResponse() },
-        { delay: 14000, response: { content: `✅ **Everything's ready!** Your campaign is fully configured. Want me to publish it now?`, actionChips: [
-          { label: '🚀 Publish now', action: 'publish-campaign' },
-          { label: '📱 Preview on device first', action: 'preview-device' },
-          { label: '✏️ Let me review first', action: 'edit-plan' },
-        ] } },
-      ];
-      runConversationSteps(activeThreadId, steps);
+      respondWithSim(activeThreadId, {
+        content: `🚀 **Plan approved!** Now let's bring it to life.\n\nFirst up — **creatives**. I'll generate images and a video ad with an AI avatar. Let's pick a script style for the video first. 🎬`,
+      }, 600);
+      setTimeout(() => respondWithSim(activeThreadId, showScriptsResponse, 800), 1600);
       return;
     }
 
