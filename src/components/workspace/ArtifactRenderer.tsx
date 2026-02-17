@@ -6,7 +6,8 @@ import {
   TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
   Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye,
   Facebook, Smartphone, Monitor, Globe, Shield, ExternalLink, Layers,
-  CircleAlert, DollarSign, Gauge, Flame, ArrowUpRight, ChevronUp, Sparkles, PartyPopper
+  CircleAlert, DollarSign, Gauge, Flame, ArrowUpRight, ChevronUp, Sparkles, PartyPopper,
+  Upload
 } from 'lucide-react';
 import { Artifact, ArtifactType, LifecycleStage } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
@@ -611,9 +612,13 @@ const ProductAnalysisBody = ({ data: d }: { data: Record<string, any> }) => {
   );
 };
 
+const CHAR_LIMITS = { primaryText: 125, headline: 40, description: 30 };
+
 const ScriptOptionsBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
   const d = artifact.data;
   const selectedId = d.selectedScriptId;
+  const [showCustom, setShowCustom] = useState(false);
+  const [customScript, setCustomScript] = useState({ primaryText: '', headline: '', description: '' });
 
   const handleSelect = (scriptId: string) => {
     const updated = {
@@ -625,9 +630,38 @@ const ScriptOptionsBody = ({ artifact, onUpdateData, onArtifactAction }: { artif
     onArtifactAction?.(artifact.id, 'script-selected', { scriptId });
   };
 
+  const handleCustomSubmit = () => {
+    if (!customScript.primaryText.trim() || !customScript.headline.trim()) return;
+    const customId = 'script-custom';
+    const customScriptObj = {
+      id: customId, style: 'Custom', label: 'Your Custom Script',
+      duration: 'Custom', script: customScript.primaryText, selected: true,
+      headline: customScript.headline, description: customScript.description,
+    };
+    const updated = {
+      ...d,
+      selectedScriptId: customId,
+      scripts: [...d.scripts.map((s: any) => ({ ...s, selected: false })), customScriptObj],
+    };
+    onUpdateData(artifact.id, updated);
+    onArtifactAction?.(artifact.id, 'script-selected', { scriptId: customId, custom: customScript });
+    setShowCustom(false);
+  };
+
+  const charCount = (field: keyof typeof CHAR_LIMITS) => {
+    const len = customScript[field].length;
+    const max = CHAR_LIMITS[field];
+    const over = len > max;
+    return (
+      <span className={cn("text-[10px] tabular-nums", over ? "text-destructive font-medium" : "text-muted-foreground")}>
+        {len}/{max}
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-2">
-      {d.scripts?.map((script: any) => (
+      {d.scripts?.filter((s: any) => s.id !== 'script-custom').map((script: any) => (
         <button
           key={script.id}
           onClick={() => handleSelect(script.id)}
@@ -656,6 +690,96 @@ const ScriptOptionsBody = ({ artifact, onUpdateData, onArtifactAction }: { artif
           </p>
         </button>
       ))}
+
+      {/* Write my own option */}
+      {!showCustom ? (
+        <button
+          onClick={() => setShowCustom(true)}
+          className={cn(
+            "w-full text-left rounded-lg p-3 border border-dashed transition-all duration-200",
+            selectedId === 'script-custom'
+              ? "border-primary/40 bg-primary/5"
+              : "border-border/40 bg-muted/5 hover:border-primary/30 hover:bg-muted/10"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Edit3 className="w-4 h-4 text-primary/60" />
+            <span className="text-sm font-medium text-foreground">Write my own script</span>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal ml-auto">Custom</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1 pl-6">
+            Enter your own ad copy with Facebook-compliant character limits
+          </p>
+        </button>
+      ) : (
+        <div className="rounded-lg p-4 border border-primary/30 bg-primary/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Custom Script</span>
+            </div>
+            <button onClick={() => setShowCustom(false)} className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-2.5">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Primary Text</label>
+                {charCount('primaryText')}
+              </div>
+              <Textarea
+                value={customScript.primaryText}
+                onChange={e => setCustomScript(prev => ({ ...prev, primaryText: e.target.value }))}
+                placeholder="Main ad copy — the body text of your ad"
+                className="text-xs min-h-[60px] resize-none bg-background/80"
+                maxLength={200}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Headline</label>
+                {charCount('headline')}
+              </div>
+              <input
+                value={customScript.headline}
+                onChange={e => setCustomScript(prev => ({ ...prev, headline: e.target.value }))}
+                placeholder="Short headline — grabs attention"
+                className="w-full text-xs bg-background/80 border border-border/60 rounded-md px-3 py-2 outline-none focus:border-primary/40"
+                maxLength={60}
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Description</label>
+                {charCount('description')}
+              </div>
+              <input
+                value={customScript.description}
+                onChange={e => setCustomScript(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Optional description"
+                className="w-full text-xs bg-background/80 border border-border/60 rounded-md px-3 py-2 outline-none focus:border-primary/40"
+                maxLength={50}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[10px] text-muted-foreground">
+              Facebook ad specs: Primary {CHAR_LIMITS.primaryText} · Headline {CHAR_LIMITS.headline} · Description {CHAR_LIMITS.description}
+            </p>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1.5"
+              disabled={!customScript.primaryText.trim() || !customScript.headline.trim() || customScript.primaryText.length > CHAR_LIMITS.primaryText || customScript.headline.length > CHAR_LIMITS.headline}
+              onClick={handleCustomSubmit}
+            >
+              <Check className="w-3 h-3" /> Use this script
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -843,6 +967,215 @@ const CreativeResultBody = ({ artifact, onUpdateData }: { artifact: Artifact; on
             <ArrowRight className="w-3 h-3" /> Use in Campaign
           </Button>
         </div>
+      </div>
+
+      {/* Upload your own creative */}
+      <UploadCreativeSection artifactId={artifact.id} onUpdateData={onUpdateData} data={d} />
+    </div>
+  );
+};
+
+// ========== UPLOAD CREATIVE SIMULATION ==========
+
+const ACCEPTED_FORMATS = {
+  image: ['JPG', 'PNG', 'WEBP'],
+  video: ['MP4', 'MOV'],
+};
+const MAX_FILE_SIZE_MB = 30;
+const ACCEPTED_RATIOS = ['1:1', '4:5', '9:16', '16:9'];
+
+const UploadCreativeSection = ({ artifactId, onUpdateData, data }: { artifactId: string; onUpdateData: (id: string, d: Record<string, any>) => void; data: Record<string, any> }) => {
+  const [showUpload, setShowUpload] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; size: string; dimensions: string; ratio: string; status: 'validating' | 'valid' | 'invalid'; error?: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const simulateFileValidation = useCallback((fileName: string) => {
+    const ext = fileName.split('.').pop()?.toUpperCase() || '';
+    const isImage = ACCEPTED_FORMATS.image.includes(ext);
+    const isVideo = ACCEPTED_FORMATS.video.includes(ext);
+
+    if (!isImage && !isVideo) {
+      return { status: 'invalid' as const, error: `Unsupported format: .${ext}. Use ${[...ACCEPTED_FORMATS.image, ...ACCEPTED_FORMATS.video].join(', ')}` };
+    }
+
+    // Simulate random valid file properties
+    const dims = isVideo
+      ? ['1080×1920', '1920×1080', '1080×1080'][Math.floor(Math.random() * 3)]
+      : ['1200×628', '1080×1080', '1080×1350', '1080×1920'][Math.floor(Math.random() * 4)];
+    const ratio = dims === '1080×1080' ? '1:1' : dims === '1080×1350' ? '4:5' : dims === '1080×1920' ? '9:16' : '16:9';
+    const sizeMB = (Math.random() * 15 + 1).toFixed(1);
+
+    return { status: 'valid' as const, dimensions: dims, ratio, size: `${sizeMB} MB`, type: isVideo ? 'video' : 'image' };
+  }, []);
+
+  const handleSimulatedUpload = useCallback((fileNames: string[]) => {
+    setUploading(true);
+    const newFiles = fileNames.map(name => {
+      const validation = simulateFileValidation(name);
+      return {
+        name,
+        type: validation.status === 'valid' ? validation.type! : 'unknown',
+        size: validation.status === 'valid' ? validation.size! : '—',
+        dimensions: validation.status === 'valid' ? validation.dimensions! : '—',
+        ratio: validation.status === 'valid' ? validation.ratio! : '—',
+        status: 'validating' as const,
+        error: validation.error,
+      };
+    });
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+
+    // Simulate validation delay
+    setTimeout(() => {
+      setUploadedFiles(prev => prev.map(f => {
+        if (f.status === 'validating') {
+          const validation = simulateFileValidation(f.name);
+          return { ...f, status: validation.status, error: validation.error };
+        }
+        return f;
+      }));
+      setUploading(false);
+    }, 1500);
+  }, [simulateFileValidation]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    // Simulate with the drag event file names
+    const fileNames = Array.from(e.dataTransfer.files).map(f => f.name);
+    if (fileNames.length > 0) handleSimulatedUpload(fileNames);
+    else handleSimulatedUpload(['product-hero.jpg', 'lifestyle-shot.png']);
+  }, [handleSimulatedUpload]);
+
+  const handleClickUpload = () => {
+    // Simulate file selection
+    const sampleFiles = ['custom-product-photo.jpg', 'brand-lifestyle.png', 'promo-video.mp4'];
+    const count = Math.floor(Math.random() * 2) + 1;
+    handleSimulatedUpload(sampleFiles.slice(0, count));
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const validFiles = uploadedFiles.filter(f => f.status === 'valid');
+
+  const handleUseUploaded = () => {
+    if (validFiles.length === 0) return;
+    const newOutputs = validFiles.map((f, i) => ({
+      id: `upload-${Date.now()}-${i}`,
+      type: f.type,
+      label: f.name.replace(/\.[^.]+$/, ''),
+      url: `https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=400&fit=crop`,
+      thumbnailUrl: `https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&h=200&fit=crop`,
+      format: f.name.split('.').pop() || 'jpg',
+      dimensions: f.dimensions,
+      uploaded: true,
+    }));
+    onUpdateData(artifactId, {
+      ...data,
+      outputs: [...(data.outputs || []), ...newOutputs],
+      selectedIndex: data.outputs?.length || 0,
+    });
+    setShowUpload(false);
+    setUploadedFiles([]);
+  };
+
+  if (!showUpload) {
+    return (
+      <button
+        onClick={() => setShowUpload(true)}
+        className="w-full rounded-lg p-3 border border-dashed border-border/40 bg-muted/5 hover:border-primary/30 hover:bg-muted/10 transition-all duration-200 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-primary/60" />
+          <span className="text-sm font-medium text-foreground">Upload your own creative</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1 pl-6">
+          Drag & drop or browse — JPG, PNG, WEBP, MP4, MOV
+        </p>
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg p-4 border border-primary/30 bg-primary/5 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Upload className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-foreground">Upload Creatives</span>
+        </div>
+        <button onClick={() => { setShowUpload(false); setUploadedFiles([]); }} className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        onClick={handleClickUpload}
+        className={cn(
+          "border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200",
+          isDragging
+            ? "border-primary bg-primary/10"
+            : "border-border/50 hover:border-primary/40 hover:bg-muted/10"
+        )}
+      >
+        <Upload className={cn("w-8 h-8 mx-auto mb-2", isDragging ? "text-primary" : "text-muted-foreground/40")} />
+        <p className="text-xs font-medium text-foreground">
+          {isDragging ? 'Drop files here' : 'Click to browse or drag & drop'}
+        </p>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Images: {ACCEPTED_FORMATS.image.join(', ')} · Videos: {ACCEPTED_FORMATS.video.join(', ')} · Max {MAX_FILE_SIZE_MB}MB
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Accepted ratios: {ACCEPTED_RATIOS.join(', ')}
+        </p>
+      </div>
+
+      {/* Uploaded files list */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-1.5">
+          {uploadedFiles.map((file, index) => (
+            <div key={index} className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-lg text-xs",
+              file.status === 'valid' ? "bg-secondary/5 border border-secondary/20" :
+              file.status === 'invalid' ? "bg-destructive/5 border border-destructive/20" :
+              "bg-muted/20 border border-border/30"
+            )}>
+              {file.status === 'validating' && <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />}
+              {file.status === 'valid' && <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />}
+              {file.status === 'invalid' && <CircleAlert className="w-3.5 h-3.5 text-destructive shrink-0" />}
+              <span className="font-medium text-foreground flex-1 truncate">{file.name}</span>
+              {file.status === 'valid' && (
+                <span className="text-muted-foreground shrink-0">{file.dimensions} · {file.ratio} · {file.size}</span>
+              )}
+              {file.error && <span className="text-destructive shrink-0">{file.error}</span>}
+              <button onClick={() => removeFile(index)} className="text-muted-foreground hover:text-foreground shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-1">
+        <p className="text-[10px] text-muted-foreground">
+          {validFiles.length} valid file{validFiles.length !== 1 ? 's' : ''} ready
+        </p>
+        <Button
+          size="sm"
+          className="h-7 text-xs gap-1.5"
+          disabled={validFiles.length === 0 || uploading}
+          onClick={handleUseUploaded}
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+          Use {validFiles.length} creative{validFiles.length !== 1 ? 's' : ''}
+        </Button>
       </div>
     </div>
   );
