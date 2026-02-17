@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ChevronDown, ChevronRight, Edit3, Copy, Check, X,
   FileText, BarChart3, Zap, Settings2, Image as ImageIcon,
@@ -6,12 +6,16 @@ import {
   TrendingUp, Lightbulb, Target, Clock, Package, ScrollText, User,
   Loader2, Star, ShoppingBag, Download, RefreshCw, Wand2, ArrowRight, Eye,
   Facebook, Smartphone, Monitor, Globe, Shield, ExternalLink, Layers,
-  CircleAlert, DollarSign, Gauge, Flame, ArrowUpRight, ChevronUp
+  CircleAlert, DollarSign, Gauge, Flame, ArrowUpRight, ChevronUp, Sparkles, PartyPopper
 } from 'lucide-react';
-import { Artifact, ArtifactType } from '@/types/workspace';
+import { Artifact, ArtifactType, LifecycleStage } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StarRating } from '@/components/ui/star-rating';
+import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import confetti from 'canvas-confetti';
 
 interface ArtifactRendererProps {
   artifact: Artifact;
@@ -41,6 +45,8 @@ const typeLabels: Record<ArtifactType, string> = {
   'device-preview': 'Preview',
   'ai-signals-dashboard': 'Signals',
   'data-table': 'Data',
+  'post-publish-feedback': 'Feedback',
+  'performance-dashboard': 'Dashboard',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -64,6 +70,8 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'device-preview': <Smartphone className="w-3.5 h-3.5" />,
   'ai-signals-dashboard': <Zap className="w-3.5 h-3.5" />,
   'data-table': <BarChart3 className="w-3.5 h-3.5" />,
+  'post-publish-feedback': <PartyPopper className="w-3.5 h-3.5" />,
+  'performance-dashboard': <Activity className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -138,6 +146,8 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'device-preview': return <DevicePreviewBody artifact={artifact} onUpdateData={onUpdateData} />;
     case 'ai-signals-dashboard': return <AISignalsDashboardBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'data-table': return <DataTableBody data={artifact.data} />;
+    case 'post-publish-feedback': return <PostPublishFeedbackBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'performance-dashboard': return <PerformanceDashboardBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -1447,6 +1457,413 @@ const DataTableBody = ({ data: d }: { data: Record<string, any> }) => {
       {/* Footer note */}
       {d.footnote && (
         <p className="text-[10px] text-muted-foreground/50 italic">{d.footnote}</p>
+      )}
+    </div>
+  );
+};
+
+// ========== POST-PUBLISH FEEDBACK ==========
+
+const lowRatingReasons = [
+  "Confusing flow", "Too many steps", "Slow response",
+  "Unclear options", "Missing features", "Technical issues"
+];
+
+const quickTags = [
+  { label: "Super easy", icon: "✨" },
+  { label: "Fast process", icon: "⚡" },
+  { label: "Great AI suggestions", icon: "🤖" },
+  { label: "Loved the creatives", icon: "🎨" }
+];
+
+const PostPublishFeedbackBody = ({ artifact, onUpdateData, onArtifactAction }: {
+  artifact: Artifact;
+  onUpdateData: (id: string, d: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
+}) => {
+  const d = artifact.data;
+  const [showForm, setShowForm] = useState(false);
+
+  // Trigger confetti on mount
+  useEffect(() => {
+    if (d.submitted) return;
+    const duration = 3000;
+    const end = Date.now() + duration;
+    const colors = ['#6ebc46', '#5d58a6', '#fbbf24', '#60a5fa'];
+
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors });
+
+    const frame = () => {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.7 }, colors });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.7 }, colors });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  }, []);
+
+  if (d.submitted) {
+    return (
+      <div className="flex flex-col items-center py-6 animate-fade-in">
+        <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center mb-3">
+          <CheckCircle2 className="h-6 w-6 text-secondary" />
+        </div>
+        <p className="text-sm font-medium text-foreground">Thank you for your feedback!</p>
+        <p className="text-xs text-muted-foreground mt-1">Taking you to performance...</p>
+      </div>
+    );
+  }
+
+  const handleRating = (value: number) => {
+    onUpdateData(artifact.id, { ...d, rating: value });
+    setShowForm(true);
+  };
+
+  const toggleTag = (tag: string) => {
+    const tags = d.selectedTags || [];
+    onUpdateData(artifact.id, {
+      ...d,
+      selectedTags: tags.includes(tag) ? tags.filter((t: string) => t !== tag) : [...tags, tag],
+    });
+  };
+
+  const toggleReason = (reason: string) => {
+    const reasons = d.selectedReasons || [];
+    onUpdateData(artifact.id, {
+      ...d,
+      selectedReasons: reasons.includes(reason) ? reasons.filter((r: string) => r !== reason) : [...reasons, reason],
+    });
+  };
+
+  const handleSubmit = () => {
+    onUpdateData(artifact.id, { ...d, submitted: true });
+    onArtifactAction?.(artifact.id, 'feedback-submitted', { rating: d.rating, tags: d.selectedTags, reasons: d.selectedReasons });
+  };
+
+  const handleSkip = () => {
+    onUpdateData(artifact.id, { ...d, submitted: true });
+    onArtifactAction?.(artifact.id, 'feedback-skipped');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Success header */}
+      <div className="p-4 rounded-xl bg-gradient-to-r from-secondary/10 to-primary/10 border border-secondary/20">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-secondary/20 flex items-center justify-center">
+            <CheckCircle2 className="h-6 w-6 text-secondary" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Campaign Published! 🎉</p>
+            <p className="text-xs text-muted-foreground">{d.campaignName} · {d.platform} · {d.adCount} ads · ${d.budget?.daily}/day</p>
+          </div>
+        </div>
+      </div>
+
+      {/* What happens next */}
+      <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+        <div className="flex items-start gap-2.5">
+          <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-foreground">What happens next?</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Your campaign is in <span className="text-primary font-medium">learning phase</span>. AI recommendations appear in 24-48 hours once enough data is collected.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Rating */}
+      <div className="text-center space-y-3">
+        <div className="flex items-center gap-2 justify-center">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <p className="text-sm font-medium text-foreground">How was your experience?</p>
+        </div>
+        <div className="flex justify-center">
+          <StarRating value={d.rating || 0} onChange={handleRating} size="lg" />
+        </div>
+        {!showForm && <p className="text-[11px] text-muted-foreground">Tap a star to rate</p>}
+      </div>
+
+      {/* Feedback form */}
+      {showForm && (
+        <div className="space-y-3 animate-fade-in border-t border-border/30 pt-3">
+          {(d.rating || 0) >= 4 ? (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">What did you love?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {quickTags.map(tag => (
+                  <button
+                    key={tag.label}
+                    onClick={() => toggleTag(tag.label)}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-full text-xs transition-all",
+                      (d.selectedTags || []).includes(tag.label)
+                        ? "bg-secondary/20 text-secondary border border-secondary/30"
+                        : "bg-muted/30 text-muted-foreground border border-transparent hover:bg-muted/50"
+                    )}
+                  >
+                    <span className="mr-1">{tag.icon}</span>{tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-2">What could we improve?</p>
+              <div className="flex flex-wrap gap-1.5">
+                {lowRatingReasons.map(reason => (
+                  <button
+                    key={reason}
+                    onClick={() => toggleReason(reason)}
+                    className={cn(
+                      "px-2.5 py-1.5 rounded-full text-xs transition-all",
+                      (d.selectedReasons || []).includes(reason)
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                        : "bg-muted/30 text-muted-foreground border border-transparent hover:bg-muted/50"
+                    )}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                placeholder="Tell us more (optional)..."
+                value={d.feedback || ''}
+                onChange={e => onUpdateData(artifact.id, { ...d, feedback: e.target.value })}
+                className="resize-none h-16 text-xs bg-background/50"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1 h-8 text-xs" onClick={handleSubmit}>
+              Submit Feedback
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={handleSkip}>
+              Skip
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ========== PERFORMANCE DASHBOARD ==========
+
+const lifecycleStageConfig: Record<LifecycleStage, { label: string; color: string; icon: React.ReactNode }> = {
+  testing: { label: 'Testing', color: 'text-amber-500', icon: <Gauge className="w-3.5 h-3.5" /> },
+  optimizing: { label: 'Optimizing', color: 'text-primary', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+  scaling: { label: 'Scaling', color: 'text-secondary', icon: <Zap className="w-3.5 h-3.5" /> },
+};
+
+const PerformanceDashboardBody = ({ artifact, onUpdateData, onArtifactAction }: {
+  artifact: Artifact;
+  onUpdateData: (id: string, d: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
+}) => {
+  const d = artifact.data;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const stage = lifecycleStageConfig[d.lifecycleStage as LifecycleStage] || lifecycleStageConfig.testing;
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    // Simulate refresh with slightly updated metrics
+    setTimeout(() => {
+      const jitter = () => 1 + (Math.random() - 0.5) * 0.1;
+      const m = d.metrics;
+      onUpdateData(artifact.id, {
+        ...d,
+        previousMetrics: { ...m },
+        metrics: {
+          spent: Math.round(m.spent * jitter()),
+          revenue: Math.round(m.revenue * jitter()),
+          roi: +(m.roi * jitter()).toFixed(1),
+          conversions: Math.round(m.conversions * jitter()),
+          ctr: +(m.ctr * jitter()).toFixed(1),
+          aov: +(m.aov * jitter()).toFixed(2),
+        },
+        lastRefreshed: new Date().toISOString(),
+      });
+      setIsRefreshing(false);
+    }, 1500);
+  }, [artifact.id, d, onUpdateData]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    if (!d.isAutoRefreshing) return;
+    const interval = setInterval(handleRefresh, 30000);
+    return () => clearInterval(interval);
+  }, [d.isAutoRefreshing, handleRefresh]);
+
+  const m = d.metrics || {};
+  const prev = d.previousMetrics || {};
+  const trend = (val: number, prevVal: number) => {
+    if (!prevVal) return '';
+    const pct = ((val - prevVal) / prevVal * 100).toFixed(1);
+    return Number(pct) >= 0 ? `+${pct}%` : `${pct}%`;
+  };
+  const trendColor = (val: number, prevVal: number, invert = false) => {
+    if (!prevVal) return 'text-muted-foreground';
+    const isUp = val >= prevVal;
+    return (invert ? !isUp : isUp) ? 'text-secondary' : 'text-destructive';
+  };
+
+  const metricCells = [
+    { label: 'Spend', value: `$${m.spent?.toLocaleString()}`, prev: prev.spent, raw: m.spent, icon: <DollarSign className="w-3 h-3" />, invert: true },
+    { label: 'Revenue', value: `$${m.revenue?.toLocaleString()}`, prev: prev.revenue, raw: m.revenue, icon: <TrendingUp className="w-3 h-3" /> },
+    { label: 'ROI', value: `${m.roi}x`, prev: prev.roi, raw: m.roi, icon: <BarChart3 className="w-3 h-3" /> },
+    { label: 'Conversions', value: m.conversions, prev: prev.conversions, raw: m.conversions, icon: <Target className="w-3 h-3" /> },
+    { label: 'CTR', value: `${m.ctr}%`, prev: prev.ctr, raw: m.ctr, icon: <Activity className="w-3 h-3" /> },
+    { label: 'AOV', value: `$${m.aov}`, prev: prev.aov, raw: m.aov, icon: <ShoppingBag className="w-3 h-3" /> },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Header with refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">{d.campaignName}</p>
+          <p className="text-[10px] text-muted-foreground">{d.dateRange}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {d.isAutoRefreshing && (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+              Auto-refresh
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1.5"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Lifecycle stage */}
+      <div className="p-3 rounded-lg bg-muted/15 border border-border/30">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className={stage.color}>{stage.icon}</span>
+            <span className={cn("text-xs font-medium", stage.color)}>{stage.label} Phase</span>
+            <span className="text-[10px] text-muted-foreground">· Day {d.daysSincePublish}</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">{d.stageProgress}%</span>
+        </div>
+        <Progress value={d.stageProgress} className="h-1.5" />
+        <p className="text-[10px] text-muted-foreground mt-1.5">{d.stageDescription}</p>
+      </div>
+
+      {/* Metrics grid */}
+      <div className={cn(
+        "rounded-xl border border-border/30 overflow-hidden transition-all duration-300",
+        isRefreshing && "ring-2 ring-primary/20 opacity-70"
+      )}>
+        <div className="grid grid-cols-3 divide-x divide-border/20">
+          {metricCells.map((cell, i) => (
+            <div key={i} className="text-center py-3 px-2">
+              <div className="flex items-center gap-1 justify-center text-muted-foreground mb-1">
+                {cell.icon}
+                <span className="text-[10px] font-medium">{cell.label}</span>
+              </div>
+              <p className={cn("text-base font-bold text-foreground", isRefreshing && "animate-pulse")}>{cell.value}</p>
+              {cell.prev !== undefined && cell.prev > 0 && (
+                <p className={cn("text-[10px] font-medium", trendColor(cell.raw, cell.prev, cell.invert))}>
+                  {trend(cell.raw, cell.prev)}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Recent changes */}
+      {d.recentChanges?.length > 0 && (
+        <DisclosureSection icon={<Clock className="w-3.5 h-3.5" />} title="Recent Changes" badge={`${d.recentChanges.length}`}>
+          <div className="space-y-1.5 pt-1">
+            {d.recentChanges.map((change: any, i: number) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full mt-1.5 shrink-0",
+                  change.type === 'positive' ? 'bg-secondary' : change.type === 'negative' ? 'bg-destructive' : 'bg-muted-foreground'
+                )} />
+                <div className="flex-1">
+                  <p className="text-foreground">{change.message}</p>
+                  <p className="text-[10px] text-muted-foreground">{change.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Inline recommendations */}
+      {d.recommendations?.length > 0 && (
+        <DisclosureSection
+          icon={<Lightbulb className="w-3.5 h-3.5" />}
+          title="AI Recommendations"
+          badge={`${d.recommendations.filter((r: any) => r.state === 'pending').length} pending`}
+          defaultOpen
+        >
+          <div className="space-y-2 pt-1">
+            {d.recommendations.map((rec: any) => {
+              const isPending = rec.state === 'pending';
+              const isApplied = rec.state === 'applied';
+              return (
+                <div key={rec.id} className={cn(
+                  "p-3 rounded-xl border space-y-2 transition-all",
+                  isApplied ? "border-secondary/20 bg-secondary/5 opacity-80" :
+                  rec.state === 'dismissed' ? "border-border/20 opacity-50" :
+                  "border-border/40 bg-card/60"
+                )}>
+                  <div className="flex items-start gap-2">
+                    <span className={cn(
+                      "mt-0.5 shrink-0",
+                      rec.priority === 'high' ? 'text-amber-500' : rec.priority === 'medium' ? 'text-primary' : 'text-muted-foreground'
+                    )}>
+                      <Lightbulb className="w-3.5 h-3.5" />
+                    </span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{rec.title}</p>
+                        {isApplied && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Applied</Badge>}
+                        {rec.state === 'deferred' && <Badge variant="outline" className="text-[9px] px-1.5 py-0">Deferred</Badge>}
+                        {rec.state === 'dismissed' && <Badge variant="outline" className="text-[9px] px-1.5 py-0 opacity-50">Dismissed</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{rec.description}</p>
+                      <p className="text-[10px] mt-1">
+                        <span className="text-secondary font-medium">{rec.impact}</span>
+                        <span className="text-muted-foreground"> · {rec.confidence}% confidence</span>
+                      </p>
+                    </div>
+                  </div>
+                  {isPending && (
+                    <div className="flex justify-end gap-1.5">
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground"
+                        onClick={() => onArtifactAction?.(artifact.id, 'dismiss-rec', { recId: rec.id })}>
+                        Dismiss
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] text-muted-foreground"
+                        onClick={() => onArtifactAction?.(artifact.id, 'defer-rec', { recId: rec.id })}>
+                        Defer
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 text-primary border-primary/20 hover:bg-primary/5"
+                        onClick={() => onArtifactAction?.(artifact.id, 'apply-rec', { recId: rec.id, title: rec.title, impact: rec.impact })}>
+                        <Zap className="w-3 h-3" /> Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </DisclosureSection>
       )}
     </div>
   );

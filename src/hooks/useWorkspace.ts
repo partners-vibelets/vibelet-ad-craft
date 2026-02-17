@@ -393,17 +393,18 @@ function devicePreviewResponse(): SimResponse {
 
 function publishCampaignResponse(): SimResponse {
   return {
-    content: `🎉🎊 **Campaign published successfully!** Your ads are now live on Facebook & Instagram. I'll monitor performance and send you insights as they come in.\n\nYour campaign is now in learning phase — expect initial data within 24-48 hours.`,
-    artifacts: [{ type: 'publish-confirmation' as ArtifactType, titleSuffix: 'Campaign Published!', dataOverrides: {
-      campaignName: 'Summer Collection 2026', platform: 'Facebook & Instagram',
-      publishedAt: new Date().toISOString(), adCount: 4,
-      budget: { daily: 60, total: 1800 }, status: 'confirmed',
-    } }],
-    actionChips: [
-      { label: '📊 View performance', action: 'performance' },
-      { label: '🔍 Run 30-day audit', action: 'audit' },
-      { label: '⚡ Set up automation rules', action: 'setup-rule' },
-      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    content: `🎉🎊 **Campaign published successfully!** Your ads are now live on Facebook & Instagram.`,
+    artifacts: [
+      { type: 'publish-confirmation' as ArtifactType, titleSuffix: 'Campaign Published!', dataOverrides: {
+        campaignName: 'Summer Collection 2026', platform: 'Facebook & Instagram',
+        publishedAt: new Date().toISOString(), adCount: 4,
+        budget: { daily: 60, total: 1800 }, status: 'confirmed',
+      } },
+      { type: 'post-publish-feedback' as ArtifactType, titleSuffix: 'How was your experience?', dataOverrides: {
+        campaignName: 'Summer Collection 2026', platform: 'Facebook & Instagram',
+        adCount: 4, budget: { daily: 60, total: 1800 },
+        rating: 0, selectedTags: [], selectedReasons: [], feedback: '', submitted: false,
+      } },
     ],
   };
 }
@@ -475,8 +476,7 @@ function demoFacebookConnectedResponse(): SimResponse {
 function demoPublishResponse(): SimResponse {
   const base = publishCampaignResponse();
   return { ...base,
-    content: `🎉🎊 **Your campaign is live!** Ads are now running on Facebook & Instagram.\n\nThe campaign enters a learning phase — I'll have initial data for you in 24-48 hours. In the meantime, want me to audit your account to find more opportunities?`,
-    actionChips: [{ label: '🔍 Run account audit', action: 'audit' }, { label: '📊 View performance', action: 'performance' }],
+    content: `🎉🎊 **Your campaign is live!** Ads are now running on Facebook & Instagram.`,
   };
 }
 
@@ -530,16 +530,46 @@ function recommendationDismissedResponse(): SimResponse {
   return { content: `❌ **Recommendation dismissed.** Got it — I'll learn from this and improve future suggestions.`, actionChips: [{ label: '📊 View performance', action: 'performance' }, { label: '🚀 Create another campaign', action: 'new-campaign' }] };
 }
 
+// ========== PERFORMANCE DASHBOARD ==========
+
+function performanceDashboardResponse(campaignName = 'Summer Collection 2026'): SimResponse {
+  return {
+    content: `📊 Here's your **live performance dashboard** for ${campaignName}. Metrics refresh automatically every 30 seconds.`,
+    artifacts: [{ type: 'performance-dashboard' as ArtifactType, titleSuffix: `${campaignName} — Live Dashboard`, dataOverrides: {
+      campaignName,
+      dateRange: 'Feb 17 — Feb 24, 2026',
+      lifecycleStage: 'testing',
+      stageProgress: 35,
+      stageDescription: 'Learning phase — Meta is testing ad delivery across audiences. Expect variability in the first 7 days.',
+      daysSincePublish: 3,
+      metrics: { spent: 180, revenue: 540, roi: 3.0, conversions: 18, ctr: 2.8, aov: 30 },
+      previousMetrics: { spent: 150, revenue: 420, roi: 2.8, conversions: 14, ctr: 2.5, aov: 30 },
+      recentChanges: [
+        { time: '2 hours ago', message: 'CTR improved 12% on Hero Banner creative', type: 'positive' },
+        { time: '5 hours ago', message: 'CPA decreased from $12.50 to $10.00', type: 'positive' },
+        { time: '1 day ago', message: 'Story Ad creative underperforming — below 1% CTR', type: 'negative' },
+        { time: '2 days ago', message: 'Campaign entered learning phase', type: 'neutral' },
+      ],
+      recommendations: [
+        { id: 'rec-1', title: 'Increase budget on Hero Banner ad set', description: 'Hero Banner has 4.2x ROAS vs 1.8x for other creatives. Shifting budget here could improve overall return.', impact: '+$200/week revenue', confidence: 87, priority: 'high', state: 'pending' },
+        { id: 'rec-2', title: 'Pause Story Ad creative', description: 'Story Ad has been running for 3 days with CTR below 1%. Pausing it will focus spend on better performers.', impact: 'Save $15/day wasted spend', confidence: 92, priority: 'high', state: 'pending' },
+        { id: 'rec-3', title: 'Test lookalike audience expansion', description: 'Your top converters share strong signals. A 1% lookalike could expand reach while maintaining quality.', impact: '+30% reach', confidence: 74, priority: 'medium', state: 'pending' },
+      ],
+      lastRefreshed: new Date().toISOString(),
+      isAutoRefreshing: true,
+    } }],
+    actionChips: [
+      { label: '🔍 Run 30-day audit', action: 'audit' },
+      { label: '⚡ Set up automation rules', action: 'setup-rule' },
+      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    ],
+  };
+}
+
 // ========== SIMPLE RESPONSES ==========
 
 const simpleResponses: Record<string, SimResponse> = {
-  performance: {
-    content: "📊 Here's your performance snapshot with key metrics across all active campaigns.",
-    artifacts: [{ type: 'performance-snapshot', titleSuffix: 'Performance Snapshot', dataOverrides: {
-      dateRange: 'Last 7 days', metrics: { spent: 420, revenue: 1680, roi: 4.0, conversions: 42, ctr: 3.2, impressions: 28000 },
-      topCampaign: 'Summer Collection 2026', recommendations: ['Scale winning ad set by 20%', 'Pause underperforming creatives', 'Test new audience segment'],
-    } }],
-  },
+  performance: performanceDashboardResponse(),
   insights: {
     content: "🔮 I've surfaced key signals from your campaigns. Here's what needs attention.",
     artifacts: [{ type: 'ai-insights', titleSuffix: 'AI Insights', dataOverrides: { insights: [
@@ -1292,7 +1322,7 @@ export function useWorkspace() {
     if (action === 'apply-recommendation') { respondWithSim(activeThreadId, recommendationAppliedResponse()); return; }
     if (action === 'defer-recommendation') { respondWithSim(activeThreadId, recommendationDeferredResponse()); return; }
     if (action === 'dismiss-recommendation') { respondWithSim(activeThreadId, recommendationDismissedResponse()); return; }
-    if (action === 'performance') { respondWithSim(activeThreadId, simpleResponses.performance); return; }
+    if (action === 'performance') { respondWithSim(activeThreadId, performanceDashboardResponse()); return; }
     if (action === 'new-campaign') { respondWithSim(activeThreadId, { content: "Let's plan a new campaign! 🚀 What product or service are you promoting?" }); return; }
 
     const simple = simpleResponses[action];
@@ -1359,6 +1389,36 @@ export function useWorkspace() {
         }] } }],
         actionChips: [{ label: '✅ Apply now', action: 'apply-recommendation' }, { label: '⏳ Defer', action: 'defer-recommendation' }, { label: '❌ Dismiss', action: 'dismiss-recommendation' }],
       });
+      return;
+    }
+    // Post-publish feedback actions
+    if (action === 'feedback-submitted' || action === 'feedback-skipped') {
+      respondWithSim(activeThreadId, performanceDashboardResponse(), 1500);
+      return;
+    }
+    // Performance dashboard recommendation actions
+    if ((action === 'apply-rec' || action === 'defer-rec' || action === 'dismiss-rec') && payload) {
+      const newState = action === 'apply-rec' ? 'applied' : action === 'defer-rec' ? 'deferred' : 'dismissed';
+      // Update the recommendation state in the artifact
+      setThreads(prev => {
+        const thread = prev[activeThreadId];
+        if (!thread) return prev;
+        return { ...prev, [activeThreadId]: { ...thread, artifacts: thread.artifacts.map(a => {
+          if (a.id !== artifactId || a.type !== 'performance-dashboard') return a;
+          return { ...a, data: { ...a.data, recommendations: a.data.recommendations?.map((r: any) =>
+            r.id === payload.recId ? { ...r, state: newState } : r
+          ) }, updatedAt: new Date() };
+        }) } };
+      });
+      if (action === 'apply-rec') {
+        respondWithSim(activeThreadId, {
+          content: `✅ **Applied: "${payload.title}"**\n\n• Changes take effect within **15-30 minutes**\n• Expected impact: **${payload.impact}**\n• I'll monitor this for 7 days and alert you if anything unexpected happens.`,
+          actionChips: [
+            { label: '📊 View dashboard', action: 'performance' },
+            { label: '⚡ Set up auto-rule', action: 'setup-rule' },
+          ],
+        });
+      }
       return;
     }
   }, [activeThreadId, appendMessage, respondWithSim]);
