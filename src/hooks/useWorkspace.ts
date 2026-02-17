@@ -470,6 +470,7 @@ function buildAuditFlow(isDemo = false): ConversationStep[] {
         },
       } }],
       actionChips: isDemo ? demoAuditActionChips() : [
+        { label: '📊 View live performance', action: 'performance' },
         { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
         { label: '💰 Reallocate budget', action: 'adjust-budget' },
         { label: '⚡ Set up automation rules', action: 'setup-rule' },
@@ -559,7 +560,12 @@ function automationRule2Response(): SimResponse {
 function recommendationAppliedResponse(): SimResponse {
   return {
     content: `✅ **Recommendation applied!** I've submitted the change to your ad account.\n\n• Changes take effect within **15-30 minutes**\n• Initial data in **24-48 hours**\n• Full impact assessment in **7 days**\n\nI'll monitor and alert you if anything unexpected happens.`,
-    actionChips: [{ label: '📊 View performance', action: 'performance' }, { label: '⚡ Set up automation rule', action: 'setup-rule' }, { label: '🔍 Run another audit', action: 'audit' }],
+    actionChips: [
+      { label: '📊 View performance', action: 'performance' },
+      { label: '⚡ Set up automation rule', action: 'setup-rule' },
+      { label: '🔍 Run account audit', action: 'audit' },
+      { label: '🚀 Create another campaign', action: 'new-campaign' },
+    ],
   };
 }
 
@@ -600,8 +606,9 @@ function performanceDashboardResponse(campaignName = 'Summer Collection 2026'): 
       isAutoRefreshing: true,
     } }],
     actionChips: [
-      { label: '🔍 Run 30-day audit', action: 'audit' },
+      { label: '🔍 Run 30-day account audit', action: 'audit' },
       { label: '⚡ Set up automation rules', action: 'setup-rule' },
+      { label: '🎨 Generate fresh creatives', action: 'create-flow-from-campaign' },
       { label: '🚀 Create another campaign', action: 'new-campaign' },
     ],
   };
@@ -1383,7 +1390,18 @@ export function useWorkspace() {
     if (action === 'defer-recommendation') { respondWithSim(activeThreadId, recommendationDeferredResponse()); return; }
     if (action === 'dismiss-recommendation') { respondWithSim(activeThreadId, recommendationDismissedResponse()); return; }
     if (action === 'performance') { respondWithSim(activeThreadId, performanceDashboardResponse()); return; }
-    if (action === 'new-campaign') { respondWithSim(activeThreadId, { content: "Let's plan a new campaign! 🚀 What product or service are you promoting?" }); return; }
+    if (action === 'new-campaign') {
+      respondWithSim(activeThreadId, {
+        content: `Let's plan a new campaign! 🚀\n\nTell me about your product or business — I'll build a complete plan.`,
+        actionChips: [
+          { label: '👕 I sell apparel', action: 'planning-category-apparel' },
+          { label: '💪 Health & supplements', action: 'planning-category-health' },
+          { label: '💄 Beauty & skincare', action: 'planning-category-beauty' },
+          { label: '📝 Let me describe it', action: 'planning-category-custom' },
+        ],
+      });
+      return;
+    }
 
     const simple = simpleResponses[action];
     if (simple) { respondWithSim(activeThreadId, simple); return; }
@@ -1469,9 +1487,12 @@ export function useWorkspace() {
       });
       return;
     }
-    // Post-publish feedback actions
+    // Post-publish feedback → transition to performance monitoring
     if (action === 'feedback-submitted' || action === 'feedback-skipped') {
-      respondWithSim(activeThreadId, performanceDashboardResponse(), 1500);
+      respondWithSim(activeThreadId, {
+        content: `📊 **Now let's monitor your campaign!** Here's your live performance dashboard. Metrics refresh every 30 seconds.\n\n⏳ **Note:** AI recommendations will appear in **24-48 hours** once there's enough data. In the meantime, I can run a **30-day audit** of your entire ad account to find quick wins.\n\n*Your full journey: Plan ✅ → Create ✅ → Publish ✅ → **Monitor** (you are here) → Audit → Optimize*`,
+      }, 800);
+      setTimeout(() => respondWithSim(activeThreadId, performanceDashboardResponse(), 600), 2000);
       return;
     }
     // Performance dashboard recommendation actions
