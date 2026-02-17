@@ -1,292 +1,165 @@
 
 
-# Create Module - AI-Powered Video & Image Generation
+# Full Simulation Implementation Plan
 
 ## Overview
 
-The "Create" module will be a standalone creative generation tool that allows users to generate images and videos through both:
-1. **Generic prompts** - Free-form text descriptions for any creative
-2. **Templates/Use cases** - Pre-defined workflows like "Product in Hand", "Product Photoshoot", etc.
-
-The UX will follow the same chat + canvas pattern used in the Dashboard campaign flow, ensuring consistency across the product while optimizing for speed-to-generation.
+This plan implements all 14 gaps identified in the gap analysis to create a fully functional, end-to-end testable simulation in the `/workspace` route. Every feature will work as if it were a real product -- you'll be able to test the complete user journey from first conversation through campaign publishing, post-publish feedback, live performance monitoring, and 30-day audits.
 
 ---
 
-## Recommended UX Architecture
+## What Will Change
 
-```text
-+----------------------------------+----------------------------------------+
-|         CHAT PANEL (30%)         |          CANVAS PANEL (70%)            |
-|----------------------------------|----------------------------------------|
-|                                  |                                        |
-|  "What would you like to         |     [Template Gallery Grid]            |
-|   create today?"                 |                                        |
-|                                  |   +--------+  +--------+  +--------+   |
-|  [Suggestion Chips]              |   |Product |  |Avatar  |  |Photo-  |   |
-|  - Product in Hand               |   |in Hand |  |Video   |  |shoot   |   |
-|  - Avatar Video                  |   +--------+  +--------+  +--------+   |
-|  - Product Photoshoot            |                                        |
-|  - Or describe anything...       |   +--------+  +--------+  +--------+   |
-|                                  |   |Social  |  |Unbox-  |  |Custom  |   |
-|  [Text Input]                    |   |Post    |  |ing     |  |Prompt  |   |
-|  "Describe what you want..."     |   +--------+  +--------+  +--------+   |
-|                                  |                                        |
-+----------------------------------+----------------------------------------+
-```
+### Phase 1: Post-Publish Celebration and Feedback (Gap #1)
 
----
+**What you'll experience:** After clicking "Publish now", instead of jumping straight to action chips, you'll see:
+- Confetti celebration animation
+- A success screen with campaign details
+- "What happens next?" notice (24-48 hour learning phase)
+- 5-star rating with quick tags (high rating) or improvement reasons (low rating)
+- Skip option that goes directly to performance
 
-## User Flow
+**Technical approach:**
+- Add `post-publish-feedback` artifact type to `src/types/workspace.ts`
+- Create `PostPublishFeedbackBody` component in `ArtifactRenderer.tsx` (port the confetti, star rating, and tag selection from existing `PostPublishFeedbackPanel.tsx`)
+- Modify `publishCampaignResponse()` in `useWorkspace.ts` to show the feedback artifact before performance chips
+- Add action chip handler for `submit-feedback` and `skip-feedback` that transitions to performance
 
-### Flow 1: Generic Prompt (Free-form Creation)
+### Phase 2: Live Performance Dashboard (Gaps #2, #3)
 
-```text
-User types: "A luxury watch on a marble surface with golden light"
-    |
-    v
-AI responds: "Great choice! I'll create that for you."
-    |
-    v
-Canvas shows: Generation Preview (loading skeleton)
-    |
-    v
-Canvas shows: Generated Image(s) with variations
-    |
-    v
-User can: Download, Regenerate, Edit, or Use in Campaign
-```
+**What you'll experience:** After publishing (or clicking "View performance"), you'll see a rich, live-updating dashboard artifact with:
+- Unified metrics grid (Spend, Revenue, ROI, Conversions, CTR, AOV) with animated count-up on refresh
+- Campaign lifecycle stage indicator (Testing -> Optimizing -> Scaling) with progress bar
+- Manual refresh button + auto-polling indicator (simulated 30s refresh)
+- Campaign filter/switcher when multiple campaigns exist
+- Recent performance changes list
 
-### Flow 2: Template Selection
+**Technical approach:**
+- Add `performance-dashboard` artifact type to `src/types/workspace.ts`
+- Create `PerformanceDashboardBody` in `ArtifactRenderer.tsx` with metrics grid, lifecycle stage, and refresh animation
+- Replace static `performance-snapshot` response with a richer `performance-dashboard` artifact in the post-publish flow
+- Simulate auto-refresh by updating artifact data on a timer within the hook
+- Include lifecycle stages: "Testing" (0-7 days), "Optimizing" (7-14 days), "Scaling" (14+ days)
 
-```text
-User clicks: "Product in Hand" template
-    |
-    v
-Chat asks: Required inputs (conversationally)
-    |-- "Upload your product image"
-    |-- "Describe your product briefly"  
-    |-- (Optional) "Pick an avatar/hand model"
-    |
-    v
-Canvas shows: Real-time preview as inputs are provided
-    |
-    v
-AI generates creative when all required inputs ready
-    |
-    v
-User can: Download, Regenerate, Edit, or Use in Campaign
-```
+### Phase 3: Custom Script and Creative Upload (Gaps #4, #5)
 
----
+**What you'll experience:**
+- Script selection artifact gains a "Write my own" option at the bottom
+- Selecting it reveals a form with Primary Text, Headline, and Description fields with Facebook character limit counters
+- Creative results artifact gains an "Upload your own" button
+- Clicking it shows a drag-and-drop zone with format/size validation feedback
 
-## Template Definitions
+**Technical approach:**
+- Extend `ScriptOptionsBody` in `ArtifactRenderer.tsx` with a "Write my own" button that expands into an inline form with character counters (Primary Text: 125 chars, Headline: 40 chars, Description: 30 chars)
+- Add `custom-script-submitted` artifact action handler in `useWorkspace.ts`
+- Add an "Upload your own creative" action chip after creative results
+- Create an inline upload simulation in `ArtifactRenderer.tsx` (drag-and-drop zone with accepted formats listed, simulated upload progress)
 
-Each template has specific required/optional inputs:
+### Phase 4: AI Recommendations with Impact Tracking (Gaps #9, #12)
 
-| Template | Required Inputs | Optional Inputs |
-|----------|-----------------|-----------------|
-| Product in Hand | Product Image, Description | Hand Model Style, Background |
-| Avatar Video | Product Image, Description, Script | Avatar Selection, Duration |
-| Product Photoshoot | Product Image | Scene, Lighting, Angle |
-| Social Post | Product Image, Caption Idea | Platform Format (1:1, 9:16) |
-| Unboxing | Product Image, Description | Avatar, Duration |
-| Custom Prompt | Text Description | Reference Image |
+**What you'll experience:**
+- After publishing, AI recommendations appear as interactive cards with Apply/Defer/Dismiss buttons
+- When you apply a recommendation, the card shows "Applied" state with a monitoring badge
+- A floating "Actions Impact" mini-badge appears showing "X monitoring"
+- Clicking it expands to show before/after metric comparisons (e.g., ROAS went from 2.1x to 3.4x)
+- "View All History" link shows a full impact table
 
----
+**Technical approach:**
+- Enhance the `performance-dashboard` artifact to include inline recommendation cards with apply/defer/dismiss states
+- Add `tracked-actions` state tracking in `useWorkspace.ts` with before/after mock metrics
+- Create `ActionsImpactSection` within the performance dashboard body showing monitored actions with metric deltas
+- When a recommendation is applied, update its visual state and add it to tracked actions with simulated "before" values and delayed "after" values
 
-## Key UX Principles
+### Phase 5: Enhanced Audit / Command Center (Gap #10)
 
-1. **Speed to Generation**: Minimize required inputs, use smart defaults
-2. **Conversational but Efficient**: Questions appear one at a time, but users can skip optional ones
-3. **Progressive Disclosure**: Canvas shows real-time preview, updating as inputs are provided
-4. **Familiar Pattern**: Same chat + canvas layout as Dashboard for consistency
+**What you'll experience:**
+- Running an audit shows a full-page loading animation ("Connecting to your ad account...", "Analyzing 30 days of data...", "Finding optimization opportunities...")
+- Results include:
+  - Health Score circle (0-100) with color coding
+  - Waste Analysis ("Where Your Money Goes") showing wasted spend categories
+  - Time-period toggle (Today / 7 days / 15 days / 30 days) that switches the data view
+  - Quick Wins section with one-click actionable items
 
----
+**Technical approach:**
+- Enhance `buildAuditFlow()` in `useWorkspace.ts` to include a multi-step loading conversation (3 messages simulating connection, analysis, and completion)
+- Extend the existing `ai-signals-dashboard` artifact body with:
+  - Health score ring (already partially built)
+  - Waste analysis section (port from existing `mockWasteItems`)
+  - Time-period selector tabs
+  - Quick wins cards with action buttons
+- Wire quick win actions to recommendation handlers
 
-## Component Structure
+### Phase 6: Variant Selector and Creative Assignment (Gaps #6, #7)
 
-```text
-src/
-├── pages/
-│   └── Create.tsx                    # Main Create page
-│
-├── hooks/
-│   └── useCreateFlow.ts              # State management for creation flow
-│
-├── components/
-│   └── create/
-│       ├── CreateLayout.tsx          # Chat + Canvas container
-│       ├── CreateChatPanel.tsx       # Left chat panel
-│       ├── CreateCanvas.tsx          # Right preview/gallery
-│       ├── TemplateGallery.tsx       # Template selection grid
-│       ├── TemplateCard.tsx          # Individual template card
-│       ├── GenerationPreview.tsx     # Loading + result display
-│       ├── InputCollector.tsx        # Smart input collection
-│       └── CreativeResult.tsx        # Final output with actions
-│
-├── types/
-│   └── create.ts                     # Type definitions
-```
+**What you'll experience:**
+- After product analysis detects variants, you see a grid of variants with checkboxes to include/exclude specific ones
+- After creatives are generated for variants, you see a creative assignment panel letting you drag/assign specific creatives to specific variants
+- AI-recommended assignments are pre-filled but editable
 
----
+**Technical approach:**
+- Enhance `ProductAnalysisBody` to add interactive checkboxes on each variant (with AI-recommended ones pre-checked)
+- Add `variant-selector` interaction within product-confirmed-variants flow
+- Create `CreativeAssignmentSection` within the multi-variant creative result showing a matrix of variants x creatives with toggle assignment
+- Keep current auto-assignment as default with "Customize" button to reveal manual controls
 
-## Step-by-Step Implementation Plan
+### Phase 7: Regenerate and Polish (Gaps #11, #13, #14)
 
-### Step 1: Types & Data Models
-- Create `src/types/create.ts` with interfaces for:
-  - `CreateTemplate` (id, name, icon, requiredInputs, optionalInputs)
-  - `CreateInput` (type: image | text | avatar | script, required, label)
-  - `CreateSession` (template, inputs, status, outputs)
-  - `CreateMessage` (extending Message pattern)
-  - `GeneratedCreative` (type, url, thumbnail, format)
+**What you'll experience:**
+- "Regenerate" buttons on product analysis, scripts, and creative results
+- Clicking regenerate shows a brief loading state and produces fresh (shuffled) results
+- Campaign config artifact clearly distinguishes editable fields (Campaign Name, Primary Text, Budget) from locked fields (Objective, Pixel ID) with lock icons
+- Notification simulation: after publishing, a simulated browser notification appears for new recommendations
 
-### Step 2: Create Flow Hook
-- Create `src/hooks/useCreateFlow.ts` that manages:
-  - Template selection state
-  - Input collection progress
-  - Generation status (idle, collecting, generating, complete)
-  - Generated outputs
-  - Message history for chat
-  - Natural language parsing for inputs
+**Technical approach:**
+- Add "Regenerate" action chips after product analysis, scripts, and creative results
+- Handle `regenerate-product`, `regenerate-scripts`, `regenerate-creatives` in `useWorkspace.ts` with shuffled mock data
+- Update `CampaignConfigBody` to show lock icons on read-only fields
+- Add simple notification toast simulation when new recommendations arrive post-publish
 
-### Step 3: Create Page Layout
-- Create `src/pages/Create.tsx` with:
-  - Same layout structure as Dashboard (30% chat / 70% canvas)
-  - Header with navigation back to Dashboard
-  - Glass effect styling matching existing UI
+### Phase 8: Multi-Campaign Hub (Gap #8)
 
-### Step 4: Template Gallery Component
-- Create `src/components/create/TemplateGallery.tsx`:
-  - 2x3 or 3x3 grid of template cards
-  - Visual icons/previews for each template
-  - "Custom Prompt" as a special card for free-form
-  - Hover states showing brief description
+**What you'll experience:**
+- After confirming one campaign goal, AI asks "Would you also like to run a brand awareness campaign alongside this?"
+- Accepting creates a second campaign draft
+- A campaign switcher tab appears in the config artifact
+- Summary view shows both campaigns side by side before publishing
 
-### Step 5: Chat Panel for Create
-- Create `src/components/create/CreateChatPanel.tsx`:
-  - Welcome message with template suggestions
-  - Suggestion chips for quick template selection
-  - Input collection via conversational prompts
-  - File upload handling for product images
-  - Skip buttons for optional inputs
-  - Progress indicator showing what's collected
-
-### Step 6: Canvas Panel
-- Create `src/components/create/CreateCanvas.tsx`:
-  - Shows TemplateGallery initially
-  - Transitions to InputCollector when template selected
-  - Shows GenerationPreview during generation
-  - Displays CreativeResult with action buttons
-
-### Step 7: Generation Preview
-- Create `src/components/create/GenerationPreview.tsx`:
-  - Shimmer loading animation (similar to CreativeGenerationPanel)
-  - Progress indication
-  - "Generating your creative..." messaging
-
-### Step 8: Creative Result Display
-- Create `src/components/create/CreativeResult.tsx`:
-  - Large preview of generated creative
-  - Variation grid (if multiple outputs)
-  - Action buttons: Download, Regenerate, Edit Prompt, Use in Campaign
-  - Metadata display (format, resolution, etc.)
-
-### Step 9: Routing
-- Add route to `App.tsx`: `/create`
-- Add navigation link in DashboardHeader
-
-### Step 10: Polish & Integration
-- Add smooth transitions between states
-- Implement "Use in Campaign" to pass creative to Dashboard flow
-- Add history/recent creations feature (future)
+**Technical approach:**
+- Add `multi-campaign-prompt` response after plan confirmation offering additional objectives
+- Track multiple campaign drafts in thread state
+- Extend `CampaignConfigBody` with tab switcher for multiple campaigns
+- Add `multi-campaign-summary` section before publish showing all campaigns
 
 ---
 
-## Technical Implementation Details
+## Files to Modify
 
-### Chat Message Types Extension
-```typescript
-// In src/types/create.ts
-export interface CreateInputRequest {
-  id: string;
-  type: 'image' | 'text' | 'avatar' | 'script' | 'select';
-  label: string;
-  placeholder?: string;
-  required: boolean;
-  options?: { id: string; label: string; preview?: string }[];
-}
-
-export interface CreateMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  inputRequest?: CreateInputRequest;
-  uploadedImage?: string;
-  templateSelection?: string;
-}
-```
-
-### Template Configuration
-```typescript
-// Templates with their input requirements
-export const CREATE_TEMPLATES: CreateTemplate[] = [
-  {
-    id: 'product-in-hand',
-    name: 'Product in Hand',
-    icon: 'hand',
-    description: 'Showcase your product held naturally',
-    outputType: 'image',
-    requiredInputs: ['product-image', 'product-description'],
-    optionalInputs: ['hand-model', 'background'],
-  },
-  {
-    id: 'avatar-video',
-    name: 'Avatar Video',
-    icon: 'video',
-    description: 'AI presenter showcasing your product',
-    outputType: 'video',
-    requiredInputs: ['product-image', 'product-description'],
-    optionalInputs: ['avatar', 'script', 'duration'],
-  },
-  // ... more templates
-];
-```
-
-### Canvas State Machine
-```typescript
-type CanvasState = 
-  | 'template-selection'  // Show gallery
-  | 'input-collection'    // Show preview + inputs needed
-  | 'generating'          // Show loading animation
-  | 'result'              // Show generated creative
-  | 'error';              // Show error with retry
-```
+1. **`src/types/workspace.ts`** -- Add `post-publish-feedback` and `performance-dashboard` artifact types and their data interfaces
+2. **`src/hooks/useWorkspace.ts`** -- Add all new response builders, action handlers, and flow transitions (~300 lines of new handlers)
+3. **`src/components/workspace/ArtifactRenderer.tsx`** -- Add new artifact body components: PostPublishFeedbackBody, PerformanceDashboardBody, enhanced ScriptOptionsBody, and enhanced CampaignConfigBody (~400 lines of new UI)
+4. **`src/data/workspaceMockData.ts`** -- Add artifact templates for new types
 
 ---
 
-## Navigation & Access Points
+## Implementation Order
 
-1. **Header Navigation**: Add "Create" link next to existing nav items
-2. **Dashboard Quick Action**: "Create New" button on Welcome panel
-3. **Command Center**: "Create Ad" action from recommendations
+The work will be done in the exact order listed above (Phase 1 through 8), as each phase builds on the previous. This ensures you can test progressively:
 
----
-
-## Mock Data & Demo Mode
-
-For initial implementation, the generation will use mock delays and placeholder images:
-- 3-5 second simulated generation time
-- Placeholder creative outputs from `/public/` or external URLs
-- Demo mode flag for easy testing
+1. First test: Create campaign -> Publish -> See celebration + feedback -> View performance dashboard
+2. Second test: Full flow with custom script writing and creative upload
+3. Third test: Apply recommendations -> See impact tracking
+4. Fourth test: Run audit -> See health scores and time-period views
+5. Fifth test: Multi-variant with manual variant/creative selection
+6. Sixth test: Regenerate at any step, verify config field locking
+7. Final test: Multi-campaign hub with side-by-side summary
 
 ---
 
-## Future Enhancements (Out of Scope for MVP)
+## What Won't Change
 
-- Real AI generation integration (Lovable AI / external APIs)
-- Creation history with re-use capability
-- Batch generation for multiple products
-- Direct social platform posting
-- Brand kit/style guide application
+- Landing page (`/`) -- untouched
+- Old dashboard route (`/dashboard`) -- remains as-is for reference
+- Command Center route (`/command-center`) -- remains as-is
+- All existing workspace flows that currently work -- fully preserved
+- The conversational planning agent flow -- enhanced, not replaced
 
