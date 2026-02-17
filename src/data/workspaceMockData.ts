@@ -486,6 +486,16 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       periodData: {},
     },
   },
+  'variant-selector': {
+    type: 'variant-selector',
+    title: 'Select Variants',
+    data: { variants: [], selectedIds: [], recommendedIds: [], attributes: [] },
+  },
+  'creative-assignment': {
+    type: 'creative-assignment',
+    title: 'Creative Assignment',
+    data: { variants: [], creatives: [], assignments: {} },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [
