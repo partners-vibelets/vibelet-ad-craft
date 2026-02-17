@@ -1405,14 +1405,61 @@ export function useWorkspace() {
         if (!thread) return prev;
         return { ...prev, [activeThreadId]: { ...thread, artifacts: thread.artifacts.map(a => {
           if (a.id !== artifactId || a.type !== 'performance-dashboard') return a;
-          return { ...a, data: { ...a.data, recommendations: a.data.recommendations?.map((r: any) =>
+          const updatedRecs = a.data.recommendations?.map((r: any) =>
             r.id === payload.recId ? { ...r, state: newState } : r
-          ) }, updatedAt: new Date() };
+          );
+          // When applying, add to tracked actions with before metrics
+          let trackedActions = a.data.trackedActions || [];
+          if (action === 'apply-rec') {
+            const currentMetrics = a.data.metrics || {};
+            const newTracked = {
+              id: `track-${Date.now()}`,
+              title: payload.title,
+              appliedAt: 'Just now',
+              status: 'monitoring',
+              before: {
+                spend: currentMetrics.spent || 180,
+                roas: currentMetrics.roi || 3.0,
+                ctr: currentMetrics.ctr || 2.8,
+                conversions: currentMetrics.conversions || 18,
+              },
+              after: undefined, // Will be populated by simulated monitoring
+              impact: undefined,
+            };
+            trackedActions = [...trackedActions, newTracked];
+
+            // Simulate "after" metrics arriving after 5 seconds
+            setTimeout(() => {
+              setThreads(prev2 => {
+                const t = prev2[activeThreadId];
+                if (!t) return prev2;
+                return { ...prev2, [activeThreadId]: { ...t, artifacts: t.artifacts.map(art => {
+                  if (art.id !== artifactId || art.type !== 'performance-dashboard') return art;
+                  return { ...art, data: { ...art.data, trackedActions: (art.data.trackedActions || []).map((ta: any) =>
+                    ta.id === newTracked.id ? {
+                      ...ta,
+                      status: 'positive',
+                      appliedAt: '5 minutes ago',
+                      after: {
+                        spend: Math.round(ta.before.spend * (0.85 + Math.random() * 0.1)),
+                        roas: +(ta.before.roas * (1.2 + Math.random() * 0.3)).toFixed(1),
+                        ctr: +(ta.before.ctr * (1.1 + Math.random() * 0.2)).toFixed(1),
+                        conversions: Math.round(ta.before.conversions * (1.15 + Math.random() * 0.25)),
+                      },
+                      impact: `ROAS improved by ${(20 + Math.round(Math.random() * 15))}% since applying this change`,
+                    } : ta
+                  ) } };
+                }) } };
+              });
+            }, 5000);
+          }
+
+          return { ...a, data: { ...a.data, recommendations: updatedRecs, trackedActions }, updatedAt: new Date() };
         }) } };
       });
       if (action === 'apply-rec') {
         respondWithSim(activeThreadId, {
-          content: `✅ **Applied: "${payload.title}"**\n\n• Changes take effect within **15-30 minutes**\n• Expected impact: **${payload.impact}**\n• I'll monitor this for 7 days and alert you if anything unexpected happens.`,
+          content: `✅ **Applied: "${payload.title}"**\n\n• Changes take effect within **15-30 minutes**\n• Expected impact: **${payload.impact}**\n• I'm now monitoring this action — check the **Actions Impact** section below the dashboard for before/after comparisons.\n• Full impact assessment in **7 days**`,
           actionChips: [
             { label: '📊 View dashboard', action: 'performance' },
             { label: '⚡ Set up auto-rule', action: 'setup-rule' },

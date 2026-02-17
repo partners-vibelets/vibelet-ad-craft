@@ -2170,10 +2170,24 @@ const PerformanceDashboardBody = ({ artifact, onUpdateData, onArtifactAction }: 
                         {rec.state === 'dismissed' && <Badge variant="outline" className="text-[9px] px-1.5 py-0 opacity-50">Dismissed</Badge>}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">{rec.description}</p>
-                      <p className="text-[10px] mt-1">
-                        <span className="text-secondary font-medium">{rec.impact}</span>
-                        <span className="text-muted-foreground"> · {rec.confidence}% confidence</span>
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-secondary font-medium">{rec.impact}</span>
+                        <span className="text-[10px] text-muted-foreground">· {rec.confidence}% confidence</span>
+                        {/* Confidence bar */}
+                        <div className="flex-1 max-w-[60px] h-1 rounded-full bg-muted/30 overflow-hidden">
+                          <div
+                            className={cn("h-full rounded-full", rec.confidence >= 80 ? "bg-secondary" : rec.confidence >= 60 ? "bg-primary" : "bg-amber-500")}
+                            style={{ width: `${rec.confidence}%` }}
+                          />
+                        </div>
+                      </div>
+                      {/* Applied monitoring badge */}
+                      {isApplied && (
+                        <div className="flex items-center gap-1.5 mt-1.5 px-2 py-1 rounded-md bg-secondary/10 border border-secondary/15 w-fit">
+                          <Activity className="w-3 h-3 text-secondary animate-pulse" />
+                          <span className="text-[10px] text-secondary font-medium">Monitoring impact...</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {isPending && (
@@ -2186,7 +2200,7 @@ const PerformanceDashboardBody = ({ artifact, onUpdateData, onArtifactAction }: 
                         onClick={() => onArtifactAction?.(artifact.id, 'defer-rec', { recId: rec.id })}>
                         Defer
                       </Button>
-                      <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 text-primary border-primary/20 hover:bg-primary/5"
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] gap-1 text-secondary border-secondary/20 hover:bg-secondary/5"
                         onClick={() => onArtifactAction?.(artifact.id, 'apply-rec', { recId: rec.id, title: rec.title, impact: rec.impact })}>
                         <Zap className="w-3 h-3" /> Apply
                       </Button>
@@ -2197,6 +2211,154 @@ const PerformanceDashboardBody = ({ artifact, onUpdateData, onArtifactAction }: 
             })}
           </div>
         </DisclosureSection>
+      )}
+
+      {/* Actions Impact Section */}
+      {d.trackedActions?.length > 0 && (
+        <ActionsImpactSection trackedActions={d.trackedActions} />
+      )}
+    </div>
+  );
+};
+
+// ========== ACTIONS IMPACT TRACKING ==========
+
+interface TrackedAction {
+  id: string;
+  title: string;
+  appliedAt: string;
+  status: 'monitoring' | 'positive' | 'negative' | 'neutral';
+  before: { spend: number; roas: number; ctr: number; conversions: number };
+  after?: { spend: number; roas: number; ctr: number; conversions: number };
+  impact?: string;
+}
+
+const ActionsImpactSection = ({ trackedActions }: { trackedActions: TrackedAction[] }) => {
+  const [expanded, setExpanded] = useState(false);
+  const monitoring = trackedActions.filter(a => a.status === 'monitoring').length;
+  const completed = trackedActions.filter(a => a.status !== 'monitoring').length;
+
+  const metricDelta = (before: number, after: number | undefined, format: 'currency' | 'percent' | 'number' = 'number') => {
+    if (after === undefined) return <span className="text-muted-foreground">—</span>;
+    const diff = after - before;
+    const pctChange = before > 0 ? ((diff / before) * 100).toFixed(1) : '0';
+    const isPositive = diff >= 0;
+    const formatted = format === 'currency' ? `$${after.toLocaleString()}` :
+                      format === 'percent' ? `${after}%` :
+                      after.toLocaleString();
+    return (
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-semibold text-foreground">{formatted}</span>
+        <span className={cn("text-[10px] font-medium", isPositive ? "text-secondary" : "text-destructive")}>
+          {isPositive ? '+' : ''}{pctChange}%
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Floating badge */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition-all duration-200",
+          expanded
+            ? "border-secondary/30 bg-secondary/5"
+            : "border-border/40 bg-card/60 hover:border-secondary/20 hover:bg-secondary/5"
+        )}
+      >
+        <div className="w-7 h-7 rounded-full bg-secondary/15 flex items-center justify-center shrink-0">
+          <Activity className="w-3.5 h-3.5 text-secondary" />
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-xs font-medium text-foreground">Actions Impact</p>
+          <p className="text-[10px] text-muted-foreground">
+            {monitoring > 0 && <span className="text-secondary font-medium">{monitoring} monitoring</span>}
+            {monitoring > 0 && completed > 0 && ' · '}
+            {completed > 0 && `${completed} completed`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {monitoring > 0 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary/15 text-secondary text-[10px] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+              {monitoring} live
+            </span>
+          )}
+          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+        </div>
+      </button>
+
+      {/* Expanded impact cards */}
+      {expanded && (
+        <div className="space-y-2 animate-fade-in">
+          {trackedActions.map(action => (
+            <div key={action.id} className={cn(
+              "p-3 rounded-xl border space-y-2.5",
+              action.status === 'monitoring' ? "border-secondary/20 bg-secondary/5" :
+              action.status === 'positive' ? "border-secondary/30 bg-secondary/5" :
+              action.status === 'negative' ? "border-destructive/20 bg-destructive/5" :
+              "border-border/30 bg-muted/10"
+            )}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-2">
+                  {action.status === 'monitoring' && <Activity className="w-3.5 h-3.5 text-secondary mt-0.5 animate-pulse shrink-0" />}
+                  {action.status === 'positive' && <TrendingUp className="w-3.5 h-3.5 text-secondary mt-0.5 shrink-0" />}
+                  {action.status === 'negative' && <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />}
+                  {action.status === 'neutral' && <Activity className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{action.title}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Applied {action.appliedAt}
+                      {action.status === 'monitoring' && ' · Monitoring for 7 days'}
+                    </p>
+                  </div>
+                </div>
+                <Badge variant="secondary" className={cn(
+                  "text-[9px] px-1.5 py-0",
+                  action.status === 'monitoring' ? "bg-secondary/15 text-secondary" :
+                  action.status === 'positive' ? "bg-secondary/20 text-secondary" :
+                  action.status === 'negative' ? "bg-destructive/15 text-destructive" :
+                  ""
+                )}>
+                  {action.status === 'monitoring' ? '⏳ Monitoring' :
+                   action.status === 'positive' ? '📈 Positive' :
+                   action.status === 'negative' ? '📉 Negative' : '➡️ Neutral'}
+                </Badge>
+              </div>
+
+              {/* Before/After metrics comparison */}
+              <div className="rounded-lg border border-border/20 overflow-hidden">
+                <div className="grid grid-cols-5 text-center">
+                  <div className="px-2 py-1.5 bg-muted/15 text-[10px] text-muted-foreground font-medium"></div>
+                  <div className="px-2 py-1.5 bg-muted/15 text-[10px] text-muted-foreground font-medium">Spend</div>
+                  <div className="px-2 py-1.5 bg-muted/15 text-[10px] text-muted-foreground font-medium">ROAS</div>
+                  <div className="px-2 py-1.5 bg-muted/15 text-[10px] text-muted-foreground font-medium">CTR</div>
+                  <div className="px-2 py-1.5 bg-muted/15 text-[10px] text-muted-foreground font-medium">Conv.</div>
+                </div>
+                <div className="grid grid-cols-5 text-center border-t border-border/20">
+                  <div className="px-2 py-1.5 text-[10px] text-muted-foreground font-medium bg-muted/5">Before</div>
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">${action.before.spend}</div>
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">{action.before.roas}x</div>
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">{action.before.ctr}%</div>
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">{action.before.conversions}</div>
+                </div>
+                <div className="grid grid-cols-5 text-center border-t border-border/20 bg-secondary/5">
+                  <div className="px-2 py-1.5 text-[10px] text-secondary font-medium">After</div>
+                  <div className="px-2 py-1.5">{metricDelta(action.before.spend, action.after?.spend, 'currency')}</div>
+                  <div className="px-2 py-1.5">{metricDelta(action.before.roas, action.after?.roas)}</div>
+                  <div className="px-2 py-1.5">{metricDelta(action.before.ctr, action.after?.ctr, 'percent')}</div>
+                  <div className="px-2 py-1.5">{metricDelta(action.before.conversions, action.after?.conversions)}</div>
+                </div>
+              </div>
+
+              {action.impact && (
+                <p className="text-[10px] text-secondary font-medium px-1">💡 {action.impact}</p>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
