@@ -467,6 +467,25 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       isAutoRefreshing: false,
     },
   },
+  'audit-report': {
+    type: 'audit-report',
+    title: 'Account Audit',
+    data: {
+      loadingComplete: false,
+      initialPeriod: '30-day',
+      healthScore: 62,
+      verdict: 'Your account needs attention',
+      verdictDetail: '',
+      healthMetrics: [],
+      reasons: [],
+      actions: [],
+      wasteItems: [],
+      liveAlerts: [],
+      quickWins: [],
+      trendingChanges: [],
+      periodData: {},
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [

@@ -63,7 +63,8 @@ export type ArtifactType =
   | 'ai-signals-dashboard'
   | 'data-table'
   | 'post-publish-feedback'
-  | 'performance-dashboard';
+  | 'performance-dashboard'
+  | 'audit-report';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 

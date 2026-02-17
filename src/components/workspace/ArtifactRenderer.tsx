@@ -48,6 +48,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'data-table': 'Data',
   'post-publish-feedback': 'Feedback',
   'performance-dashboard': 'Dashboard',
+  'audit-report': 'Audit',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -73,6 +74,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'data-table': <BarChart3 className="w-3.5 h-3.5" />,
   'post-publish-feedback': <PartyPopper className="w-3.5 h-3.5" />,
   'performance-dashboard': <Activity className="w-3.5 h-3.5" />,
+  'audit-report': <Shield className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -149,6 +151,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'data-table': return <DataTableBody data={artifact.data} />;
     case 'post-publish-feedback': return <PostPublishFeedbackBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'performance-dashboard': return <PerformanceDashboardBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'audit-report': return <AuditReportBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -2359,6 +2362,360 @@ const ActionsImpactSection = ({ trackedActions }: { trackedActions: TrackedActio
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+};
+
+// ========== AUDIT REPORT ==========
+
+type AuditTimePeriod = '30-day' | '15-day' | '7-day' | 'today';
+
+const auditPeriodLabels: Record<AuditTimePeriod, { label: string; sublabel: string }> = {
+  '30-day': { label: '30-Day Audit', sublabel: 'Full Report' },
+  '15-day': { label: '15 Days', sublabel: 'Bi-weekly' },
+  '7-day': { label: '7 Days', sublabel: 'Weekly' },
+  'today': { label: 'Today', sublabel: 'Live' },
+};
+
+const AuditReportBody = ({ artifact, onUpdateData, onArtifactAction }: {
+  artifact: Artifact;
+  onUpdateData: (id: string, d: Record<string, any>) => void;
+  onArtifactAction?: (artifactId: string, action: string, payload?: any) => void;
+}) => {
+  const d = artifact.data;
+  const [selectedPeriod, setSelectedPeriod] = useState<AuditTimePeriod>(d.initialPeriod || '30-day');
+  const [loadingStage, setLoadingStage] = useState(d.loadingComplete ? -1 : 0);
+  const [loadingProgress, setLoadingProgress] = useState(d.loadingComplete ? 100 : 0);
+
+  const loadingStages = [
+    { label: 'Connecting to ad account...', icon: <Globe className="w-4 h-4" />, duration: 1200 },
+    { label: 'Pulling campaign data (30 days)...', icon: <BarChart3 className="w-4 h-4" />, duration: 1500 },
+    { label: 'Analyzing spend patterns...', icon: <DollarSign className="w-4 h-4" />, duration: 1300 },
+    { label: 'Detecting creative fatigue...', icon: <Flame className="w-4 h-4" />, duration: 1000 },
+    { label: 'Calculating health score...', icon: <Shield className="w-4 h-4" />, duration: 800 },
+    { label: 'Generating recommendations...', icon: <Lightbulb className="w-4 h-4" />, duration: 600 },
+  ];
+
+  // Multi-step loading animation
+  useEffect(() => {
+    if (d.loadingComplete || loadingStage < 0) return;
+    if (loadingStage >= loadingStages.length) {
+      setLoadingProgress(100);
+      setTimeout(() => {
+        setLoadingStage(-1);
+        onUpdateData(artifact.id, { ...d, loadingComplete: true });
+      }, 400);
+      return;
+    }
+    const targetProgress = Math.round(((loadingStage + 1) / loadingStages.length) * 100);
+    setLoadingProgress(Math.round((loadingStage / loadingStages.length) * 100));
+    const progressTimer = setTimeout(() => setLoadingProgress(targetProgress), 200);
+    const stageTimer = setTimeout(() => setLoadingStage(s => s + 1), loadingStages[loadingStage].duration);
+    return () => { clearTimeout(progressTimer); clearTimeout(stageTimer); };
+  }, [loadingStage, d.loadingComplete]);
+
+  // Loading screen
+  if (loadingStage >= 0 && !d.loadingComplete) {
+    return (
+      <div className="py-8 space-y-6 animate-fade-in">
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+            <Shield className="w-7 h-7 text-primary animate-pulse" />
+          </div>
+          <p className="text-sm font-semibold text-foreground">Running Deep Audit</p>
+          <p className="text-xs text-muted-foreground">Analyzing your ad account performance...</p>
+        </div>
+
+        <div className="max-w-xs mx-auto space-y-3">
+          <Progress value={loadingProgress} className="h-2" />
+          <div className="space-y-1.5">
+            {loadingStages.map((stage, i) => (
+              <div key={i} className={cn(
+                "flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-300",
+                i < loadingStage ? "text-secondary" :
+                i === loadingStage ? "text-primary bg-primary/5 border border-primary/20" :
+                "text-muted-foreground/40"
+              )}>
+                {i < loadingStage ? (
+                  <CheckCircle2 className="w-4 h-4 text-secondary shrink-0" />
+                ) : i === loadingStage ? (
+                  <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+                ) : (
+                  <span className="w-4 h-4 rounded-full border border-muted-foreground/20 shrink-0" />
+                )}
+                <span className="text-xs">{stage.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const healthScore = d.healthScore || 62;
+  const circumference = 2 * Math.PI * 40;
+  const strokeDashoffset = circumference - (healthScore / 100) * circumference;
+
+  // Get period-specific data
+  const periodData = d.periodData?.[selectedPeriod] || d;
+  const reasons = periodData.reasons || d.reasons || [];
+  const actions = periodData.actions || d.actions || [];
+  const wasteItems = periodData.wasteItems || d.wasteItems || [];
+  const quickWins = periodData.quickWins || d.quickWins || [];
+  const liveAlerts = periodData.liveAlerts || d.liveAlerts || [];
+  const trendingChanges = periodData.trendingChanges || d.trendingChanges || [];
+  const periodStats = periodData.stats || {};
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      {/* Time Period Toggle */}
+      <div className="inline-flex items-center p-1 rounded-xl bg-muted/50 border border-border/50">
+        {(Object.keys(auditPeriodLabels) as AuditTimePeriod[]).map((period) => {
+          const isSelected = selectedPeriod === period;
+          const isLive = period === 'today';
+          return (
+            <button
+              key={period}
+              onClick={() => setSelectedPeriod(period)}
+              className={cn(
+                "relative px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                isSelected
+                  ? "bg-background text-foreground shadow-sm border border-border/50"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                {isLive && (
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    isSelected ? "bg-secondary animate-pulse" : "bg-muted-foreground/50"
+                  )} />
+                )}
+                <span>{auditPeriodLabels[period].label}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Account Health Hero — visible on 30-day and 15-day */}
+      {(selectedPeriod === '30-day' || selectedPeriod === '15-day') && (
+        <div className="flex items-center gap-5">
+          <div className="relative w-20 h-20 shrink-0">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
+              <circle cx="50" cy="50" r="40" fill="none" strokeWidth="6" strokeLinecap="round"
+                className={healthScoreRing(healthScore)}
+                style={{ strokeDasharray: circumference, strokeDashoffset, transition: 'stroke-dashoffset 1s ease' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={cn("text-lg font-bold", healthScoreColor(healthScore))}>{healthScore}</span>
+              <span className="text-[8px] text-muted-foreground uppercase tracking-wider">Health</span>
+            </div>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">{d.verdict || 'Your account needs attention'}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">{d.verdictDetail}</p>
+            {d.healthMetrics && (
+              <div className="flex gap-1.5 mt-2">
+                {d.healthMetrics.map((m: any) => (
+                  <span key={m.label} className={cn("px-2 py-0.5 rounded-md text-[10px] font-medium", m.status === 'good' ? 'bg-secondary/10 text-secondary' : 'bg-amber-500/10 text-amber-500')}>
+                    {m.label} {m.value}%
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Period-specific stats (7-day and Today) */}
+      {(selectedPeriod === '7-day' || selectedPeriod === 'today') && periodStats.spend && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="p-3 rounded-xl bg-card/50 border border-border/50">
+            <div className="flex items-center gap-1.5 mb-1">
+              <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">{selectedPeriod === 'today' ? "Today's Spend" : 'Weekly Spend'}</span>
+            </div>
+            <p className="text-lg font-bold text-foreground">{periodStats.spend}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-card/50 border border-border/50">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Target className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">{selectedPeriod === 'today' ? 'Sales Today' : 'Weekly Sales'}</span>
+            </div>
+            <p className="text-lg font-bold text-foreground">{periodStats.sales}</p>
+          </div>
+          <div className="p-3 rounded-xl bg-card/50 border border-border/50">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">{selectedPeriod === 'today' ? 'Active Ads' : 'ROI'}</span>
+            </div>
+            <p className="text-lg font-bold text-foreground">{periodStats.roi || periodStats.activeAds}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Why This Is Happening — 30-day & 15-day */}
+      {reasons.length > 0 && (selectedPeriod === '30-day' || selectedPeriod === '15-day') && (
+        <DisclosureSection icon={<CircleAlert className="w-3.5 h-3.5" />} title="Why This Is Happening" badge={`${reasons.length} factors`} defaultOpen={selectedPeriod === '30-day'}>
+          <div className="space-y-2 pt-1">
+            {reasons.map((reason: any) => {
+              const iconMap: Record<string, React.ReactNode> = {
+                budget: <DollarSign className="w-4 h-4" />,
+                fatigue: <Flame className="w-4 h-4" />,
+                waste: <AlertTriangle className="w-4 h-4" />,
+              };
+              return (
+                <div key={reason.id} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/10">
+                  <span className="text-amber-500 mt-0.5 shrink-0">{iconMap[reason.icon] || <CircleAlert className="w-4 h-4" />}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{reason.title}</p>
+                    {reason.explanation?.map((ex: string, i: number) => (
+                      <p key={i} className="text-xs text-muted-foreground mt-0.5">• {ex}</p>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground mt-1">{reason.dataWindow} · {reason.confidence}% confidence</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Recommended Actions */}
+      {actions.length > 0 && (
+        <DisclosureSection icon={<Zap className="w-3.5 h-3.5" />} title="Recommended Actions" badge={`${actions.length} actions`} defaultOpen>
+          <div className="space-y-2 pt-1">
+            {actions.map((action: any, idx: number) => (
+              <div key={action.id} className="p-3 rounded-xl border border-border/40 bg-card/60 space-y-2 animate-fade-in" style={{ animationDelay: `${idx * 60}ms`, animationFillMode: 'backwards' }}>
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">{idx + 1}</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">{action.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Expected <span className="text-secondary font-medium">{action.impact}</span> · {action.risk} risk · {action.confidence}% confidence
+                    </p>
+                    {action.consequence && <p className="text-[10px] text-amber-500/70 mt-1 italic">{action.consequence}</p>}
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5 text-primary border-primary/20 hover:bg-primary/5"
+                    onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', { actionId: action.id, title: action.title, impact: action.impact, confidence: action.confidence })}
+                  >
+                    <Zap className="w-3 h-3" /> Act on this
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Wasted Spend — 30-day and 15-day */}
+      {wasteItems.length > 0 && (selectedPeriod === '30-day' || selectedPeriod === '15-day') && (
+        <DisclosureSection icon={<AlertTriangle className="w-3.5 h-3.5" />} title="Wasted Spend" badge={`${wasteItems.length} items`}>
+          <div className="space-y-1.5 pt-1">
+            {wasteItems.map((w: any) => (
+              <div key={w.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
+                <DollarSign className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground truncate">{w.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{w.reason}</p>
+                </div>
+                <span className="text-sm font-semibold text-amber-500 shrink-0">{w.amount}</span>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Quick Wins — all views */}
+      {quickWins.length > 0 && (
+        <DisclosureSection icon={<Lightbulb className="w-3.5 h-3.5" />} title="Quick Wins" badge={`${quickWins.length} wins`} defaultOpen={selectedPeriod === 'today' || selectedPeriod === '7-day'}>
+          <div className="space-y-1.5 pt-1">
+            {quickWins.map((qw: any) => (
+              <div key={qw.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/15 border border-border/30">
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{qw.title}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <span className="text-secondary font-medium">{qw.impact}</span> · {qw.timeToApply} · {qw.confidence}% confidence
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-primary"
+                  onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
+                    actionId: qw.id, title: qw.title, impact: qw.impact, confidence: qw.confidence,
+                  })}
+                >
+                  <Zap className="w-3 h-3 mr-1" /> Act
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Live Alerts — Today and 30-day sidebar */}
+      {liveAlerts.length > 0 && (selectedPeriod === 'today' || selectedPeriod === '30-day') && (
+        <DisclosureSection icon={<Activity className="w-3.5 h-3.5" />} title={selectedPeriod === 'today' ? "What's Happening Now" : 'Live Signals'} badge={`${liveAlerts.length}`} defaultOpen={selectedPeriod === 'today'}>
+          <div className="space-y-1.5 pt-1">
+            {liveAlerts.map((alert: any) => (
+              <div key={alert.id} className={cn(
+                "p-3 rounded-xl border space-y-1.5",
+                alert.type === 'positive' ? "bg-secondary/5 border-secondary/15" : "bg-amber-500/5 border-amber-500/15"
+              )}>
+                <div className="flex items-start gap-2">
+                  {alert.type === 'positive'
+                    ? <TrendingUp className="w-3.5 h-3.5 text-secondary shrink-0 mt-0.5" />
+                    : <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  }
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground">{alert.message}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{alert.time} · {alert.metric} {alert.change}</p>
+                  </div>
+                </div>
+                {alert.suggestedAction && (
+                  <div className="ml-5 flex items-center justify-between p-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <div>
+                      <p className="text-xs text-primary font-medium">💡 {alert.suggestedAction.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{alert.suggestedAction.impact}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:bg-primary/10"
+                      onClick={() => onArtifactAction?.(artifact.id, 'act-on-signal', {
+                        actionId: alert.id, title: alert.suggestedAction.title,
+                        impact: alert.suggestedAction.impact, confidence: 85,
+                      })}
+                    >
+                      <Zap className="w-3 h-3 mr-1" /> Act
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
+      )}
+
+      {/* Trending Changes — 7-day and 15-day */}
+      {trendingChanges.length > 0 && (selectedPeriod === '7-day' || selectedPeriod === '15-day') && (
+        <DisclosureSection icon={<TrendingUp className="w-3.5 h-3.5" />} title="Trending Changes" badge={`${trendingChanges.length}`} defaultOpen>
+          <div className="space-y-1.5 pt-1">
+            {trendingChanges.map((tc: any) => (
+              <div key={tc.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/15 border border-border/30">
+                {tc.direction === 'up'
+                  ? <ArrowUpRight className="w-3.5 h-3.5 text-secondary shrink-0" />
+                  : <ArrowUpRight className="w-3.5 h-3.5 text-amber-500 rotate-90 shrink-0" />
+                }
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">{tc.metric} <span className={cn("font-semibold", tc.direction === 'up' ? 'text-secondary' : 'text-amber-500')}>{tc.change}</span></p>
+                  <p className="text-[10px] text-muted-foreground">{tc.context} · {tc.since}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DisclosureSection>
       )}
     </div>
   );
