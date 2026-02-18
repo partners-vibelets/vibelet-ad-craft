@@ -1,165 +1,142 @@
 
 
-# Full Simulation Implementation Plan
+# Workspace UX Overhaul — Chat-First, End-to-End Simulation
 
-## Overview
+## Problem Summary
 
-This plan implements all 14 gaps identified in the gap analysis to create a fully functional, end-to-end testable simulation in the `/workspace` route. Every feature will work as if it were a real product -- you'll be able to test the complete user journey from first conversation through campaign publishing, post-publish feedback, live performance monitoring, and 30-day audits.
+Four core issues identified:
 
----
-
-## What Will Change
-
-### Phase 1: Post-Publish Celebration and Feedback (Gap #1)
-
-**What you'll experience:** After clicking "Publish now", instead of jumping straight to action chips, you'll see:
-- Confetti celebration animation
-- A success screen with campaign details
-- "What happens next?" notice (24-48 hour learning phase)
-- 5-star rating with quick tags (high rating) or improvement reasons (low rating)
-- Skip option that goes directly to performance
-
-**Technical approach:**
-- Add `post-publish-feedback` artifact type to `src/types/workspace.ts`
-- Create `PostPublishFeedbackBody` component in `ArtifactRenderer.tsx` (port the confetti, star rating, and tag selection from existing `PostPublishFeedbackPanel.tsx`)
-- Modify `publishCampaignResponse()` in `useWorkspace.ts` to show the feedback artifact before performance chips
-- Add action chip handler for `submit-feedback` and `skip-feedback` that transitions to performance
-
-### Phase 2: Live Performance Dashboard (Gaps #2, #3)
-
-**What you'll experience:** After publishing (or clicking "View performance"), you'll see a rich, live-updating dashboard artifact with:
-- Unified metrics grid (Spend, Revenue, ROI, Conversions, CTR, AOV) with animated count-up on refresh
-- Campaign lifecycle stage indicator (Testing -> Optimizing -> Scaling) with progress bar
-- Manual refresh button + auto-polling indicator (simulated 30s refresh)
-- Campaign filter/switcher when multiple campaigns exist
-- Recent performance changes list
-
-**Technical approach:**
-- Add `performance-dashboard` artifact type to `src/types/workspace.ts`
-- Create `PerformanceDashboardBody` in `ArtifactRenderer.tsx` with metrics grid, lifecycle stage, and refresh animation
-- Replace static `performance-snapshot` response with a richer `performance-dashboard` artifact in the post-publish flow
-- Simulate auto-refresh by updating artifact data on a timer within the hook
-- Include lifecycle stages: "Testing" (0-7 days), "Optimizing" (7-14 days), "Scaling" (14+ days)
-
-### Phase 3: Custom Script and Creative Upload (Gaps #4, #5)
-
-**What you'll experience:**
-- Script selection artifact gains a "Write my own" option at the bottom
-- Selecting it reveals a form with Primary Text, Headline, and Description fields with Facebook character limit counters
-- Creative results artifact gains an "Upload your own" button
-- Clicking it shows a drag-and-drop zone with format/size validation feedback
-
-**Technical approach:**
-- Extend `ScriptOptionsBody` in `ArtifactRenderer.tsx` with a "Write my own" button that expands into an inline form with character counters (Primary Text: 125 chars, Headline: 40 chars, Description: 30 chars)
-- Add `custom-script-submitted` artifact action handler in `useWorkspace.ts`
-- Add an "Upload your own creative" action chip after creative results
-- Create an inline upload simulation in `ArtifactRenderer.tsx` (drag-and-drop zone with accepted formats listed, simulated upload progress)
-
-### Phase 4: AI Recommendations with Impact Tracking (Gaps #9, #12)
-
-**What you'll experience:**
-- After publishing, AI recommendations appear as interactive cards with Apply/Defer/Dismiss buttons
-- When you apply a recommendation, the card shows "Applied" state with a monitoring badge
-- A floating "Actions Impact" mini-badge appears showing "X monitoring"
-- Clicking it expands to show before/after metric comparisons (e.g., ROAS went from 2.1x to 3.4x)
-- "View All History" link shows a full impact table
-
-**Technical approach:**
-- Enhance the `performance-dashboard` artifact to include inline recommendation cards with apply/defer/dismiss states
-- Add `tracked-actions` state tracking in `useWorkspace.ts` with before/after mock metrics
-- Create `ActionsImpactSection` within the performance dashboard body showing monitored actions with metric deltas
-- When a recommendation is applied, update its visual state and add it to tracked actions with simulated "before" values and delayed "after" values
-
-### Phase 5: Enhanced Audit / Command Center (Gap #10)
-
-**What you'll experience:**
-- Running an audit shows a full-page loading animation ("Connecting to your ad account...", "Analyzing 30 days of data...", "Finding optimization opportunities...")
-- Results include:
-  - Health Score circle (0-100) with color coding
-  - Waste Analysis ("Where Your Money Goes") showing wasted spend categories
-  - Time-period toggle (Today / 7 days / 15 days / 30 days) that switches the data view
-  - Quick Wins section with one-click actionable items
-
-**Technical approach:**
-- Enhance `buildAuditFlow()` in `useWorkspace.ts` to include a multi-step loading conversation (3 messages simulating connection, analysis, and completion)
-- Extend the existing `ai-signals-dashboard` artifact body with:
-  - Health score ring (already partially built)
-  - Waste analysis section (port from existing `mockWasteItems`)
-  - Time-period selector tabs
-  - Quick wins cards with action buttons
-- Wire quick win actions to recommendation handlers
-
-### Phase 6: Variant Selector and Creative Assignment (Gaps #6, #7)
-
-**What you'll experience:**
-- After product analysis detects variants, you see a grid of variants with checkboxes to include/exclude specific ones
-- After creatives are generated for variants, you see a creative assignment panel letting you drag/assign specific creatives to specific variants
-- AI-recommended assignments are pre-filled but editable
-
-**Technical approach:**
-- Enhance `ProductAnalysisBody` to add interactive checkboxes on each variant (with AI-recommended ones pre-checked)
-- Add `variant-selector` interaction within product-confirmed-variants flow
-- Create `CreativeAssignmentSection` within the multi-variant creative result showing a matrix of variants x creatives with toggle assignment
-- Keep current auto-assignment as default with "Customize" button to reveal manual controls
-
-### Phase 7: Regenerate and Polish (Gaps #11, #13, #14)
-
-**What you'll experience:**
-- "Regenerate" buttons on product analysis, scripts, and creative results
-- Clicking regenerate shows a brief loading state and produces fresh (shuffled) results
-- Campaign config artifact clearly distinguishes editable fields (Campaign Name, Primary Text, Budget) from locked fields (Objective, Pixel ID) with lock icons
-- Notification simulation: after publishing, a simulated browser notification appears for new recommendations
-
-**Technical approach:**
-- Add "Regenerate" action chips after product analysis, scripts, and creative results
-- Handle `regenerate-product`, `regenerate-scripts`, `regenerate-creatives` in `useWorkspace.ts` with shuffled mock data
-- Update `CampaignConfigBody` to show lock icons on read-only fields
-- Add simple notification toast simulation when new recommendations arrive post-publish
-
-### Phase 8: Multi-Campaign Hub (Gap #8)
-
-**What you'll experience:**
-- After confirming one campaign goal, AI asks "Would you also like to run a brand awareness campaign alongside this?"
-- Accepting creates a second campaign draft
-- A campaign switcher tab appears in the config artifact
-- Summary view shows both campaigns side by side before publishing
-
-**Technical approach:**
-- Add `multi-campaign-prompt` response after plan confirmation offering additional objectives
-- Track multiple campaign drafts in thread state
-- Extend `CampaignConfigBody` with tab switcher for multiple campaigns
-- Add `multi-campaign-summary` section before publish showing all campaigns
+1. **UI/UX lacks polish** — The guided chip-driven flow feels mechanical rather than conversational. Artifacts and responses could be richer and more contextual.
+2. **Custom upload flow is incomplete** — "Upload your own" exists but doesn't simulate the full journey (upload, preview, use in campaign). No creative library integration.
+3. **Standalone creative generation (image-only / video-only) has no tailored UX** — Different generation models need different inputs (reference image, description, script+avatar, or fully automated), but the current flow is one-size-fits-all.
+4. **Homepage use-case cards are unintuitive** — The path cards + filter chips system should be replaced with a clean chat-first homepage where everything flows from the input box via suggestion prompts.
 
 ---
 
-## Files to Modify
+## Plan
 
-1. **`src/types/workspace.ts`** -- Add `post-publish-feedback` and `performance-dashboard` artifact types and their data interfaces
-2. **`src/hooks/useWorkspace.ts`** -- Add all new response builders, action handlers, and flow transitions (~300 lines of new handlers)
-3. **`src/components/workspace/ArtifactRenderer.tsx`** -- Add new artifact body components: PostPublishFeedbackBody, PerformanceDashboardBody, enhanced ScriptOptionsBody, and enhanced CampaignConfigBody (~400 lines of new UI)
-4. **`src/data/workspaceMockData.ts`** -- Add artifact templates for new types
+### Phase 1: Replace Homepage Cards with Chat-First Entry
+
+**Remove** the `WorkspaceHome` path cards grid (the 2x2 use-case boxes + filter chips system).
+
+**Replace with** a minimal homepage that has:
+- Personalized greeting (keep existing logic)
+- A prominent chat input at center
+- Below the input: a single row of lightweight suggestion chips that map to all existing demos/flows:
+  - "Plan a campaign" | "Generate a video ad" | "Generate image ads" | "Run account audit" | "Check performance" | "Connect Facebook" | "Set up automation" | "Run full demo"
+- No path selection, no filter chips, no category cards
+- Typing or clicking a chip immediately creates a thread and starts the flow
+
+**Files:** `src/components/workspace/WorkspaceHome.tsx` (rewrite), `src/pages/Workspace.tsx` (minor cleanup)
+
+### Phase 2: Improve Creative Generation UX for Different Models
+
+Refactor `buildCreativeConversation` and related handlers to support three distinct creative sub-flows:
+
+**A. Image-only generation:**
+1. AI asks: "Share a product URL, upload a reference image, or describe what you want" (chips: Paste URL | Upload image | Describe it | Use sample)
+2. If upload: show upload artifact with preview, then ask for style preference
+3. If URL/describe: product analysis, then style selection
+4. Generate images (no script/avatar step)
+5. Show results with download + "Use in campaign" options
+
+**B. Video generation (avatar-based):**
+1. Product input (URL/upload/describe)
+2. Script selection (3 options + "Write your own")
+3. Avatar selection grid
+4. Generation progress + results
+
+**C. Video generation (reference-image-based / description-based):**
+1. AI detects this variant when user says things like "create a video from this image" or "generate a motion video"
+2. Ask for reference image upload OR product URL
+3. Ask for motion style / duration preferences
+4. Skip script + avatar
+5. Generation progress + results
+
+**D. "Both" flow:** Combines A + B sequentially
+
+**Files:** `src/hooks/useWorkspace.ts` (refactor creative flow builders), `src/components/workspace/ArtifactRenderer.tsx` (add upload artifact body)
+
+### Phase 3: Add Upload Simulation + Creative Library Integration
+
+**Upload artifact:** New artifact type `media-upload` that renders:
+- Drag-and-drop zone or file picker
+- Simulated upload progress bar
+- Preview of uploaded file(s)
+- "Use this" action button
+
+**Creative Library chip:** Add a "Pick from library" option in creative flows that:
+- Shows a simulated library artifact (grid of previously "saved" creatives from sidebar mock data)
+- User clicks to select
+- Flow continues with the selected creative
+
+**Files:** `src/types/workspace.ts` (add `media-upload` type), `src/components/workspace/ArtifactRenderer.tsx` (add `MediaUploadBody`), `src/hooks/useWorkspace.ts` (add upload + library handlers)
+
+### Phase 4: Polish the End-to-End New Thread Flow
+
+Ensure a single new thread can walk through the complete lifecycle with proper conversational transitions:
+
+1. **Planning** (category, goal, budget, audience -- all conversational)
+2. **Product analysis** (URL/upload/describe)
+3. **Blueprint** (editable artifact)
+4. **Creative generation** (branching based on type: image/video/both)
+5. **Upload your own** option at creative step (with library integration)
+6. **Facebook connect** (artifact-based)
+7. **Campaign config** (artifact-based)
+8. **Publish** (confetti + feedback)
+9. **Performance monitoring** (live dashboard)
+10. **Audit** (30-day report with time toggles)
+11. **AI recommendations** (apply/defer/dismiss with impact tracking)
+12. **Automation rules** (create rules)
+13. **Loop back** to "Create another campaign" or "Generate more creatives"
+
+Key improvements:
+- Remove duplicate demo threads from sidebar (they become unnecessary since everything is accessible from homepage chips)
+- Action chips after each step should be contextual (not showing all options)
+- Transition messages should feel natural, not labeled as "Phase X"
+
+**Files:** `src/hooks/useWorkspace.ts` (refine all transition handlers), `src/data/workspaceMockData.ts` (clean up demo thread definitions)
+
+### Phase 5: Visual Polish
+
+- AI messages: render markdown properly (already using `formatMarkdown` but could be richer)
+- Artifact cards: subtle entrance animations (already present but could be smoother)
+- Chat input: add upload button functionality (currently decorative `Paperclip` icon)
+- Remove the "Run full demo" chip from homepage (replaced by individual flow chips)
+- Clean up suggestion chips in thread view to be contextual based on thread state
+
+**Files:** `src/pages/Workspace.tsx` (suggestion chips, chat input), `src/components/workspace/WorkspaceHome.tsx`
 
 ---
 
-## Implementation Order
+## Technical Details
 
-The work will be done in the exact order listed above (Phase 1 through 8), as each phase builds on the previous. This ensures you can test progressively:
+### New Artifact Type
+```text
+'media-upload' added to ArtifactType union in workspace.ts
+```
 
-1. First test: Create campaign -> Publish -> See celebration + feedback -> View performance dashboard
-2. Second test: Full flow with custom script writing and creative upload
-3. Third test: Apply recommendations -> See impact tracking
-4. Fourth test: Run audit -> See health scores and time-period views
-5. Fifth test: Multi-variant with manual variant/creative selection
-6. Sixth test: Regenerate at any step, verify config field locking
-7. Final test: Multi-campaign hub with side-by-side summary
+### Intent Detection Updates
+- Add `'upload'` intent for messages like "upload my creative", "use my own image"
+- Add `'library'` intent for "pick from library", "use existing creative"
+- Refine `'creative-video'` vs `'creative-video-motion'` differentiation
 
----
+### Homepage Chip-to-Flow Mapping
+```text
+"Plan a campaign"      -> campaign planning flow
+"Generate a video ad"  -> video creative flow (avatar-based)
+"Generate image ads"   -> image-only creative flow
+"Run account audit"    -> audit flow (asks for FB connect if not connected)
+"Check performance"    -> performance dashboard
+"Connect Facebook"     -> FB connect flow
+"Set up automation"    -> automation rule creation
+```
 
-## What Won't Change
-
-- Landing page (`/`) -- untouched
-- Old dashboard route (`/dashboard`) -- remains as-is for reference
-- Command Center route (`/command-center`) -- remains as-is
-- All existing workspace flows that currently work -- fully preserved
-- The conversational planning agent flow -- enhanced, not replaced
+### Files Changed (Summary)
+1. `src/components/workspace/WorkspaceHome.tsx` — Rewrite to chat-first layout
+2. `src/hooks/useWorkspace.ts` — Refactor creative flows, add upload/library handlers, remove demo threads, polish transitions
+3. `src/types/workspace.ts` — Add `media-upload` artifact type
+4. `src/components/workspace/ArtifactRenderer.tsx` — Add `MediaUploadBody` and `CreativeLibraryBody`
+5. `src/pages/Workspace.tsx` — Update suggestion chips, minor cleanup
+6. `src/data/workspaceMockData.ts` — Remove demo thread templates, add upload/library artifact templates
 
