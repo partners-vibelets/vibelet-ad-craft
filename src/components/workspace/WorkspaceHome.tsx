@@ -40,6 +40,7 @@ function getPersonalizedGreeting(onboardingData?: OnboardingData | null, userNam
 
 const suggestionChips = [
   { label: '🚀 Plan a campaign', message: 'Plan a campaign' },
+  { label: '📦 Multi-variant product campaign', message: 'Plan a campaign for a product with multiple variants' },
   { label: '🎬 Generate a video ad', message: 'Generate a video ad' },
   { label: '🖼️ Generate image ads', message: 'Generate image ads' },
   { label: '🔍 Run account audit', message: 'Run account audit' },
