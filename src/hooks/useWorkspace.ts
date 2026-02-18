@@ -637,15 +637,22 @@ function performanceDashboardResponse(campaignName = 'Summer Collection 2026'): 
 
 function uploadArtifactResponse(): SimResponse {
   return {
-    content: `📤 Drop your creatives below — I'll preview them and you can use them directly in your campaign.`,
+    content: `📤 Drop your creatives below — I'll preview them and you can use them directly in your campaign.\n\nOr pick from your existing Creative Library instead.`,
     artifacts: [{ type: 'media-upload' as ArtifactType, titleSuffix: 'Upload Your Creatives', dataOverrides: { uploaded: false, progress: 0 } }],
+    actionChips: [
+      { label: '📚 Pick from Creative Library instead', action: 'show-library' },
+    ],
   };
 }
 
 function creativeLibraryResponse(): SimResponse {
   return {
-    content: `📚 Here's your **Creative Library** — pick any previously saved creative to use in this campaign.`,
+    content: `📚 Here's your **Creative Library** — pick any previously saved creative to use in this campaign. These include creatives you've generated before and assets you've uploaded.`,
     artifacts: [{ type: 'creative-library' as ArtifactType, titleSuffix: 'Creative Library', dataOverrides: {} }],
+    actionChips: [
+      { label: '📤 Upload new creative instead', action: 'upload-creative' },
+      { label: '✨ Generate fresh creatives', action: 'create-flow-from-campaign' },
+    ],
   };
 }
 
@@ -1000,12 +1007,14 @@ export function useWorkspace() {
         if (mode === 'images') {
           // Image-only: skip scripts/avatar, go straight to generation
           respondWithSim(activeThreadId, {
-            content: `Product analyzed! Now I'll generate **4 image ad formats** optimized for Facebook & Instagram. No scripts or avatars needed for static images. 🖼️\n\nWould you like to pick a style first, or should I use the best match?`,
+            content: `Product analyzed! Now I'll generate **4 image ad formats** optimized for Facebook & Instagram. No scripts or avatars needed for static images. 🖼️\n\nWould you like to pick a style, use existing creatives, or upload your own?`,
             actionChips: [
               { label: '😎 Bold & Trendy', action: 'style-gen-images-bold' },
               { label: '🌿 Clean & Minimal', action: 'style-gen-images-minimal' },
               { label: '🎉 Fun & Vibrant', action: 'style-gen-images-fun' },
               { label: '✨ AI picks the best', action: 'style-gen-images-auto' },
+              { label: '📚 Pick from library', action: 'show-library' },
+              { label: '📤 Upload my own', action: 'upload-creative' },
             ],
           });
         } else if (mode === 'motion') {
@@ -1216,9 +1225,13 @@ export function useWorkspace() {
     // Approve single plan → interactive step-by-step
     if (action === 'approve-plan' || action === 'demo-approve-plan') {
       respondWithSim(activeThreadId, {
-        content: `🚀 **Plan approved!** Now let's bring it to life.\n\nFirst up — **creatives**. I'll generate images and a video ad. Let's pick a script style for the video first. 🎬`,
+        content: `🚀 **Plan approved!** Now let's bring it to life.\n\nFirst up — **creatives**. You can generate fresh assets, use existing ones from your library, or upload your own.\n\nHow would you like to source your creatives?`,
+        actionChips: [
+          { label: '✨ Generate new creatives', action: 'create-flow-from-campaign' },
+          { label: '📚 Pick from Creative Library', action: 'show-library' },
+          { label: '📤 Upload my own', action: 'upload-creative' },
+        ],
       }, 600);
-      setTimeout(() => respondWithSim(activeThreadId, showScriptsResponse, 800), 1600);
       return;
     }
 
@@ -1408,6 +1421,7 @@ export function useWorkspace() {
         actionChips: [
           { label: '📱 Use in campaign', action: 'configure-campaign' },
           { label: '📱 Connect Facebook & publish', action: 'connect-facebook' },
+          { label: '📚 Pick from Creative Library', action: 'show-library' },
           { label: '📤 Upload more', action: 'upload-creative' },
         ],
       });

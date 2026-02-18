@@ -504,7 +504,7 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
   'creative-library': {
     type: 'creative-library',
     title: 'Creative Library',
-    data: { items: [] },
+    data: {},
   },
 };
 
