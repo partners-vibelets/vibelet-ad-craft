@@ -20,7 +20,7 @@ interface ConversationStep {
 type Intent =
   | 'campaign' | 'create-flow' | 'creative-images' | 'creative-video' | 'creative-both'
   | 'creative-video-motion' | 'connect-facebook' | 'audit' | 'publish' | 'performance'
-  | 'insights' | 'rule' | 'demo' | 'product-url' | 'upload' | 'library' | 'default';
+  | 'insights' | 'rule' | 'demo' | 'product-url' | 'upload' | 'library' | 'multi-variant' | 'default';
 
 function isUrl(message: string): boolean {
   return /https?:\/\/|www\.|\.com|\.shop|\.store|\.co\b|\.io\b|\.net\b|\.org\b/i.test(message);
@@ -29,6 +29,7 @@ function isUrl(message: string): boolean {
 function detectIntent(message: string): Intent {
   const l = message.toLowerCase();
   if (l.includes('full demo') || l.includes('run demo') || l.includes('end to end') || l.includes('end-to-end') || l.includes('show me everything')) return 'demo';
+  if ((l.includes('multi') && l.includes('variant')) || (l.includes('multiple') && (l.includes('variant') || l.includes('flavor') || l.includes('size') || l.includes('color'))) || (l.includes('variant') && (l.includes('campaign') || l.includes('product')))) return 'multi-variant';
   if (isUrl(message)) return 'product-url';
   if (l.includes('upload') && (l.includes('creative') || l.includes('image') || l.includes('video') || l.includes('own'))) return 'upload';
   if ((l.includes('library') || l.includes('existing') || l.includes('saved')) && (l.includes('creative') || l.includes('pick'))) return 'library';
@@ -548,6 +549,123 @@ function buildDemoFlow(): ConversationStep[] {
   }];
 }
 
+// ========== MULTI-VARIANT FLOW ==========
+
+function buildMultiVariantFlow(): ConversationStep[] {
+  return [{
+    delay: 1200,
+    response: {
+      content: `📦 **Multi-Variant Campaign Flow**\n\nGreat choice! When a product has multiple variants (flavors, sizes, colors, etc.), I'll intelligently detect them and help you build an optimized campaign structure using **Meta's best practices**.\n\nLet's start — share a product URL with variants, or I'll use a sample product with 5 flavors.`,
+      actionChips: [
+        { label: '🔗 Paste a product URL', action: 'prompt-url-multivariant' },
+        { label: '⚡ Use sample (Whey Protein · 5 flavors)', action: 'use-sample-multivariant' },
+      ],
+    },
+  }];
+}
+
+function multiVariantStrategyQuestion(selectedCount: number): SimResponse {
+  return {
+    content: `Perfect — **${selectedCount} variants selected**! 🎯\n\nNow, the most important decision: **how should we structure the campaign?**\n\nMeta offers three proven approaches for multi-variant products. Each has different strengths:\n\n**Option A — Single Campaign with CBO** *(Recommended)*\n1 Campaign → ${selectedCount} Ad Sets (one per variant) → 3 Ads each\n• Meta's **Campaign Budget Optimization (CBO)** auto-shifts budget to top performers\n• Best for: testing which variant sells best with minimal manual work\n• Total ads: **${selectedCount * 3}**\n\n**Option B — Separate Campaigns per Variant**\n${selectedCount} Campaigns → 1 Ad Set each → 3 Ads each\n• Full budget control per variant — no budget sharing\n• Best for: variants with very different audiences or price points\n• Total ads: **${selectedCount * 3}**\n\n**Option C — A/B Test (Advantage+ Shopping)**\nMeta's Advantage+ auto-tests all variants in a single campaign\n• Maximum automation — Meta picks winners automatically\n• Best for: fast testing with mature pixel data\n• Total ads: **${selectedCount * 2}**`,
+    actionChips: [
+      { label: '🏆 Option A — CBO (Recommended)', action: 'variant-strategy-cbo' },
+      { label: '🎯 Option B — Separate campaigns', action: 'variant-strategy-separate' },
+      { label: '⚡ Option C — Advantage+ A/B Test', action: 'variant-strategy-ab' },
+      { label: '❓ Help me decide', action: 'variant-strategy-help' },
+    ],
+  };
+}
+
+function variantStrategyHelpResponse(): SimResponse {
+  return {
+    content: `Here's a quick decision guide based on **Meta's best practices**:\n\n| | **CBO** | **Separate** | **Advantage+** |\n|---|---|---|---|\n| **Budget control** | Auto-optimized | Full control | Auto |\n| **Best for** | Testing winners | Different audiences | Fast scaling |\n| **Setup effort** | Low | Medium | Lowest |\n| **Data needed** | Any | Any | 50+ conversions |\n| **When to use** | Starting out | Premium vs budget lines | Scaling proven products |\n\n**My recommendation:** If you're launching for the first time, go with **CBO**. Meta's algorithm is excellent at finding which variant resonates — and you save time.\n\nIf your variants target *very different* audiences (e.g., kids vs adults), go **Separate**.`,
+    actionChips: [
+      { label: '🏆 Go with CBO', action: 'variant-strategy-cbo' },
+      { label: '🎯 Go Separate', action: 'variant-strategy-separate' },
+      { label: '⚡ Try Advantage+', action: 'variant-strategy-ab' },
+    ],
+  };
+}
+
+function variantCreativeApproachQuestion(strategy: string, variantCount: number): SimResponse {
+  const strategyLabel = strategy === 'cbo' ? 'CBO (Campaign Budget Optimization)' : strategy === 'separate' ? 'Separate Campaigns' : 'Advantage+ A/B Test';
+  return {
+    content: `✅ **Strategy locked: ${strategyLabel}**\n\nNext — **how should I handle creatives?** Each variant can have its own unique visuals, or we can use a shared template:\n\n**🎨 Unique creatives per variant**\nEach variant gets custom images & video tailored to its specific look (e.g., chocolate-themed visuals for Chocolate, tropical for Mango)\n• Best impact but uses more generation credits\n• **${variantCount * 3} total creatives**\n\n**📋 Shared template + variant swaps**\nOne master template with variant-specific product shots swapped in\n• Faster, consistent brand look\n• **${variantCount + 2} total creatives**\n\n**🔀 Mix — hero variants get unique, rest get template**\nTop 2-3 sellers get unique creatives, others use template\n• Best balance of quality and efficiency`,
+    actionChips: [
+      { label: '🎨 Unique per variant', action: 'variant-creative-unique' },
+      { label: '📋 Shared template', action: 'variant-creative-template' },
+      { label: '🔀 Mix (recommended)', action: 'variant-creative-mix' },
+    ],
+  };
+}
+
+function multiVariantExecutionPlan(strategy: string, creativeApproach: string, variantCount: number): SimResponse {
+  const strategyLabel = strategy === 'cbo' ? 'CBO' : strategy === 'separate' ? 'Separate Campaigns' : 'Advantage+';
+  const creativeLabel = creativeApproach === 'unique' ? 'Unique per variant' : creativeApproach === 'template' ? 'Shared template' : 'Mix (hero + template)';
+  const totalCreatives = creativeApproach === 'unique' ? variantCount * 3 : creativeApproach === 'template' ? variantCount + 2 : (Math.min(3, variantCount) * 3) + ((variantCount - Math.min(3, variantCount)) * 1);
+  const totalAds = strategy === 'ab' ? variantCount * 2 : variantCount * 3;
+  const campaignCount = strategy === 'separate' ? variantCount : 1;
+  const adSetCount = strategy === 'separate' ? variantCount : strategy === 'ab' ? 1 : variantCount;
+  const budgetDaily = 80;
+  const perVariantBudget = Math.round(budgetDaily / variantCount);
+
+  const variantNames = ['Chocolate', 'Vanilla', 'Cookies & Cream', 'Strawberry', 'Mango'].slice(0, variantCount);
+  
+  const adSetBreakdown = variantNames.map((name, i) => ({
+    name: `${name} ${strategy === 'separate' ? 'Campaign' : 'Ad Set'}`,
+    variant: name,
+    ads: strategy === 'ab' ? 2 : 3,
+    minBudget: strategy === 'cbo' ? 'Auto (CBO)' : `$${perVariantBudget}`,
+    creatives: creativeApproach === 'unique'
+      ? ['Hero shot', 'Lifestyle', 'AI video']
+      : creativeApproach === 'template'
+      ? ['Template swap']
+      : i < 3 ? ['Hero shot', 'Lifestyle', 'AI video'] : ['Template swap'],
+    isHero: creativeApproach === 'mix' && i < 3,
+  }));
+
+  return {
+    content: `Here's your complete **multi-variant execution plan** — structured per Meta's ${strategyLabel} best practices:\n\n📋 **Execution Plan:**\n1. ✅ Product analyzed — Whey Protein (${variantCount} variants)\n2. 🏗️ Structure: **${campaignCount} Campaign${campaignCount > 1 ? 's' : ''} → ${adSetCount} Ad Set${adSetCount > 1 ? 's' : ''} → ${totalAds} Ads**\n3. 🎯 Strategy: **${strategyLabel}** · Budget: **$${budgetDaily}/day**\n4. 🎨 Creative approach: **${creativeLabel}** · ${totalCreatives} creatives to generate\n5. 📱 Publish via **Primary Ad Account** (Pixel: px_987654)\n6. 📊 Monitor & auto-optimize${strategy === 'cbo' ? ' with CBO budget shifting' : ''}\n\n${strategy === 'cbo' ? '**💡 CBO will automatically shift budget** toward top-performing variants — no manual intervention needed.' : strategy === 'ab' ? '**💡 Advantage+ will run automated A/B tests** across all variants and scale winners.' : '**💡 Each variant campaign runs independently** — you have full budget control per product line.'}\n\n*Everything below is editable — click any field to change it.*`,
+    artifacts: [{
+      type: 'campaign-blueprint' as ArtifactType,
+      titleSuffix: 'Multi-Variant Execution Plan',
+      dataOverrides: {
+        campaignName: `Whey Protein — ${strategyLabel} 2026`,
+        objective: 'Sales',
+        platform: 'Facebook & Instagram',
+        budget: { daily: budgetDaily, total: budgetDaily * 30 },
+        budgetStrategy: strategy === 'cbo' ? 'CBO (Campaign Budget Optimization)' : strategy === 'ab' ? 'Advantage+ Shopping' : 'Per-Campaign Budgets',
+        targeting: { ageRange: '18-45', interests: ['Fitness', 'Gym', 'Protein Supplements', 'Health & Wellness'], locations: ['US', 'UK', 'CA', 'AU'] },
+        schedule: { startDate: '2026-03-01', endDate: '2026-05-31' },
+        adSets: adSetCount,
+        campaignStructure: {
+          strategy: strategyLabel,
+          creativeApproach: creativeLabel,
+          campaigns: campaignCount,
+          adSets: adSetCount,
+          totalAds,
+          totalCreatives,
+        },
+        adSetBreakdown,
+        primaryText: 'Fuel your gains with premium whey protein 💪 25g protein per serving.',
+        cta: 'Shop Now',
+        facebookAccount: { name: 'Primary Ad Account', pixelId: 'px_987654', pageName: 'FitFuel Nutrition' },
+        suggestedCreatives: creativeApproach === 'unique'
+          ? ['Per-variant hero shots with flavor-matched backgrounds', 'Lifestyle gym shots per variant', 'Short-form AI avatar video per variant', 'Carousel — all variants side by side']
+          : creativeApproach === 'template'
+          ? ['Master template with product swap zones', 'Shared lifestyle background', 'Product-only shots per variant']
+          : ['Custom hero shots for top 3 variants', 'Template swaps for remaining', 'Shared carousel for all variants', 'AI video for hero variants'],
+      },
+    }],
+    actionChips: [
+      { label: '✅ Approve — start execution', action: 'approve-plan-multi' },
+      { label: '✏️ Change strategy', action: 'change-variant-strategy' },
+      { label: '💰 Adjust budget', action: 'adjust-budget' },
+      { label: '🔄 Re-select variants', action: 'reselect-variants' },
+    ],
+  };
+}
+
 function automationRuleResponse(): SimResponse {
   return {
     content: `⚡ I've set up a smart automation rule based on your campaign data. Toggle it on when you're ready — it'll protect your spend automatically.`,
@@ -748,6 +866,8 @@ export function useWorkspace() {
   const isDemoRef = useRef(false);
   // Track creative flow mode per thread
   const creativeFlowModeRef = useRef<'images' | 'video' | 'motion' | 'both' | null>(null);
+  const variantStrategyRef = useRef<string>('cbo');
+  const variantSelectedCountRef = useRef<number>(3);
 
   const activeThread = activeThreadId ? threads[activeThreadId] : null;
 
@@ -830,6 +950,7 @@ export function useWorkspace() {
     const intent = detectIntent(message);
     const title = intent === 'demo' ? 'Full Demo — Campaign Lifecycle'
       : intent === 'campaign' ? 'New Campaign'
+      : intent === 'multi-variant' ? 'Multi-Variant Campaign'
       : intent === 'creative-images' ? 'Image Generation'
       : intent === 'creative-video' ? 'Video Generation'
       : intent === 'creative-video-motion' ? 'Motion Video'
@@ -857,6 +978,7 @@ export function useWorkspace() {
       appendMessage(id, userMsg);
 
       if (intent === 'demo') { isDemoRef.current = true; setIsTyping(true); runConversationSteps(id, buildDemoFlow()); }
+      else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(id, buildMultiVariantFlow()); }
       else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(id, buildCampaignConversation(message)); }
       else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(id, buildImageOnlyFlow()); }
       else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(id, buildVideoAvatarFlow()); }
@@ -942,7 +1064,8 @@ export function useWorkspace() {
         { delay: 800, response: { content: `🔍 Analyzing your product... pulling details now.` } },
         { delay: 3000, response: styleToProductAnalysis('bold') },
       ]);
-    } else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
+    } else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(activeThreadId, buildMultiVariantFlow()); }
+    else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
     else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(activeThreadId, buildImageOnlyFlow()); }
     else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoAvatarFlow()); }
     else if (intent === 'creative-video-motion') { creativeFlowModeRef.current = 'motion'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoMotionFlow()); }
@@ -985,8 +1108,19 @@ export function useWorkspace() {
       setTimeout(() => respondWithSim(activeThreadId, motionResultResponse(), 600), 9000);
       return;
     }
-    if (action === 'prompt-url' || action === 'prompt-url-motion') {
+    if (action === 'prompt-url' || action === 'prompt-url-motion' || action === 'prompt-url-multivariant') {
       respondWithSim(activeThreadId, { content: "Sure! Paste your product URL below and I'll analyze it automatically. 🔗" });
+      return;
+    }
+    if (action === 'use-sample-multivariant') {
+      setIsTyping(true);
+      runConversationSteps(activeThreadId, [
+        { delay: 800, response: { content: `🔍 Analyzing product page... detecting variants...` } },
+        { delay: 3000, response: {
+          ...styleToProductAnalysis('bold', 'whey'),
+          content: `I've analyzed your product and detected **5 product variants** (flavors). This is a multi-variant product — I'll help you structure the campaign optimally.\n\nTake a look at the analysis:`,
+        } },
+      ]);
       return;
     }
     if (action === 'prompt-describe' || action === 'prompt-describe-motion') {
@@ -1039,6 +1173,56 @@ export function useWorkspace() {
       respondWithSim(activeThreadId, {
         content: `I found **5 product variants**. Select which ones you'd like to advertise — I recommend the top sellers. 📦`,
         artifacts: [{ type: 'variant-selector' as ArtifactType, titleSuffix: 'Select Variants', dataOverrides: {
+          variants: [
+            { id: 'v-choco', label: 'Chocolate', value: '$44.99', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Chocolate', size: '2lb' }, recReason: 'Best seller — 38% of revenue' },
+            { id: 'v-vanilla', label: 'Vanilla', value: '$44.99', image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Vanilla', size: '2lb' }, recReason: '2nd highest margin' },
+            { id: 'v-straw', label: 'Strawberry', value: '$44.99', inStock: true, attrs: { flavor: 'Strawberry', size: '2lb' } },
+            { id: 'v-cookies', label: 'Cookies & Cream', value: '$49.99', image: 'https://images.unsplash.com/photo-1532384748853-8f54a8f476e2?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Cookies & Cream', size: '2lb' }, recReason: 'Trending — 120% growth' },
+            { id: 'v-mango', label: 'Mango', value: '$44.99', inStock: false, attrs: { flavor: 'Mango', size: '2lb' } },
+          ],
+          selectedIds: [],
+          recommendedIds: ['v-choco', 'v-vanilla', 'v-cookies'],
+          attributes: ['flavor', 'size'],
+        } }],
+      });
+      return;
+    }
+
+    // ===== MULTI-VARIANT STRATEGY FLOW =====
+    if (action === 'variant-strategy-cbo' || action === 'variant-strategy-separate' || action === 'variant-strategy-ab') {
+      const strategy = action.replace('variant-strategy-', '');
+      // Store strategy in ref for later use
+      variantStrategyRef.current = strategy;
+      const thread = threads[activeThreadId];
+      const variantArtifact = thread?.artifacts.find(a => a.type === 'variant-selector');
+      const selectedCount = variantArtifact?.data?.selectedIds?.length || variantSelectedCountRef.current || 3;
+      respondWithSim(activeThreadId, variantCreativeApproachQuestion(strategy, selectedCount));
+      return;
+    }
+    if (action === 'variant-strategy-help') {
+      respondWithSim(activeThreadId, variantStrategyHelpResponse());
+      return;
+    }
+    if (action === 'variant-creative-unique' || action === 'variant-creative-template' || action === 'variant-creative-mix') {
+      const creativeApproach = action.replace('variant-creative-', '');
+      const strategy = variantStrategyRef.current || 'cbo';
+      const thread = threads[activeThreadId];
+      const variantArtifact = thread?.artifacts.find(a => a.type === 'variant-selector');
+      const variantCount = variantArtifact?.data?.selectedIds?.length || variantSelectedCountRef.current || 3;
+      respondWithSim(activeThreadId, multiVariantExecutionPlan(strategy, creativeApproach, variantCount));
+      return;
+    }
+    if (action === 'change-variant-strategy') {
+      const thread = threads[activeThreadId];
+      const variantArtifact = thread?.artifacts.find(a => a.type === 'variant-selector');
+      const selectedCount = variantArtifact?.data?.selectedIds?.length || variantSelectedCountRef.current || 3;
+      respondWithSim(activeThreadId, multiVariantStrategyQuestion(selectedCount));
+      return;
+    }
+    if (action === 'reselect-variants') {
+      respondWithSim(activeThreadId, {
+        content: `No problem — let me show you the variants again. Select the ones you want to advertise:`,
+        artifacts: [{ type: 'variant-selector' as ArtifactType, titleSuffix: 'Re-select Variants', dataOverrides: {
           variants: [
             { id: 'v-choco', label: 'Chocolate', value: '$44.99', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Chocolate', size: '2lb' }, recReason: 'Best seller — 38% of revenue' },
             { id: 'v-vanilla', label: 'Vanilla', value: '$44.99', image: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300&h=300&fit=crop', inStock: true, attrs: { flavor: 'Vanilla', size: '2lb' }, recReason: '2nd highest margin' },
@@ -1400,7 +1584,15 @@ export function useWorkspace() {
     }
     if (action === 'variants-confirmed' && payload?.selectedIds) {
       const count = payload.selectedIds.length;
-      respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, true, count));
+      variantSelectedCountRef.current = count;
+      // Check if this is a multi-variant thread — route to strategy question
+      const thread = threads[activeThreadId];
+      const isMultiVariantThread = thread?.title?.includes('Multi-Variant');
+      if (isMultiVariantThread) {
+        respondWithSim(activeThreadId, multiVariantStrategyQuestion(count));
+      } else {
+        respondWithSim(activeThreadId, planningQuestionsResponse(isDemoRef.current, true, count));
+      }
       return;
     }
     if (action === 'assignment-confirmed' && payload?.assignments) {
