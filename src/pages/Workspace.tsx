@@ -350,12 +350,12 @@ function generateShifts(): AwayShift[] {
 }
 
 const suggestionChips = [
-  '🎬 Run full demo',
-  '📊 Plan a new campaign',
-  '🎨 Create ad creative',
-  '📈 Check performance',
-  '🔍 Run a 30-day audit',
-  '⚡ Set up automation rule',
+  '🚀 Plan a campaign',
+  '🎬 Generate a video ad',
+  '🖼️ Generate image ads',
+  '📊 Check performance',
+  '🔍 Run account audit',
+  '🤖 Set up automation',
 ];
 
 // --- Action chips ---

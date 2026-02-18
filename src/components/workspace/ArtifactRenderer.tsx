@@ -51,6 +51,8 @@ const typeLabels: Record<ArtifactType, string> = {
   'audit-report': 'Audit',
   'variant-selector': 'Variants',
   'creative-assignment': 'Assignment',
+  'media-upload': 'Upload',
+  'creative-library': 'Library',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -79,6 +81,8 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'audit-report': <Shield className="w-3.5 h-3.5" />,
   'variant-selector': <Package className="w-3.5 h-3.5" />,
   'creative-assignment': <Layers className="w-3.5 h-3.5" />,
+  'media-upload': <Upload className="w-3.5 h-3.5" />,
+  'creative-library': <ImageIcon className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -158,6 +162,8 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'audit-report': return <AuditReportBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'variant-selector': return <VariantSelectorBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'creative-assignment': return <CreativeAssignmentBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'media-upload': return <MediaUploadBody artifact={artifact} onArtifactAction={onArtifactAction} />;
+    case 'creative-library': return <CreativeLibraryBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -3014,6 +3020,145 @@ const CreativeAssignmentBody = ({ artifact, onUpdateData, onArtifactAction }: {
             <ArrowRight className="w-3.5 h-3.5" /> Continue
           </Button>
         </div>
+      )}
+    </div>
+  );
+};
+
+// ========== MEDIA UPLOAD BODY ==========
+const MediaUploadBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState(artifact.data.uploaded || false);
+  const [progress, setProgress] = useState(artifact.data.progress || 0);
+
+  const simulateUpload = useCallback(() => {
+    setUploading(true);
+    setProgress(0);
+    const steps = [15, 35, 55, 75, 90, 100];
+    steps.forEach((p, i) => {
+      setTimeout(() => {
+        setProgress(p);
+        if (p === 100) {
+          setUploading(false);
+          setUploaded(true);
+        }
+      }, (i + 1) * 400);
+    });
+  }, []);
+
+  const mockFiles = artifact.data.files || [
+    { name: 'hero-banner.jpg', type: 'image', size: '2.4 MB', dimensions: '1200×628' },
+    { name: 'story-ad.mp4', type: 'video', size: '8.1 MB', dimensions: '1080×1920', duration: '15s' },
+  ];
+
+  if (uploaded) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-xs text-secondary">
+          <CheckCircle2 className="w-4 h-4" />
+          <span className="font-medium">Upload complete — {mockFiles.length} files ready</span>
+        </div>
+        <div className="space-y-1.5">
+          {mockFiles.map((f: any, i: number) => (
+            <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/20 border border-border/20">
+              {f.type === 'video' ? <Video className="w-3.5 h-3.5 text-primary/50" /> : <ImageIcon className="w-3.5 h-3.5 text-primary/50" />}
+              <span className="text-sm text-foreground flex-1">{f.name}</span>
+              <span className="text-[10px] text-muted-foreground">{f.dimensions} · {f.size}</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" className="gap-1.5" onClick={() => onArtifactAction?.(artifact.id, 'upload-use', { files: mockFiles })}>
+            <ArrowRight className="w-3.5 h-3.5" /> Use these
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setUploaded(false); setProgress(0); }}>
+            Upload more
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {uploading ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+            <span>Uploading {mockFiles.length} files...</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+          <p className="text-[10px] text-muted-foreground text-right">{progress}%</p>
+        </div>
+      ) : (
+        <button
+          onClick={simulateUpload}
+          className="w-full border-2 border-dashed border-border/60 rounded-xl py-8 flex flex-col items-center gap-2 hover:border-primary/40 hover:bg-muted/20 transition-all cursor-pointer"
+        >
+          <Upload className="w-6 h-6 text-muted-foreground/50" />
+          <span className="text-sm text-muted-foreground">Drop files here or click to browse</span>
+          <span className="text-[10px] text-muted-foreground/50">Images (JPG, PNG, WebP) · Videos (MP4, MOV) · Max 100MB</span>
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ========== CREATIVE LIBRARY BODY ==========
+const CreativeLibraryBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  
+  const libraryItems = artifact.data.items || [
+    { id: 'lib-1', type: 'image', label: 'Summer Hero Banner', url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&h=200&fit=crop', dimensions: '1200×628', format: 'jpg' },
+    { id: 'lib-2', type: 'image', label: 'Product Flat Lay', url: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=300&h=300&fit=crop', dimensions: '1080×1080', format: 'jpg' },
+    { id: 'lib-3', type: 'video', label: 'Avatar Video — Sophia', url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=300&h=200&fit=crop', dimensions: '1080×1920', format: 'mp4', duration: '30s' },
+    { id: 'lib-4', type: 'image', label: 'Instagram Story', url: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=200&h=350&fit=crop', dimensions: '1080×1920', format: 'jpg' },
+    { id: 'lib-5', type: 'image', label: 'Carousel Card 1', url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop', dimensions: '1080×1080', format: 'jpg' },
+    { id: 'lib-6', type: 'image', label: 'Spring Sale Banner', url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=300&h=200&fit=crop', dimensions: '1200×628', format: 'jpg' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">{libraryItems.length} saved creatives</p>
+      <div className="grid grid-cols-3 gap-2">
+        {libraryItems.map((item: any) => (
+          <button
+            key={item.id}
+            onClick={() => setSelectedId(item.id === selectedId ? null : item.id)}
+            className={cn(
+              "rounded-lg overflow-hidden border-2 transition-all relative group",
+              item.id === selectedId
+                ? "border-primary shadow-md"
+                : "border-border/30 hover:border-border"
+            )}
+          >
+            <div className="aspect-square bg-muted/30 relative">
+              <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
+              {item.type === 'video' && (
+                <div className="absolute bottom-1 right-1 bg-background/80 rounded px-1 py-0.5 text-[9px] text-foreground flex items-center gap-0.5">
+                  <Play className="w-2.5 h-2.5" /> {item.duration}
+                </div>
+              )}
+              {item.id === selectedId && (
+                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-primary" />
+                </div>
+              )}
+            </div>
+            <div className="px-2 py-1.5">
+              <p className="text-[10px] text-foreground truncate font-medium">{item.label}</p>
+              <p className="text-[9px] text-muted-foreground">{item.dimensions}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      {selectedId && (
+        <Button size="sm" className="w-full gap-1.5" onClick={() => {
+          const item = libraryItems.find((i: any) => i.id === selectedId);
+          onArtifactAction?.(artifact.id, 'library-select', { item });
+        }}>
+          <ArrowRight className="w-3.5 h-3.5" /> Use selected creative
+        </Button>
       )}
     </div>
   );
