@@ -66,7 +66,9 @@ export type ArtifactType =
   | 'performance-dashboard'
   | 'audit-report'
   | 'variant-selector'
-  | 'creative-assignment';
+  | 'creative-assignment'
+  | 'media-upload'
+  | 'creative-library';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 

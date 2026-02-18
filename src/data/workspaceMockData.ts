@@ -496,6 +496,16 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
     title: 'Creative Assignment',
     data: { variants: [], creatives: [], assignments: {} },
   },
+  'media-upload': {
+    type: 'media-upload',
+    title: 'Upload Creatives',
+    data: { uploaded: false, progress: 0, files: [] },
+  },
+  'creative-library': {
+    type: 'creative-library',
+    title: 'Creative Library',
+    data: { items: [] },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [
