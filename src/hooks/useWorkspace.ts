@@ -1139,6 +1139,7 @@ export function useWorkspace() {
     const wasAskingForProduct = lastContent.includes('product url') || lastContent.includes('paste a url') || lastContent.includes('share a url') || lastContent.includes('describe what you') || lastContent.includes('product details') || lastChips.some(a => a === 'prompt-url' || a === 'use-sample-product');
     const wasAskingForGoal = lastChips.some(a => a.startsWith('planning-goal-'));
     const wasAskingForBudget = lastContent.includes('what budget');
+    const wasAskingForPlan = lastChips.some(a => a.startsWith('plan-') || a.startsWith('demo-plan-')) || lastContent.includes('what\'s the main goal') || lastContent.includes('how much are you comfortable spending');
     const wasAskingForMotionStyle = lastContent.includes('motion style') || lastContent.includes('describe the video') || lastContent.includes('describe the motion');
     const isStrategistThread = thread?.title === 'Marketing Strategy';
     const wasAskingForStrategyInput = lastContent.includes('tell me about your business') || lastContent.includes('what are you selling') || lastChips.some(a => a === 'strategist-describe');
@@ -1163,15 +1164,20 @@ export function useWorkspace() {
       return;
     }
 
-    // Natural language -> planning flow
-    if (wasAskingForGoal || wasAskingForBudget) {
+    // Natural language -> planning flow (answering planning questions with free text)
+    if (wasAskingForPlan || wasAskingForGoal || wasAskingForBudget) {
       const l = content.toLowerCase();
       let objective = 'Sales';
       let budget = 60;
       if (l.includes('aware') || l.includes('brand')) objective = 'Awareness';
       else if (l.includes('traffic') || l.includes('click')) objective = 'Traffic';
-      if (l.includes('low') || l.includes('small') || l.includes('minimal')) budget = 25;
-      else if (l.includes('high') || l.includes('big') || l.includes('100') || l.includes('150')) budget = 120;
+      // Extract numeric budget from message (e.g. "2000 INR", "$50", "100/day")
+      const budgetMatch = l.match(/(\d[\d,]*)\s*(?:inr|usd|\$|rs|rupee|per\s*day|\/\s*day|a\s*day|daily)?/);
+      if (budgetMatch) {
+        const parsed = parseInt(budgetMatch[1].replace(/,/g, ''), 10);
+        if (!isNaN(parsed) && parsed > 0) budget = parsed;
+      } else if (l.includes('low') || l.includes('small') || l.includes('minimal')) budget = 25;
+      else if (l.includes('high') || l.includes('big')) budget = 120;
       respondWithSim(activeThreadId, executionPlanResponse(objective, budget, isDemoRef.current));
       return;
     }
