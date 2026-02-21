@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
+import { supabase } from '@/integrations/supabase/client';
 import { getThreadWithData, artifactTemplates, mockThreads as baseMockThreads } from '@/data/workspaceMockData';
 import { AVATARS } from '@/data/avatars';
 import { mockReasons, mockActions, mockWasteItems, mockLiveAlerts, mockHealthMetrics, mockQuickWins } from '@/components/command-center/mockData';
@@ -791,7 +792,72 @@ function buildStrategistFlow(): ConversationStep[] {
   }];
 }
 
-function strategistPlaybookResponse(productName: string, budget: number, audience: string): SimResponse {
+async function callStrategistAI(params: { productName?: string; budget?: number; audience?: string; userMessage?: string }): Promise<any> {
+  const { data, error } = await supabase.functions.invoke('strategist', {
+    body: params,
+  });
+  if (error) throw error;
+  return data;
+}
+
+function aiDataToPlaybookResponse(aiData: any, productName: string): SimResponse {
+  const confidence = aiData.confidence ?? 0.85;
+  const hasQuestions = aiData.questions && Array.isArray(aiData.questions);
+  
+  if (hasQuestions) {
+    return {
+      content: `🤔 I need a bit more info to build the best strategy:\n\n${aiData.questions.map((q: string, i: number) => `**${i + 1}.** ${q}`).join('\n')}\n\n*Type your answers or pick a quick option.*`,
+      actionChips: [
+        { label: '⚡ Use sample product ($3K/mo)', action: 'strategist-sample' },
+        { label: '📝 I\'ll describe my business', action: 'strategist-describe' },
+      ],
+    };
+  }
+
+  // Transform AI action plan to match UI format
+  const actionPlan = aiData.actionPlan ? [
+    {
+      label: 'Week 1 — Launch & Learn',
+      tasks: aiData.actionPlan.filter((_: any, i: number) => i < Math.ceil(aiData.actionPlan.length / 2)).map((t: any) => ({
+        day: t.day, title: t.task, description: `Priority: ${t.priority}. Owner: ${t.owner || 'AI'}`, priority: t.priority,
+      })),
+    },
+    {
+      label: 'Week 2 — Optimize & Scale',
+      tasks: aiData.actionPlan.filter((_: any, i: number) => i >= Math.ceil(aiData.actionPlan.length / 2)).map((t: any) => ({
+        day: t.day, title: t.task, description: `Priority: ${t.priority}. Owner: ${t.owner || 'AI'}`, priority: t.priority,
+      })),
+    },
+  ] : [];
+
+  return {
+    content: `📋 **Your complete marketing playbook is ready.** I've analyzed ${productName}, structured a multi-channel strategy, and prepared everything for execution.\n\n**Confidence: ${confidence}** — AI-generated based on product-market fit signals, budget allocation, and platform benchmarks.\n\nReview each section below. Nothing will publish until you say \`PUBLISH_NOW\`.`,
+    artifacts: [{
+      type: 'strategy-playbook' as ArtifactType,
+      titleSuffix: `${productName} — Marketing Playbook`,
+      dataOverrides: {
+        confidence,
+        executiveSummary: aiData.executiveSummary || `Strategy for ${productName}`,
+        complianceFlags: aiData.complianceFlags || [],
+        channelPlaybook: aiData.channelPlaybook || [],
+        campaignSpec: aiData.campaignSpec || {},
+        creativeBriefs: aiData.creativeBriefs || [],
+        tracking: aiData.tracking || { events: [], utmTemplate: '' },
+        actionPlan,
+        experimentLog: aiData.experimentLog || [],
+      },
+    }],
+    actionChips: [
+      { label: '✅ Approve — start execution', action: 'approve-strategy' },
+      { label: '✏️ Adjust channels or budget', action: 'adjust-strategy' },
+      { label: '📊 Show me the data behind this', action: 'strategy-rationale' },
+      { label: '🚀 PUBLISH_NOW', action: 'publish-strategy' },
+    ],
+  };
+}
+
+// Keep the old mock function as fallback
+function strategistPlaybookResponseFallback(productName: string, budget: number, audience: string): SimResponse {
   const fbAllocation = Math.round(budget * 0.45);
   const igAllocation = Math.round(budget * 0.30);
   const googleAllocation = Math.round(budget * 0.15);
@@ -804,106 +870,19 @@ function strategistPlaybookResponse(productName: string, budget: number, audienc
       titleSuffix: `${productName} — Marketing Playbook`,
       dataOverrides: {
         confidence: 0.87,
-        executiveSummary: `${productName} is well-positioned for a multi-channel paid acquisition strategy. At $${budget}/mo, the recommended split is 45% Facebook, 30% Instagram, 15% Google Search, 10% retargeting. Primary objective: drive purchases with a target ROAS of 3.0x within 30 days. The product's visual appeal and clear value prop make it ideal for short-form video + static image ads.`,
+        executiveSummary: `${productName} is well-positioned for a multi-channel paid acquisition strategy. At $${budget}/mo, the recommended split is 45% Facebook, 30% Instagram, 15% Google Search, 10% retargeting.`,
         complianceFlags: [],
         channelPlaybook: [
-          {
-            icon: '📘', channel: 'Facebook Ads', budgetAllocation: `$${fbAllocation}/mo`,
-            objective: 'Conversions — Purchase',
-            strategy: `Advantage+ Shopping campaign with broad targeting. CBO with 3 ad sets: Prospecting (interest-based), Lookalike (1-3%), and Broad (open targeting). Each ad set gets 3 creatives: hero image, lifestyle shot, and 30s AI video.`,
-            confidence: 0.89, reason: 'Strong historical performance for this product category. Advantage+ automates audience discovery.',
-          },
-          {
-            icon: '📸', channel: 'Instagram Ads', budgetAllocation: `$${igAllocation}/mo`,
-            objective: 'Conversions — Purchase',
-            strategy: `Reels-first strategy with Story placements. Short-form video (15-30s) with trending audio hooks. Carousel ads for product variants. Feed posts for social proof.`,
-            confidence: 0.85, reason: 'High engagement rates for visual products. Reels CPM 20-30% lower than Feed.',
-          },
-          {
-            icon: '🔍', channel: 'Google Search', budgetAllocation: `$${googleAllocation}/mo`,
-            objective: 'Conversions — Purchase',
-            strategy: `Brand + high-intent keyword campaigns. Exact match on "[product] buy" and "[category] best". Responsive search ads with benefit-driven headlines.`,
-            confidence: 0.78, reason: 'Captures bottom-funnel demand. Lower volume but higher intent than social.',
-          },
-          {
-            icon: '🎯', channel: 'Retargeting', budgetAllocation: `$${retargetAllocation}/mo`,
-            objective: 'Conversions — Purchase',
-            strategy: `Dynamic product ads for cart abandoners (0-7 days). Testimonial/UGC creatives for site visitors (7-30 days). Sequential messaging: benefit → social proof → urgency.`,
-            confidence: 0.92, reason: 'Highest ROAS channel historically. 5-8x return on retargeting spend typical.',
-          },
+          { icon: '📘', channel: 'Facebook Ads', budgetAllocation: `$${fbAllocation}/mo`, objective: 'Conversions — Purchase', strategy: 'Advantage+ Shopping campaign with broad targeting.', confidence: 0.89, reason: 'Strong historical performance.' },
+          { icon: '📸', channel: 'Instagram Ads', budgetAllocation: `$${igAllocation}/mo`, objective: 'Conversions — Purchase', strategy: 'Reels-first strategy with Story placements.', confidence: 0.85, reason: 'High engagement for visual products.' },
+          { icon: '🔍', channel: 'Google Search', budgetAllocation: `$${googleAllocation}/mo`, objective: 'Conversions — Purchase', strategy: 'Brand + high-intent keyword campaigns.', confidence: 0.78, reason: 'Captures bottom-funnel demand.' },
+          { icon: '🎯', channel: 'Retargeting', budgetAllocation: `$${retargetAllocation}/mo`, objective: 'Conversions — Purchase', strategy: 'Dynamic product ads for cart abandoners.', confidence: 0.92, reason: 'Highest ROAS channel historically.' },
         ],
-        campaignSpec: {
-          campaign_name: `${productName} — Q1 2026`,
-          objective: 'CONVERSIONS',
-          total_budget: budget,
-          daily_budget: Math.round(budget / 30),
-          duration: '30 days',
-          platforms: ['facebook', 'instagram', 'google_search'],
-          target_audience: audience,
-          ad_sets: [
-            { name: 'Prospecting — Interest', platform: 'facebook', budget_pct: 20, targeting: 'interest-based' },
-            { name: 'Prospecting — Lookalike', platform: 'facebook', budget_pct: 15, targeting: 'lookalike 1-3%' },
-            { name: 'Prospecting — Broad', platform: 'facebook', budget_pct: 10, targeting: 'broad' },
-            { name: 'Instagram — Reels', platform: 'instagram', budget_pct: 20, targeting: 'interest + broad' },
-            { name: 'Instagram — Stories', platform: 'instagram', budget_pct: 10, targeting: 'retarget + interest' },
-            { name: 'Google — Brand + Intent', platform: 'google', budget_pct: 15, targeting: 'keyword' },
-            { name: 'Retargeting — Cart Abandoners', platform: 'facebook', budget_pct: 10, targeting: 'retarget 0-7d' },
-          ],
-          status: 'DRAFT — awaiting PUBLISH_NOW',
-        },
-        creativeBriefs: [
-          {
-            channel: 'Facebook', format: 'Static Image — Feed', headline: `${productName} — Your New Favorite`, primaryText: `Finally — a product that delivers. ${productName} is designed for ${audience}. Shop now and feel the difference.`, cta: 'Shop Now', visualDirection: 'Clean product hero shot on solid background, lifestyle context in secondary frame.', isReadyToRun: true,
-          },
-          {
-            channel: 'Facebook', format: 'Video Ad — 30s', headline: `Why ${productName}?`, primaryText: `Stop scrolling. ${productName} solves [key pain point] with [key benefit]. Try it today — free shipping.`, cta: 'Shop Now', visualDirection: 'AI avatar presenter with product b-roll. Hook in first 3 seconds.', isReadyToRun: true,
-          },
-          {
-            channel: 'Instagram', format: 'Reel — 15s', headline: `POV: You discover ${productName}`, primaryText: `This changes everything 🤯 #${productName.replace(/\s/g, '')} #fyp`, cta: 'Shop Now', visualDirection: 'UGC-style unboxing or first-use reaction. Trending audio overlay.', isReadyToRun: false,
-          },
-          {
-            channel: 'Google Search', format: 'Responsive Search Ad', headline: `Buy ${productName} — Free Shipping | Official Store`, primaryText: `Shop the #1 rated ${productName}. Premium quality, fast delivery. 30-day money-back guarantee.`, cta: 'Shop Now', visualDirection: 'N/A — text only', isReadyToRun: true,
-          },
-        ],
-        tracking: {
-          events: [
-            { event: 'PageView', trigger: 'All pages' },
-            { event: 'ViewContent', trigger: 'Product page visit' },
-            { event: 'AddToCart', trigger: 'Add to cart button click' },
-            { event: 'InitiateCheckout', trigger: 'Checkout page load' },
-            { event: 'Purchase', trigger: 'Order confirmation page' },
-            { event: 'Lead', trigger: 'Email signup or quiz completion' },
-          ],
-          utmTemplate: `?utm_source={{platform}}&utm_medium=paid&utm_campaign=${productName.toLowerCase().replace(/\s/g, '-')}-q1-2026&utm_content={{ad_name}}&utm_term={{keyword}}`,
-        },
-        actionPlan: [
-          {
-            label: 'Week 1 — Launch & Learn',
-            tasks: [
-              { day: 'Day 1', title: 'Pixel & tracking verification', description: 'Verify all events fire correctly. Test purchase event with test order.', priority: 'high' },
-              { day: 'Day 1', title: 'Launch Facebook Advantage+ campaign', description: 'Deploy 3 ad sets with CBO. Start at 80% of planned budget.', priority: 'high' },
-              { day: 'Day 2', title: 'Launch Instagram Reels campaign', description: 'Deploy Reels-first creatives. Monitor initial CPM and engagement.', priority: 'high' },
-              { day: 'Day 3', title: 'Launch Google Search campaign', description: 'Deploy brand + high-intent keywords. Set initial bids at recommended levels.', priority: 'medium' },
-              { day: 'Day 5', title: 'First performance check', description: 'Review CPM, CTR, and early conversion signals. Kill any creatives with CTR < 0.8%.', priority: 'high' },
-              { day: 'Day 7', title: 'Week 1 report & adjustments', description: 'Full performance review. Identify top 2 ad sets. Reallocate budget from underperformers.', priority: 'high' },
-            ],
-          },
-          {
-            label: 'Week 2 — Optimize & Scale',
-            tasks: [
-              { day: 'Day 8', title: 'Scale winning ad sets +20%', description: 'Increase budget on top performers. Add lookalike audiences from purchasers.', priority: 'high' },
-              { day: 'Day 9', title: 'Launch retargeting campaigns', description: 'Deploy cart abandoner and site visitor retargeting with sequential messaging.', priority: 'high' },
-              { day: 'Day 10', title: 'Creative refresh — Round 2', description: 'Generate 3 new creative variations based on Week 1 learnings.', priority: 'medium' },
-              { day: 'Day 12', title: 'A/B test headlines', description: 'Test benefit-led vs urgency-led copy across top ad sets.', priority: 'medium' },
-              { day: 'Day 14', title: 'Full 14-day analysis', description: 'Comprehensive review: ROAS by channel, creative performance, audience insights. Set Week 3-4 plan.', priority: 'high' },
-            ],
-          },
-        ],
-        experimentLog: [
-          { name: 'Broad vs Interest targeting', hypothesis: 'Broad targeting will match interest-based within 7 days due to Advantage+ optimization', day: 'Day 1-7' },
-          { name: 'Video vs Static creative', hypothesis: 'Video will have 40% lower CPA on Instagram but equal on Facebook', day: 'Day 1-14' },
-          { name: 'Headline A/B test', hypothesis: 'Benefit-led copy will outperform urgency-led by 15% in CTR', day: 'Day 10-14' },
-        ],
+        campaignSpec: { campaign_name: `${productName} — Q1 2026`, objective: 'CONVERSIONS', total_budget: budget, daily_budget: Math.round(budget / 30), duration: '30 days', platforms: ['facebook', 'instagram', 'google_search'], target_audience: audience, ad_sets: [], status: 'DRAFT — awaiting PUBLISH_NOW' },
+        creativeBriefs: [],
+        tracking: { events: [{ event: 'PageView', trigger: 'All pages' }, { event: 'Purchase', trigger: 'Order confirmation' }], utmTemplate: '?utm_source={{platform}}&utm_medium=paid' },
+        actionPlan: [],
+        experimentLog: [],
       },
     }],
     actionChips: [
@@ -1168,11 +1147,19 @@ export function useWorkspace() {
     if (isStrategistThread && wasAskingForStrategyInput && intent === 'default') {
       const productName = extractProductName(content) || 'Your Product';
       respondWithSim(activeThreadId, {
-        content: `⏳ Building your complete marketing strategy based on what you described...\n\nAnalyzing product-market fit, channel allocation, and audience signals...`,
+        content: `⏳ Building your complete marketing strategy based on what you described...\n\n🤖 **AI is analyzing** product-market fit, channel allocation, and audience signals...`,
       }, 600);
-      setTimeout(() => {
-        respondWithSim(activeThreadId, strategistPlaybookResponse(productName, 3000, 'Target audience based on your description'), 2500);
-      }, 1200);
+      // Call real AI
+      const tid = activeThreadId;
+      setTimeout(async () => {
+        try {
+          const aiData = await callStrategistAI({ userMessage: content });
+          respondWithSim(tid, aiDataToPlaybookResponse(aiData, productName), 500);
+        } catch (e) {
+          console.error('Strategist AI error:', e);
+          respondWithSim(tid, strategistPlaybookResponseFallback(productName, 3000, 'Target audience based on your description'), 500);
+        }
+      }, 800);
       return;
     }
 
@@ -1677,11 +1664,18 @@ export function useWorkspace() {
     // ===== STRATEGIST FLOW ACTIONS =====
     if (action === 'strategist-sample') {
       respondWithSim(activeThreadId, {
-        content: `⏳ Analyzing sample product and building your multi-channel marketing strategy...\n\nThis includes Facebook, Instagram, Google Search, and Retargeting — with creative briefs, tracking setup, and a 14-day action plan.`,
+        content: `⏳ Analyzing sample product and building your multi-channel marketing strategy...\n\n🤖 **AI is generating** a complete playbook with creative briefs, tracking setup, and a 14-day action plan...`,
       }, 600);
-      setTimeout(() => {
-        respondWithSim(activeThreadId, strategistPlaybookResponse('Summer T-Shirt Collection', 3000, 'Style-conscious millennials & Gen Z, 18-35'), 2500);
-      }, 1200);
+      const tid = activeThreadId;
+      setTimeout(async () => {
+        try {
+          const aiData = await callStrategistAI({ productName: 'Summer T-Shirt Collection', budget: 3000, audience: 'Style-conscious millennials & Gen Z, 18-35' });
+          respondWithSim(tid, aiDataToPlaybookResponse(aiData, 'Summer T-Shirt Collection'), 500);
+        } catch (e) {
+          console.error('Strategist AI error:', e);
+          respondWithSim(tid, strategistPlaybookResponseFallback('Summer T-Shirt Collection', 3000, 'Style-conscious millennials & Gen Z, 18-35'), 500);
+        }
+      }, 800);
       return;
     }
     if (action === 'strategist-describe') {
