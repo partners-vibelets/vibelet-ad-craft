@@ -1204,10 +1204,43 @@ export function useWorkspace() {
       runConversationSteps(activeThreadId, buildDemoFlow());
     } else if (intent === 'product-url') {
       setIsTyping(true);
-      runConversationSteps(activeThreadId, [
-        { delay: 800, response: { content: `🔍 Analyzing your product... pulling details now.` } },
-        { delay: 3000, response: styleToProductAnalysis('bold') },
-      ]);
+      const tid = activeThreadId;
+      respondWithSim(tid, { content: `🔍 Analyzing your product... pulling details now.` });
+      (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('product-analyzer', {
+            body: { userMessage: content },
+          });
+          if (error || data?.error) {
+            console.error('Product analyzer error:', error || data?.error);
+            respondWithSim(tid, styleToProductAnalysis('bold'), 500);
+            return;
+          }
+          const aiProduct = data as Record<string, any>;
+          const productResponse: SimResponse = {
+            content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
+            artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
+              productName: aiProduct.productName || 'Your Product',
+              images: [],
+              price: aiProduct.price || 'N/A',
+              category: aiProduct.category || 'General',
+              description: aiProduct.description || '',
+              variants: aiProduct.variants || [],
+              hasVariants: aiProduct.hasVariants || false,
+              keyFeatures: aiProduct.keyFeatures || [],
+              targetAudience: aiProduct.targetAudience || '',
+            } }],
+            actionChips: [
+              { label: '✅ Looks good — continue', action: aiProduct.hasVariants ? 'product-confirmed-variants' : 'product-confirmed' },
+              { label: '✏️ Edit product details', action: 'edit-product' },
+            ],
+          };
+          respondWithSim(tid, productResponse, 500);
+        } catch (e) {
+          console.error('Product analyzer failed:', e);
+          respondWithSim(tid, styleToProductAnalysis('bold'), 500);
+        }
+      })();
     } else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(activeThreadId, buildMultiVariantFlow()); }
     else if (intent === 'strategist') { setIsTyping(true); runConversationSteps(activeThreadId, buildStrategistFlow()); }
     else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
