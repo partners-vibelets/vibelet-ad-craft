@@ -53,6 +53,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'creative-assignment': 'Assignment',
   'media-upload': 'Upload',
   'creative-library': 'Library',
+  'strategy-playbook': 'Strategy',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -83,6 +84,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'creative-assignment': <Layers className="w-3.5 h-3.5" />,
   'media-upload': <Upload className="w-3.5 h-3.5" />,
   'creative-library': <ImageIcon className="w-3.5 h-3.5" />,
+  'strategy-playbook': <FileText className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -164,6 +166,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'creative-assignment': return <CreativeAssignmentBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'media-upload': return <MediaUploadBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'creative-library': return <CreativeLibraryBody artifact={artifact} onArtifactAction={onArtifactAction} />;
+    case 'strategy-playbook': return <StrategyPlaybookBody artifact={artifact} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -3160,6 +3163,234 @@ const CreativeLibraryBody = ({ artifact, onArtifactAction }: { artifact: Artifac
           <ArrowRight className="w-3.5 h-3.5" /> Use selected creative
         </Button>
       )}
+    </div>
+  );
+};
+
+// ========== STRATEGY PLAYBOOK BODY ==========
+
+const StrategyPlaybookBody = ({ artifact }: { artifact: Artifact }) => {
+  const d = artifact.data;
+  const [showJson, setShowJson] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    summary: true, playbook: true, spec: false, creatives: true, tracking: true, actionPlan: true,
+  });
+
+  const toggleSection = (key: string) => setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+
+  return (
+    <div className="space-y-4">
+      {/* (A) Executive Summary */}
+      <div>
+        <button onClick={() => toggleSection('summary')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.summary ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">A — Executive Summary</span>
+          {d.confidence && <Badge variant="secondary" className="text-[10px] ml-auto">Confidence: {Math.round(d.confidence * 100)}%</Badge>}
+        </button>
+        {expandedSections.summary && (
+          <div className="pl-5 space-y-2">
+            <p className="text-sm text-foreground leading-relaxed">{d.executiveSummary}</p>
+            {d.complianceFlags && d.complianceFlags.length > 0 && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+                <div className="text-xs text-destructive">{d.complianceFlags.map((f: string, i: number) => <p key={i}>{f}</p>)}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* (B) Channel-by-Channel Playbook */}
+      <div>
+        <button onClick={() => toggleSection('playbook')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.playbook ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">B — Channel Playbook</span>
+        </button>
+        {expandedSections.playbook && d.channelPlaybook && (
+          <div className="pl-5 space-y-3">
+            {d.channelPlaybook.map((ch: any, i: number) => (
+              <div key={i} className="px-3 py-2.5 rounded-lg bg-muted/15 border border-border/30 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <span>{ch.icon}</span> {ch.channel}
+                  </p>
+                  <Badge variant="secondary" className="text-[10px]">{ch.budgetAllocation}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{ch.strategy}</p>
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground/70">
+                  <span>Objective: <span className="text-foreground font-medium">{ch.objective}</span></span>
+                  <span>Confidence: <span className="text-foreground font-medium">{Math.round(ch.confidence * 100)}%</span></span>
+                </div>
+                {ch.reason && <p className="text-[10px] text-muted-foreground/60 italic">{ch.reason}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* (C) Campaign Spec JSON */}
+      <div>
+        <button onClick={() => toggleSection('spec')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.spec ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">C — Campaign Spec (JSON)</span>
+          <button onClick={(e) => { e.stopPropagation(); setShowJson(!showJson); }} className="ml-auto text-[10px] text-primary hover:underline">
+            {showJson ? 'Hide raw' : 'Show raw'}
+          </button>
+        </button>
+        {expandedSections.spec && d.campaignSpec && (
+          <div className="pl-5 space-y-2">
+            {!showJson ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <ReadOnlyField label="Campaign Name" value={d.campaignSpec.campaign_name} />
+                  <ReadOnlyField label="Objective" value={d.campaignSpec.objective} />
+                  <ReadOnlyField label="Total Budget" value={`$${d.campaignSpec.total_budget}`} />
+                  <ReadOnlyField label="Duration" value={d.campaignSpec.duration} />
+                </div>
+                <ReadOnlyField label="Platforms" value={d.campaignSpec.platforms?.join(', ')} />
+                <ReadOnlyField label="Status" value={d.campaignSpec.status || 'DRAFT — awaiting PUBLISH_NOW'} />
+              </div>
+            ) : (
+              <div className="relative">
+                <pre className="text-[11px] text-muted-foreground bg-muted/30 rounded-lg p-3 overflow-x-auto border border-border/30 max-h-60">
+                  {JSON.stringify(d.campaignSpec, null, 2)}
+                </pre>
+                <button
+                  onClick={() => navigator.clipboard.writeText(JSON.stringify(d.campaignSpec, null, 2))}
+                  className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* (D) Creative Briefs */}
+      <div>
+        <button onClick={() => toggleSection('creatives')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.creatives ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">D — Creative Briefs & Ready-to-Run Ads</span>
+        </button>
+        {expandedSections.creatives && d.creativeBriefs && (
+          <div className="pl-5 space-y-3">
+            {d.creativeBriefs.map((brief: any, i: number) => (
+              <div key={i} className="px-3 py-2.5 rounded-lg bg-muted/15 border border-border/30 space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">{brief.channel} — {brief.format}</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground"><span className="font-medium text-foreground">Headline:</span> {brief.headline}</p>
+                  <p className="text-[10px] text-muted-foreground"><span className="font-medium text-foreground">Primary Text:</span> {brief.primaryText}</p>
+                  <p className="text-[10px] text-muted-foreground"><span className="font-medium text-foreground">CTA:</span> {brief.cta}</p>
+                  {brief.visualDirection && <p className="text-[10px] text-muted-foreground"><span className="font-medium text-foreground">Visual:</span> {brief.visualDirection}</p>}
+                </div>
+                {brief.isReadyToRun && (
+                  <Badge variant="secondary" className="text-[10px] bg-secondary/15 text-secondary">✅ Ready to run</Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* (E) Tracking & UTM */}
+      <div>
+        <button onClick={() => toggleSection('tracking')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.tracking ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">E — Tracking & UTM Template</span>
+        </button>
+        {expandedSections.tracking && d.tracking && (
+          <div className="pl-5 space-y-2">
+            {d.tracking.events && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Event Mapping</p>
+                <div className="space-y-1">
+                  {d.tracking.events.map((ev: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="text-primary/60">•</span>
+                      <span className="font-medium text-foreground">{ev.event}</span>
+                      <span className="text-muted-foreground">→ {ev.trigger}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {d.tracking.utmTemplate && (
+              <div className="relative">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">UTM Template</p>
+                <pre className="text-[11px] text-muted-foreground bg-muted/30 rounded-lg p-2.5 overflow-x-auto border border-border/30">
+                  {d.tracking.utmTemplate}
+                </pre>
+                <button
+                  onClick={() => navigator.clipboard.writeText(d.tracking.utmTemplate)}
+                  className="absolute top-6 right-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* (F) 14-Day Action Plan */}
+      <div>
+        <button onClick={() => toggleSection('actionPlan')} className="flex items-center gap-2 w-full text-left mb-2">
+          {expandedSections.actionPlan ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">F — 14-Day Action Plan</span>
+        </button>
+        {expandedSections.actionPlan && d.actionPlan && (
+          <div className="pl-5 space-y-2">
+            {d.actionPlan.map((week: any, wi: number) => (
+              <div key={wi}>
+                <p className="text-xs font-semibold text-foreground mb-1.5">{week.label}</p>
+                <div className="space-y-1.5">
+                  {week.tasks.map((task: any, ti: number) => (
+                    <div key={ti} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/20">
+                      <span className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 mt-0.5",
+                        task.priority === 'high' ? 'bg-destructive/15 text-destructive' :
+                        task.priority === 'medium' ? 'bg-amber-500/15 text-amber-600' :
+                        'bg-muted text-muted-foreground'
+                      )}>
+                        {task.priority === 'high' ? 'P0' : task.priority === 'medium' ? 'P1' : 'P2'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-foreground font-medium">{task.title}</p>
+                        <p className="text-[10px] text-muted-foreground">{task.description}</p>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground/60 shrink-0">{task.day}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {d.experimentLog && d.experimentLog.length > 0 && (
+              <div className="mt-3 pt-2 border-t border-border/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Experiment Log</p>
+                <div className="space-y-1">
+                  {d.experimentLog.map((exp: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10">
+                      <Sparkles className="w-3 h-3 text-primary/50 shrink-0" />
+                      <span className="font-medium text-foreground">{exp.name}</span>
+                      <span className="text-muted-foreground flex-1">{exp.hypothesis}</span>
+                      <span className="text-[10px] text-muted-foreground/60">{exp.day}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* PUBLISH_NOW notice */}
+      <div className="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-[10px] text-amber-600 dark:text-amber-400">
+          No publish action will be taken until you give the explicit <span className="font-mono font-bold">PUBLISH_NOW</span> command.
+        </p>
+      </div>
     </div>
   );
 };
