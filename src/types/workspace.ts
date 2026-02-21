@@ -68,7 +68,8 @@ export type ArtifactType =
   | 'variant-selector'
   | 'creative-assignment'
   | 'media-upload'
-  | 'creative-library';
+  | 'creative-library'
+  | 'strategy-playbook';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
