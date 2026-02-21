@@ -800,6 +800,14 @@ async function callStrategistAI(params: { productName?: string; budget?: number;
   return data;
 }
 
+async function callChatAI(messages: { role: string; content: string }[], threadContext?: { title: string; status: string; messageCount: number }): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('chat', {
+    body: { messages, threadContext },
+  });
+  if (error) throw error;
+  return data?.reply || "I'm here to help! What would you like to work on?";
+}
+
 function aiDataToPlaybookResponse(aiData: any, productName: string): SimResponse {
   const confidence = aiData.confidence ?? 0.85;
   const hasQuestions = aiData.questions && Array.isArray(aiData.questions);
@@ -1121,7 +1129,26 @@ export function useWorkspace() {
           { delay: 3000, response: styleToProductAnalysis('bold') },
         ]);
       }
-      else { respondWithSim(id, simpleResponses[intent] || simpleResponses.default); }
+      else if (simpleResponses[intent] && intent !== 'default') { respondWithSim(id, simpleResponses[intent]); }
+      else {
+        setIsTyping(true);
+        (async () => {
+          try {
+            const reply = await callChatAI([{ role: 'user', content: message }], { title: title, status: 'active', messageCount: 1 });
+            respondWithSim(id, {
+              content: reply,
+              actionChips: [
+                { label: '🚀 Plan a campaign', action: 'new-campaign' },
+                { label: '🎨 Generate creatives', action: 'create-flow' },
+                { label: '📊 Check performance', action: 'performance' },
+              ],
+            }, 300);
+          } catch (e) {
+            console.error('Chat AI error:', e);
+            respondWithSim(id, simpleResponses.default, 300);
+          }
+        })();
+      }
     }, 100);
   }, [appendMessage, runConversationSteps, respondWithSim]);
 
@@ -1260,7 +1287,37 @@ export function useWorkspace() {
     else if (intent === 'upload') { respondWithSim(activeThreadId, uploadArtifactResponse()); }
     else if (intent === 'library') { respondWithSim(activeThreadId, creativeLibraryResponse()); }
     else if (intent === 'publish') { respondWithSim(activeThreadId, isDemoRef.current ? publishCampaignResponse() : publishCampaignResponse()); }
-    else { respondWithSim(activeThreadId, simpleResponses[intent] || simpleResponses.default); }
+    else if (simpleResponses[intent] && intent !== 'default') { respondWithSim(activeThreadId, simpleResponses[intent]); }
+    else {
+      // Use real AI for default/unmatched intents
+      const tid = activeThreadId;
+      const thread = threads[tid];
+      setIsTyping(true);
+      const chatMessages = (thread?.messages || [])
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+      chatMessages.push({ role: 'user', content });
+      (async () => {
+        try {
+          const reply = await callChatAI(chatMessages, {
+            title: thread?.title || 'New Thread',
+            status: thread?.status || 'active',
+            messageCount: thread?.messages?.length || 0,
+          });
+          respondWithSim(tid, {
+            content: reply,
+            actionChips: [
+              { label: '🚀 Plan a campaign', action: 'new-campaign' },
+              { label: '🎨 Generate creatives', action: 'create-flow' },
+              { label: '📊 Check performance', action: 'performance' },
+            ],
+          }, 300);
+        } catch (e) {
+          console.error('Chat AI error:', e);
+          respondWithSim(tid, simpleResponses.default, 300);
+        }
+      })();
+    }
   }, [activeThreadId, threads, appendMessage, runConversationSteps, respondWithSim]);
 
   const handleActionChip = useCallback((action: string) => {
