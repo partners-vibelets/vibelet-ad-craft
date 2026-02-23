@@ -174,7 +174,139 @@ function parsePlanAction(action: string): { objective: string; budget: number; m
 
 // ========== CREATIVE FLOWS ==========
 
-// Image-only flow
+// AI Model definitions
+const VIDEO_MODELS = [
+  { id: 'kling-v2', name: 'Kling v2', icon: '🎬', description: 'Realistic product showcases with natural motion and lighting', speed: '~60s', quality: 'High', bestFor: 'Product demos', recommended: true },
+  { id: 'veo-2', name: 'Veo 2', icon: '🎥', description: 'Cinematic quality with smooth camera movements and longer clips', speed: '~90s', quality: 'Ultra', bestFor: 'Brand storytelling' },
+  { id: 'runway-gen3', name: 'Runway Gen-3', icon: '✨', description: 'Artistic and creative styles with unique visual effects', speed: '~45s', quality: 'High', bestFor: 'Creative ads' },
+  { id: 'pika-2', name: 'Pika 2.0', icon: '⚡', description: 'Fast generation for quick iterations and testing', speed: '~20s', quality: 'Good', bestFor: 'Rapid prototyping' },
+];
+
+const IMAGE_MODELS = [
+  { id: 'flux-pro', name: 'FLUX Pro', icon: '🖼️', description: 'Photorealistic product imagery with studio-quality lighting', speed: '~15s', quality: 'Ultra', bestFor: 'Product photos', recommended: true },
+  { id: 'ideogram-3', name: 'Ideogram 3', icon: '🎨', description: 'Strong text rendering and graphic design compositions', speed: '~12s', quality: 'High', bestFor: 'Social ads with text' },
+  { id: 'midjourney-v7', name: 'Midjourney v7', icon: '🌟', description: 'Artistic, high-aesthetic imagery with beautiful compositions', speed: '~20s', quality: 'Ultra', bestFor: 'Lifestyle & mood' },
+  { id: 'dall-e-4', name: 'DALL·E 4', icon: '🤖', description: 'Versatile generation with strong prompt adherence', speed: '~10s', quality: 'High', bestFor: 'General purpose' },
+];
+
+function getRecommendedModel(type: 'image' | 'video'): { id: string; name: string } {
+  if (type === 'video') return { id: 'kling-v2', name: 'Kling v2' };
+  return { id: 'flux-pro', name: 'FLUX Pro' };
+}
+
+// Unified creative flow — smart hybrid detection
+function buildUnifiedCreativeFlow(userMessage: string): { creativeType: 'image' | 'video' | 'both' | 'ambiguous'; response: SimResponse } {
+  const l = userMessage.toLowerCase();
+  
+  // Detect creative type from message
+  const hasVideo = l.includes('video') || l.includes('reel') || l.includes('clip') || l.includes('motion') || l.includes('animate') || l.includes('avatar');
+  const hasImage = l.includes('image') || l.includes('photo') || l.includes('picture') || l.includes('static') || l.includes('banner') || l.includes('poster');
+  
+  let creativeType: 'image' | 'video' | 'both' | 'ambiguous';
+  if (hasVideo && hasImage) creativeType = 'both';
+  else if (hasVideo) creativeType = 'video';
+  else if (hasImage) creativeType = 'image';
+  else creativeType = 'ambiguous';
+
+  if (creativeType === 'ambiguous') {
+    return {
+      creativeType: 'ambiguous',
+      response: {
+        content: `I'd love to create ad creatives for you! 🎨\n\n**What type of creatives do you need?** I'll handle everything from product analysis to final assets.`,
+        actionChips: [
+          { label: '🖼️ Image ads', action: 'unified-type-image' },
+          { label: '🎬 Video ad', action: 'unified-type-video' },
+          { label: '✨ Both images & video', action: 'unified-type-both' },
+        ],
+      },
+    };
+  }
+
+  const typeLabel = creativeType === 'both' ? '**image + video ads**' : creativeType === 'video' ? 'a **video ad**' : '**image ads**';
+  const model = getRecommendedModel(creativeType === 'both' ? 'video' : creativeType);
+
+  return {
+    creativeType,
+    response: {
+      content: `Got it — I'll create ${typeLabel} for you! 🚀\n\nFirst, I need your product details so I can tailor everything perfectly.\n\n**Share a product URL**, describe it, or use a sample.`,
+      actionChips: [
+        { label: '🔗 Paste a URL', action: 'unified-product-url' },
+        { label: '📝 Describe it', action: 'unified-product-describe' },
+        { label: '⚡ Use sample product', action: 'unified-product-sample' },
+        { label: '📤 Upload product image', action: 'unified-product-upload' },
+      ],
+    },
+  };
+}
+
+function unifiedProductConfirmedResponse(creativeType: 'image' | 'video' | 'both'): SimResponse {
+  if (creativeType === 'image') {
+    return {
+      content: `Product analyzed! ✅ Now let's pick a style and generate your **image ads**.\n\nI'll use **${getRecommendedModel('image').name}** for best results.`,
+      actionChips: [
+        { label: '😎 Bold & Trendy', action: 'unified-style-bold' },
+        { label: '🌿 Clean & Minimal', action: 'unified-style-minimal' },
+        { label: '🎉 Fun & Vibrant', action: 'unified-style-fun' },
+        { label: '✨ AI picks the best', action: 'unified-style-auto' },
+        { label: '🔄 Change AI model', action: 'unified-change-model-image' },
+      ],
+    };
+  }
+  if (creativeType === 'video') {
+    return showScriptsResponse; // Videos go through script → avatar → model → generate
+  }
+  // Both: show scripts first (handles the video part), images come after
+  return {
+    ...showScriptsResponse,
+    content: `Product analyzed! ✅ I'll create both **images + video**.\n\nLet's start with the video — pick a script style. Images will be generated alongside.\n\n` + showScriptsResponse.content,
+  };
+}
+
+function modelSelectionResponse(creativeType: 'image' | 'video' | 'both'): SimResponse {
+  const models = creativeType === 'image' ? IMAGE_MODELS : VIDEO_MODELS;
+  const recommended = models.find(m => m.recommended);
+  
+  return {
+    content: `🤖 **Choose your AI generation engine**\n\nI recommend **${recommended?.name}** for this project, but you can pick any model below.`,
+    artifacts: [{
+      type: 'model-selection' as ArtifactType,
+      titleSuffix: `${creativeType === 'image' ? 'Image' : 'Video'} Generation Engine`,
+      dataOverrides: {
+        creativeType,
+        models,
+        selectedModelId: recommended?.id || models[0]?.id,
+      },
+    }],
+  };
+}
+
+function unifiedGenerationResponse(creativeType: 'image' | 'video' | 'both', modelName: string, avatarName?: string): SimResponse {
+  const outputs = [];
+  if (creativeType === 'image' || creativeType === 'both') {
+    outputs.push(
+      { id: 'out-1', type: 'image', label: 'Hero Banner (Feed)', format: 'image', dimensions: '1200×628', status: 'generating' },
+      { id: 'out-2', type: 'image', label: 'Instagram Story', format: 'image', dimensions: '1080×1920', status: 'generating' },
+      { id: 'out-3', type: 'image', label: 'Square Post', format: 'image', dimensions: '1080×1080', status: 'generating' },
+    );
+  }
+  if (creativeType === 'video' || creativeType === 'both') {
+    outputs.push(
+      { id: `out-v1`, type: 'video', label: avatarName ? `Video Ad — ${avatarName}` : 'Video Ad', format: 'video', dimensions: '1080×1920', status: 'generating', duration: '30s' },
+    );
+  }
+
+  const modelLabel = modelName ? ` using **${modelName}**` : '';
+  const typeLabel = creativeType === 'both' ? 'images + video' : creativeType === 'video' ? 'video ad' : 'image ads';
+
+  return {
+    content: `🎨 Generating your **${typeLabel}**${modelLabel}... This takes about a minute.`,
+    artifacts: [{ type: 'generation-progress' as ArtifactType, titleSuffix: 'Generating Creatives', dataOverrides: {
+      stage: 'rendering', progress: 35, outputs,
+    } }],
+  };
+}
+
+// Image-only flow (legacy — still accessible)
 function buildImageOnlyFlow(): ConversationStep[] {
   return [{
     delay: 1200,
@@ -190,7 +322,7 @@ function buildImageOnlyFlow(): ConversationStep[] {
   }];
 }
 
-// Video (avatar-based) flow
+// Video (avatar-based) flow (legacy — still accessible)
 function buildVideoAvatarFlow(): ConversationStep[] {
   return [{
     delay: 1200,
@@ -205,7 +337,7 @@ function buildVideoAvatarFlow(): ConversationStep[] {
   }];
 }
 
-// Video (motion/reference-image based) flow
+// Video (motion/reference-image based) flow (legacy — still accessible)
 function buildVideoMotionFlow(): ConversationStep[] {
   return [{
     delay: 1200,
@@ -252,15 +384,8 @@ function buildCreativeConversation(creativeType?: 'image' | 'video' | 'both', co
     } }];
   }
 
-  return [{ delay: 1200, response: {
-    content: `Let's create some amazing ad creatives! 🎨\n\n**What type of creatives do you need?**`,
-    actionChips: [
-      { label: '🖼️ Static images only', action: 'creative-type-image' },
-      { label: '🎬 Video with AI avatar', action: 'creative-type-video' },
-      { label: '🎥 Motion video (from image)', action: 'creative-type-motion' },
-      { label: '✨ Both images & video', action: 'creative-type-both' },
-    ],
-  } }];
+  // Default: use unified flow
+  return [{ delay: 1200, response: buildUnifiedCreativeFlow('').response }];
 }
 
 const styleToProductAnalysis = (style: string, productType: 'tshirt' | 'whey' = 'tshirt'): SimResponse => {
@@ -994,6 +1119,7 @@ export function useWorkspace() {
   const isDemoRef = useRef(false);
   // Track creative flow mode per thread
   const creativeFlowModeRef = useRef<'images' | 'video' | 'motion' | 'both' | null>(null);
+  const selectedModelRef = useRef<{ id: string; name: string } | null>(null);
   const variantStrategyRef = useRef<string>('cbo');
   const variantSelectedCountRef = useRef<number>(3);
 
@@ -1113,7 +1239,13 @@ export function useWorkspace() {
       else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(id, buildImageOnlyFlow()); }
       else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(id, buildVideoAvatarFlow()); }
       else if (intent === 'creative-video-motion') { creativeFlowModeRef.current = 'motion'; setIsTyping(true); runConversationSteps(id, buildVideoMotionFlow()); }
-      else if (intent === 'creative-both' || intent === 'create-flow') { creativeFlowModeRef.current = 'both'; setIsTyping(true); runConversationSteps(id, buildCreativeConversation('both')); }
+      else if (intent === 'creative-both' || intent === 'create-flow') {
+        // Unified creative flow — smart detection
+        const { creativeType, response } = buildUnifiedCreativeFlow(message);
+        if (creativeType !== 'ambiguous') creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
+        else creativeFlowModeRef.current = null;
+        respondWithSim(id, response);
+      }
       else if (intent === 'audit') { setIsTyping(true); runConversationSteps(id, buildAuditFlow()); }
       else if (intent === 'rule') { respondWithSim(id, automationRuleResponse()); }
       else if (intent === 'performance') { respondWithSim(id, simpleResponses.performance); }
@@ -1343,8 +1475,12 @@ export function useWorkspace() {
     else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(activeThreadId, buildImageOnlyFlow()); }
     else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoAvatarFlow()); }
     else if (intent === 'creative-video-motion') { creativeFlowModeRef.current = 'motion'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoMotionFlow()); }
-    else if (intent === 'creative-both') { creativeFlowModeRef.current = 'both'; setIsTyping(true); runConversationSteps(activeThreadId, buildCreativeConversation('both')); }
-    else if (intent === 'create-flow') { setIsTyping(true); runConversationSteps(activeThreadId, buildCreativeConversation()); }
+    else if (intent === 'creative-both' || intent === 'create-flow') {
+      const { creativeType, response } = buildUnifiedCreativeFlow(content);
+      if (creativeType !== 'ambiguous') creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
+      else creativeFlowModeRef.current = null;
+      respondWithSim(activeThreadId, response);
+    }
     else if (intent === 'connect-facebook') { setIsTyping(true); runConversationSteps(activeThreadId, buildFacebookConnectFlow()); }
     else if (intent === 'audit') { setIsTyping(true); runConversationSteps(activeThreadId, buildAuditFlow(isDemoRef.current)); }
     else if (intent === 'upload') { respondWithSim(activeThreadId, uploadArtifactResponse()); }
@@ -1385,6 +1521,85 @@ export function useWorkspace() {
 
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
+
+    // ===== UNIFIED CREATIVE FLOW ACTIONS =====
+    if (action === 'unified-type-image' || action === 'unified-type-video' || action === 'unified-type-both') {
+      const type = action.replace('unified-type-', '') as 'image' | 'video' | 'both';
+      creativeFlowModeRef.current = type === 'both' ? 'both' : type === 'video' ? 'video' : 'images';
+      const model = getRecommendedModel(type === 'both' ? 'video' : type);
+      selectedModelRef.current = model;
+      const typeLabel = type === 'both' ? '**image + video ads**' : type === 'video' ? 'a **video ad**' : '**image ads**';
+      respondWithSim(activeThreadId, {
+        content: `Great choice — I'll create ${typeLabel}! 🚀\n\nFirst, I need your product details. **Share a URL**, describe it, or use a sample.`,
+        actionChips: [
+          { label: '🔗 Paste a URL', action: 'unified-product-url' },
+          { label: '📝 Describe it', action: 'unified-product-describe' },
+          { label: '⚡ Use sample product', action: 'unified-product-sample' },
+          { label: '📤 Upload product image', action: 'unified-product-upload' },
+        ],
+      });
+      return;
+    }
+    if (action === 'unified-product-url') {
+      respondWithSim(activeThreadId, { content: "Sure! Paste your product URL below and I'll analyze it automatically. 🔗" });
+      return;
+    }
+    if (action === 'unified-product-describe') {
+      respondWithSim(activeThreadId, { content: "Describe your product — name, features, target audience — and I'll build your creatives around it. ✍️" });
+      return;
+    }
+    if (action === 'unified-product-upload') {
+      respondWithSim(activeThreadId, uploadArtifactResponse());
+      return;
+    }
+    if (action === 'unified-product-sample') {
+      const thread = threads[activeThreadId];
+      respondWithSim(activeThreadId, {
+        ...styleToProductAnalysis('bold', 'tshirt'),
+        actionChips: [
+          { label: '✅ Looks good — continue', action: 'unified-product-confirmed' },
+          { label: '✏️ Edit product details', action: 'edit-product' },
+        ],
+      });
+      return;
+    }
+    if (action === 'unified-product-confirmed' || (action === 'product-confirmed' && creativeFlowModeRef.current)) {
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
+      respondWithSim(activeThreadId, unifiedProductConfirmedResponse(creativeType as 'image' | 'video' | 'both'));
+      return;
+    }
+    // Unified style selection → show model selection, then generate
+    if (action.startsWith('unified-style-')) {
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : 'both';
+      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
+      selectedModelRef.current = model;
+      // Go straight to generation with smart default model
+      respondWithSim(activeThreadId, {
+        content: `🎨 Style locked in! I'll generate your creatives using **${model.name}** — our top pick for ${creativeType === 'image' ? 'product images' : 'video ads'}.`,
+        actionChips: [
+          { label: '🚀 Start generating', action: 'unified-generate' },
+          { label: '🔄 Change AI model', action: `unified-change-model-${creativeType}` },
+        ],
+      });
+      return;
+    }
+    // Model change
+    if (action.startsWith('unified-change-model-')) {
+      const type = action.replace('unified-change-model-', '') as 'image' | 'video' | 'both';
+      respondWithSim(activeThreadId, modelSelectionResponse(type));
+      return;
+    }
+    // Start generating (unified)
+    if (action === 'unified-generate') {
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
+      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
+      respondWithSim(activeThreadId, unifiedGenerationResponse(creativeType as 'image' | 'video' | 'both', model.name), 800);
+      setTimeout(() => respondWithSim(activeThreadId, creativeResultResponse(model.name, creativeType === 'image'), 600), 9000);
+      return;
+    }
 
     // Product-first flow actions
     if (action === 'use-sample-product' || action === 'use-sample-product-images' || action === 'use-sample-product-video') {
@@ -1903,7 +2118,26 @@ export function useWorkspace() {
       respondWithSim(activeThreadId, facebookConnectedResponse(), 2000);
       return;
     }
-    if (action === 'script-selected') { respondWithSim(activeThreadId, avatarResponse); return; }
+    if (action === 'script-selected') {
+      // In unified flow, after script → show avatar, then model selection
+      respondWithSim(activeThreadId, avatarResponse);
+      return;
+    }
+    if (action === 'model-selected') {
+      // Just update ref, user can confirm via artifact button
+      if (payload?.modelId && payload?.modelName) {
+        selectedModelRef.current = { id: payload.modelId, name: payload.modelName };
+      }
+      return;
+    }
+    if (action === 'model-confirmed') {
+      const model = selectedModelRef.current || { id: payload?.modelId, name: 'AI Model' };
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
+      respondWithSim(activeThreadId, unifiedGenerationResponse(creativeType as 'image' | 'video' | 'both', model.name), 800);
+      setTimeout(() => respondWithSim(activeThreadId, creativeResultResponse(model.name, creativeType === 'image'), 600), 9000);
+      return;
+    }
     if (action === 'avatar-selected') {
       const avatar = AVATARS.find(a => a.id === payload?.avatarId);
       const avatarName = avatar?.name || 'Avatar';

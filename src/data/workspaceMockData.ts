@@ -506,6 +506,15 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
     title: 'Creative Library',
     data: {},
   },
+  'model-selection': {
+    type: 'model-selection',
+    title: 'Choose AI Model',
+    data: {
+      creativeType: 'image',
+      models: [],
+      selectedModelId: null,
+    },
+  },
 };
 
 export const mockMessages: ThreadMessage[] = [

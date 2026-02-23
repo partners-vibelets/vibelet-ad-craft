@@ -54,6 +54,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'media-upload': 'Upload',
   'creative-library': 'Library',
   'strategy-playbook': 'Strategy',
+  'model-selection': 'AI Model',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -85,6 +86,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'media-upload': <Upload className="w-3.5 h-3.5" />,
   'creative-library': <ImageIcon className="w-3.5 h-3.5" />,
   'strategy-playbook': <FileText className="w-3.5 h-3.5" />,
+  'model-selection': <Wand2 className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -167,6 +169,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'media-upload': return <MediaUploadBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'creative-library': return <CreativeLibraryBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'strategy-playbook': return <StrategyPlaybookBody artifact={artifact} />;
+    case 'model-selection': return <ModelSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -3391,6 +3394,101 @@ const StrategyPlaybookBody = ({ artifact }: { artifact: Artifact }) => {
           No publish action will be taken until you give the explicit <span className="font-mono font-bold">PUBLISH_NOW</span> command.
         </p>
       </div>
+    </div>
+  );
+};
+
+// ========== MODEL SELECTION ==========
+const ModelSelectionBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const models = d.models || [];
+  const selectedModelId = d.selectedModelId;
+  const creativeType = d.creativeType || 'image'; // 'image' | 'video' | 'both'
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Wand2 className="w-3.5 h-3.5 text-primary/60" />
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">
+          {creativeType === 'video' ? 'Video Generation Engine' : creativeType === 'both' ? 'Generation Engines' : 'Image Generation Engine'}
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {models.map((model: any) => {
+          const isSelected = model.id === selectedModelId;
+          return (
+            <button
+              key={model.id}
+              onClick={() => {
+                onUpdateData(artifact.id, { ...d, selectedModelId: model.id });
+                onArtifactAction?.(artifact.id, 'model-selected', { modelId: model.id, modelName: model.name });
+              }}
+              className={cn(
+                "w-full text-left px-3.5 py-3 rounded-xl border transition-all duration-200",
+                isSelected
+                  ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+                  : "border-border/40 bg-muted/10 hover:bg-muted/20 hover:border-border/60"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn(
+                  "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-lg",
+                  isSelected ? "bg-primary/10" : "bg-muted/30"
+                )}>
+                  {model.icon || '🤖'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("text-sm font-medium", isSelected ? "text-primary" : "text-foreground")}>
+                      {model.name}
+                    </span>
+                    {model.recommended && (
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-primary/10 text-primary border-0">
+                        Recommended
+                      </Badge>
+                    )}
+                    {isSelected && (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{model.description}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {model.speed && (
+                      <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+                        <Zap className="w-2.5 h-2.5" /> {model.speed}
+                      </span>
+                    )}
+                    {model.quality && (
+                      <span className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
+                        <Star className="w-2.5 h-2.5" /> {model.quality}
+                      </span>
+                    )}
+                    {model.bestFor && (
+                      <span className="text-[10px] text-muted-foreground/70">
+                        Best for: {model.bestFor}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedModelId && (
+        <div className="flex justify-end pt-1">
+          <Button
+            size="sm"
+            className="text-xs h-7 gap-1.5"
+            onClick={() => onArtifactAction?.(artifact.id, 'model-confirmed', { modelId: selectedModelId })}
+          >
+            <Sparkles className="w-3 h-3" />
+            Start Generating
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
