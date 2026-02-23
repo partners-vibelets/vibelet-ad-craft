@@ -43,12 +43,15 @@ function detectIntent(message: string): Intent {
   if ((l.includes('create') || l.includes('generate') || l.includes('make')) && l.includes('image') && l.includes('video')) return 'creative-both';
   if ((l.includes('create') || l.includes('generate') || l.includes('make') || l.includes('design') || l.includes('build'))
     && (l.includes('creative') || l.includes('ad') || l.includes('content'))) return 'create-flow';
+  // Broader creative detection: "ad for X", "promote X", "advertise X"
+  if ((l.includes('ad ') || l.includes('ads ') || l.includes('ad') || l.includes('promote') || l.includes('advertise') || l.includes('marketing'))
+    && (l.includes(' for ') || l.includes(' my ') || l.includes(' our ') || l.includes(' this '))) return 'create-flow';
   if (l.includes('campaign') || l.includes('plan') || l.includes('blueprint') || l.includes('summer') || l.includes('launch')) return 'campaign';
   if (l.includes('performance') || l.includes('metrics') || (l.includes('how') && l.includes('doing'))) return 'performance';
   if (l.includes('insight') || l.includes('signal') || l.includes('anomal')) return 'insights';
   if (l.includes('rule') || l.includes('automat') || l.includes('trigger')) return 'rule';
   if ((l.includes('strateg') && (l.includes('playbook') || l.includes('plan') || l.includes('full') || l.includes('market'))) || l.includes('playbook') || l.includes('chief of staff') || l.includes('execution plan') || (l.includes('full') && l.includes('strategy')) || l.includes('channel strategy') || l.includes('marketing strategy')) return 'strategist';
-  if (l.length > 30 && !l.includes('?')) return 'product-url';
+  if (isUrl(message)) return 'product-url';
   return 'default';
 }
 
@@ -1236,14 +1239,24 @@ export function useWorkspace() {
       else if (intent === 'strategist') { setIsTyping(true); runConversationSteps(id, buildStrategistFlow()); }
       else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(id, buildMultiVariantFlow()); }
       else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(id, buildCampaignConversation(message)); }
-      else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(id, buildImageOnlyFlow()); }
-      else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(id, buildVideoAvatarFlow()); }
-      else if (intent === 'creative-video-motion') { creativeFlowModeRef.current = 'motion'; setIsTyping(true); runConversationSteps(id, buildVideoMotionFlow()); }
-      else if (intent === 'creative-both' || intent === 'create-flow') {
-        // Unified creative flow — smart detection
+      else if (intent === 'creative-images' || intent === 'creative-video' || intent === 'creative-video-motion' || intent === 'creative-both' || intent === 'create-flow') {
+        // All creative intents go through unified flow
         const { creativeType, response } = buildUnifiedCreativeFlow(message);
-        if (creativeType !== 'ambiguous') creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
-        else creativeFlowModeRef.current = null;
+        if (creativeType !== 'ambiguous') {
+          creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
+        } else if (intent === 'creative-images') {
+          creativeFlowModeRef.current = 'images';
+          const imgFlow = buildUnifiedCreativeFlow('create image ads');
+          respondWithSim(id, imgFlow.response);
+          return;
+        } else if (intent === 'creative-video' || intent === 'creative-video-motion') {
+          creativeFlowModeRef.current = 'video';
+          const vidFlow = buildUnifiedCreativeFlow('create video ad');
+          respondWithSim(id, vidFlow.response);
+          return;
+        } else {
+          creativeFlowModeRef.current = null;
+        }
         respondWithSim(id, response);
       }
       else if (intent === 'audit') { setIsTyping(true); runConversationSteps(id, buildAuditFlow()); }
@@ -1376,6 +1389,7 @@ export function useWorkspace() {
     if (wasAskingForProduct && (intent === 'product-url' || intent === 'default')) {
       setIsTyping(true);
       const tid = activeThreadId;
+      const isUnifiedCreativeThread = creativeFlowModeRef.current !== null;
       respondWithSim(tid, { content: `🔍 Analyzing your product... pulling details now.` });
       (async () => {
         try {
@@ -1388,6 +1402,10 @@ export function useWorkspace() {
             return;
           }
           const aiProduct = data as Record<string, any>;
+          // Use unified-product-confirmed action if in unified creative flow
+          const confirmAction = isUnifiedCreativeThread
+            ? 'unified-product-confirmed'
+            : (aiProduct.hasVariants ? 'product-confirmed-variants' : 'product-confirmed');
           respondWithSim(tid, {
             content: `I've analyzed your product and pulled the key details. Take a look — everything checks out?`,
             artifacts: [{ type: 'product-analysis' as ArtifactType, titleSuffix: 'Product Analysis', dataOverrides: {
@@ -1402,7 +1420,7 @@ export function useWorkspace() {
               targetAudience: aiProduct.targetAudience || '',
             } }],
             actionChips: [
-              { label: '✅ Looks good — continue', action: aiProduct.hasVariants ? 'product-confirmed-variants' : 'product-confirmed' },
+              { label: '✅ Looks good — continue', action: confirmAction },
               { label: '✏️ Edit product details', action: 'edit-product' },
             ],
           }, 500);
@@ -1472,13 +1490,21 @@ export function useWorkspace() {
     } else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(activeThreadId, buildMultiVariantFlow()); }
     else if (intent === 'strategist') { setIsTyping(true); runConversationSteps(activeThreadId, buildStrategistFlow()); }
     else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
-    else if (intent === 'creative-images') { creativeFlowModeRef.current = 'images'; setIsTyping(true); runConversationSteps(activeThreadId, buildImageOnlyFlow()); }
-    else if (intent === 'creative-video') { creativeFlowModeRef.current = 'video'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoAvatarFlow()); }
-    else if (intent === 'creative-video-motion') { creativeFlowModeRef.current = 'motion'; setIsTyping(true); runConversationSteps(activeThreadId, buildVideoMotionFlow()); }
-    else if (intent === 'creative-both' || intent === 'create-flow') {
+    else if (intent === 'creative-images' || intent === 'creative-video' || intent === 'creative-video-motion' || intent === 'creative-both' || intent === 'create-flow') {
       const { creativeType, response } = buildUnifiedCreativeFlow(content);
-      if (creativeType !== 'ambiguous') creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
-      else creativeFlowModeRef.current = null;
+      if (creativeType !== 'ambiguous') {
+        creativeFlowModeRef.current = creativeType === 'both' ? 'both' : creativeType === 'video' ? 'video' : 'images';
+      } else if (intent === 'creative-images') {
+        creativeFlowModeRef.current = 'images';
+        respondWithSim(activeThreadId, buildUnifiedCreativeFlow('create image ads').response);
+        return;
+      } else if (intent === 'creative-video' || intent === 'creative-video-motion') {
+        creativeFlowModeRef.current = 'video';
+        respondWithSim(activeThreadId, buildUnifiedCreativeFlow('create video ad').response);
+        return;
+      } else {
+        creativeFlowModeRef.current = null;
+      }
       respondWithSim(activeThreadId, response);
     }
     else if (intent === 'connect-facebook') { setIsTyping(true); runConversationSteps(activeThreadId, buildFacebookConnectFlow()); }
