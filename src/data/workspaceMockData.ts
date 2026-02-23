@@ -515,7 +515,81 @@ export const artifactTemplates: Record<string, Partial<Artifact>> = {
       selectedModelId: null,
     },
   },
+  'video-setup': {
+    type: 'video-setup',
+    title: 'AI Video Generation',
+    data: {
+      selectedTemplateId: null,
+      selectedAvatarId: null,
+      productDescription: '',
+      referenceImageUrl: null,
+      aspect: '16:9',
+      length: '30s',
+      model: 'VEO',
+    },
+  },
+  'use-case-templates': {
+    type: 'use-case-templates',
+    title: 'Choose a Use Case',
+    data: {
+      templates: [],
+      selectedTemplateId: null,
+    },
+  },
 };
+
+// Video use case templates
+export const VIDEO_USE_CASE_TEMPLATES = [
+  {
+    id: 'product-hands-on',
+    label: 'Product Hands-On',
+    description: 'Avatar holds and demonstrates your product up close',
+    thumbnail: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?w=300&h=400&fit=crop',
+    recommended: true,
+  },
+  {
+    id: 'product-review',
+    label: 'Product Review',
+    description: 'Avatar gives an honest, engaging review of your product',
+    thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'unboxing',
+    label: 'Unboxing',
+    description: 'Avatar unboxes and reacts to your product on camera',
+    thumbnail: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'testimonial',
+    label: 'Testimonial',
+    description: 'Avatar shares a personal story about using the product',
+    thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'explainer',
+    label: 'Explainer',
+    description: 'Avatar explains features and benefits in a clear, concise format',
+    thumbnail: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'before-after',
+    label: 'Before & After',
+    description: 'Avatar shows transformation results with your product',
+    thumbnail: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'lifestyle',
+    label: 'Lifestyle',
+    description: 'Avatar uses the product in a real-life setting',
+    thumbnail: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=300&h=400&fit=crop',
+  },
+  {
+    id: 'comparison',
+    label: 'Comparison',
+    description: 'Avatar compares your product with alternatives',
+    thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&h=400&fit=crop',
+  },
+];
 
 export const mockMessages: ThreadMessage[] = [
   {

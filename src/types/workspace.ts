@@ -70,7 +70,9 @@ export type ArtifactType =
   | 'media-upload'
   | 'creative-library'
   | 'strategy-playbook'
-  | 'model-selection';
+  | 'model-selection'
+  | 'video-setup'
+  | 'use-case-templates';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 

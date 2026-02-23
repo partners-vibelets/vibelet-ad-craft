@@ -55,6 +55,8 @@ const typeLabels: Record<ArtifactType, string> = {
   'creative-library': 'Library',
   'strategy-playbook': 'Strategy',
   'model-selection': 'AI Model',
+  'video-setup': 'Video Setup',
+  'use-case-templates': 'Templates',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -87,6 +89,8 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'creative-library': <ImageIcon className="w-3.5 h-3.5" />,
   'strategy-playbook': <FileText className="w-3.5 h-3.5" />,
   'model-selection': <Wand2 className="w-3.5 h-3.5" />,
+  'video-setup': <Video className="w-3.5 h-3.5" />,
+  'use-case-templates': <Layers className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -170,6 +174,8 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'creative-library': return <CreativeLibraryBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     case 'strategy-playbook': return <StrategyPlaybookBody artifact={artifact} />;
     case 'model-selection': return <ModelSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'video-setup': return <VideoSetupBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
+    case 'use-case-templates': return <UseCaseTemplatesBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -3489,6 +3495,331 @@ const ModelSelectionBody = ({ artifact, onUpdateData, onArtifactAction }: { arti
           </Button>
         </div>
       )}
+    </div>
+  );
+};
+
+// ========== USE CASE TEMPLATES ==========
+const UseCaseTemplatesBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const templates = d.templates || [];
+  const [selectedId, setSelectedId] = useState<string | null>(d.selectedTemplateId || null);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Layers className="w-3.5 h-3.5 text-primary/60" />
+        <span className="text-xs text-muted-foreground uppercase tracking-wider">Choose a Use Case</span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {templates.map((tmpl: any) => {
+          const isSelected = selectedId === tmpl.id;
+          return (
+            <button
+              key={tmpl.id}
+              onClick={() => {
+                setSelectedId(tmpl.id);
+                onArtifactAction?.(artifact.id, 'template-selected', { templateId: tmpl.id, templateLabel: tmpl.label });
+              }}
+              className={cn(
+                "relative rounded-xl overflow-hidden aspect-[3/4] group transition-all duration-200 text-left",
+                isSelected
+                  ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-md"
+                  : "border border-border/40 hover:border-primary/40 hover:shadow-sm"
+              )}
+            >
+              <img src={tmpl.thumbnail} alt={tmpl.label} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              {tmpl.recommended && (
+                <Badge variant="secondary" className="absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 bg-primary/90 text-primary-foreground border-0">
+                  ⭐ Top
+                </Badge>
+              )}
+              {isSelected && (
+                <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="w-3 h-3 text-primary-foreground" />
+                </div>
+              )}
+              <div className="absolute bottom-0 left-0 right-0 p-2">
+                <p className="text-xs font-semibold text-white">{tmpl.label}</p>
+                <p className="text-[10px] text-white/70 line-clamp-2 mt-0.5">{tmpl.description}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ========== VIDEO SETUP (AI GENERATION PANEL) ==========
+const VideoSetupBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: Artifact; onUpdateData: (id: string, d: Record<string, any>) => void; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const avatars = d.avatars || [];
+  const selectedAvatarId = d.selectedAvatarId;
+  const aspect = d.aspect || '16:9';
+  const length = d.length || '30s';
+  const model = d.model || 'VEO';
+  const productDescription = d.productDescription || '';
+  const referenceImageUrl = d.referenceImageUrl;
+  const templateLabel = d.templateLabel || 'Video Ad';
+  const [avatarPage, setAvatarPage] = useState(0);
+  const avatarsPerPage = 3;
+  const totalPages = Math.ceil(avatars.length / avatarsPerPage);
+  const visibleAvatars = avatars.slice(avatarPage * avatarsPerPage, (avatarPage + 1) * avatarsPerPage);
+  const [descText, setDescText] = useState(productDescription);
+
+  const update = (key: string, value: any) => onUpdateData(artifact.id, { ...d, [key]: value });
+
+  const aspects = ['9:16', '16:9', '1:1'];
+  const lengths = ['15s', '30s', '60s'];
+  const models = ['VEO', 'GROK', 'SORA'];
+
+  const canGenerate = selectedAvatarId && descText.trim().length > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Wand2 className="w-4 h-4 text-primary" />
+        <div>
+          <p className="text-sm font-semibold text-foreground uppercase tracking-wider">AI Generation</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Refine your generation parameters</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_1fr_1fr] gap-4">
+        {/* Left: Template Preview */}
+        <div className="space-y-2">
+          {d.templateThumbnail ? (
+            <div className="aspect-[3/4] rounded-xl overflow-hidden border border-border/40">
+              <img src={d.templateThumbnail} alt={templateLabel} className="w-full h-full object-cover" />
+            </div>
+          ) : referenceImageUrl ? (
+            <div className="aspect-[3/4] rounded-xl overflow-hidden border border-border/40">
+              <img src={referenceImageUrl} alt="Reference" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="aspect-[3/4] rounded-xl border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/10">
+              <div className="text-center">
+                <ImageIcon className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
+                <p className="text-[10px] text-muted-foreground">No preview</p>
+              </div>
+            </div>
+          )}
+          <p className="text-xs font-medium text-foreground text-center">{templateLabel}</p>
+        </div>
+
+        {/* Center: Avatar Styles + Parameters */}
+        <div className="space-y-4">
+          {/* Avatar Styles */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                <User className="w-3 h-3" /> Avatar Styles <span className="text-destructive">*</span>
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <button onClick={() => setAvatarPage(p => Math.max(0, p - 1))} disabled={avatarPage === 0} className="hover:text-foreground disabled:opacity-30">
+                    <ChevronDown className="w-3 h-3 rotate-90" />
+                  </button>
+                  <span>{avatarPage + 1}/{totalPages}</span>
+                  <button onClick={() => setAvatarPage(p => Math.min(totalPages - 1, p + 1))} disabled={avatarPage >= totalPages - 1} className="hover:text-foreground disabled:opacity-30">
+                    <ChevronDown className="w-3 h-3 -rotate-90" />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {visibleAvatars.map((av: any) => {
+                const isSelected = selectedAvatarId === av.id;
+                return (
+                  <button
+                    key={av.id}
+                    onClick={() => update('selectedAvatarId', av.id)}
+                    className={cn(
+                      "relative rounded-lg overflow-hidden aspect-[3/4] transition-all duration-200",
+                      isSelected ? "ring-2 ring-primary" : "border border-border/40 hover:border-primary/40"
+                    )}
+                  >
+                    <img src={av.imageUrl} alt={av.name} className="w-full h-full object-cover" />
+                    {isSelected && (
+                      <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1 py-0.5">
+                      <p className="text-[9px] font-medium text-white text-center truncate">{av.name}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Parameters */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+              <Settings2 className="w-3 h-3" /> Parameters
+            </p>
+            <div className="space-y-2">
+              {/* Aspect */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 uppercase">Aspect</span>
+                <div className="flex gap-1 flex-1">
+                  {aspects.map(a => (
+                    <button
+                      key={a}
+                      onClick={() => update('aspect', a)}
+                      className={cn(
+                        "flex-1 text-[10px] py-1 rounded-md font-medium transition-all",
+                        aspect === a
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {a === '9:16' && '📱 '}{a === '16:9' && '🖥️ '}{a === '1:1' && '⬜ '}{a}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Length */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 uppercase">Length</span>
+                <div className="flex gap-1 flex-1">
+                  {lengths.map(l => (
+                    <button
+                      key={l}
+                      onClick={() => update('length', l)}
+                      className={cn(
+                        "flex-1 text-[10px] py-1 rounded-md font-medium transition-all",
+                        length === l
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Model */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 uppercase">Model</span>
+                <div className="flex gap-1 flex-1">
+                  {models.map(m => (
+                    <button
+                      key={m}
+                      onClick={() => update('model', m)}
+                      className={cn(
+                        "flex-1 text-[10px] py-1 rounded-md font-medium transition-all",
+                        model === m
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Product Description + Reference Image */}
+        <div className="space-y-4">
+          {/* Product Description */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Product Description <span className="text-destructive">*</span>
+            </p>
+            <Textarea
+              value={descText}
+              onChange={e => {
+                if (e.target.value.length <= 200) {
+                  setDescText(e.target.value);
+                  update('productDescription', e.target.value);
+                }
+              }}
+              placeholder="Enter product details..."
+              className="min-h-[100px] resize-none text-xs"
+            />
+            <p className="text-[10px] text-muted-foreground text-right mt-0.5">{descText.length}/200</p>
+          </div>
+
+          {/* Reference Image */}
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" /> Reference Image <span className="text-destructive">*</span>
+            </p>
+            {referenceImageUrl ? (
+              <div className="relative rounded-lg overflow-hidden border border-border/40 aspect-video">
+                <img src={referenceImageUrl} alt="Reference" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => update('referenceImageUrl', null)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive/80 flex items-center justify-center"
+                >
+                  <X className="w-3 h-3 text-destructive-foreground" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  // Simulate upload with a sample image
+                  update('referenceImageUrl', 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400&h=300&fit=crop');
+                }}
+                className="w-full rounded-lg border-2 border-dashed border-border/60 hover:border-primary/40 py-6 flex flex-col items-center gap-1.5 transition-colors"
+              >
+                <Upload className="w-5 h-5 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-foreground uppercase">Upload Product</span>
+                <span className="text-[9px] text-muted-foreground">PNG, JPG, JPEG, WEBP • Max 10 MB</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom: Reset & Generate */}
+      <div className="flex items-center justify-between pt-2 border-t border-border/30">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-[10px] text-muted-foreground uppercase tracking-wider h-7"
+          onClick={() => {
+            onUpdateData(artifact.id, {
+              ...d,
+              selectedAvatarId: null,
+              productDescription: '',
+              referenceImageUrl: null,
+              aspect: '16:9',
+              length: '30s',
+              model: 'VEO',
+            });
+            setDescText('');
+          }}
+        >
+          Reset All
+        </Button>
+        <Button
+          size="sm"
+          className="text-xs h-8 gap-1.5 px-6"
+          disabled={!canGenerate}
+          onClick={() => onArtifactAction?.(artifact.id, 'generate-video', {
+            templateId: d.selectedTemplateId,
+            avatarId: selectedAvatarId,
+            productDescription: descText,
+            referenceImageUrl,
+            aspect,
+            length,
+            model,
+          })}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          Generate Video
+        </Button>
+      </div>
     </div>
   );
 };

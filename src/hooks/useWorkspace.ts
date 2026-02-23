@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
 import { supabase } from '@/integrations/supabase/client';
-import { getThreadWithData, artifactTemplates, mockThreads as baseMockThreads } from '@/data/workspaceMockData';
+import { getThreadWithData, artifactTemplates, mockThreads as baseMockThreads, VIDEO_USE_CASE_TEMPLATES } from '@/data/workspaceMockData';
 import { AVATARS } from '@/data/avatars';
 import { mockReasons, mockActions, mockWasteItems, mockLiveAlerts, mockHealthMetrics, mockQuickWins } from '@/components/command-center/mockData';
 
@@ -215,7 +215,7 @@ function buildUnifiedCreativeFlow(userMessage: string): { creativeType: 'image' 
     return {
       creativeType: 'ambiguous',
       response: {
-        content: `I'd love to create ad creatives for you! 🎨\n\n**What type of creatives do you need?** I'll handle everything from product analysis to final assets.`,
+        content: `I'd love to create ad creatives for you! 🎨\n\n**What type of creatives do you need?** I'll handle everything from setup to final assets.`,
         actionChips: [
           { label: '🖼️ Image ads', action: 'unified-type-image' },
           { label: '🎬 Video ad', action: 'unified-type-video' },
@@ -225,18 +225,36 @@ function buildUnifiedCreativeFlow(userMessage: string): { creativeType: 'image' 
     };
   }
 
-  const typeLabel = creativeType === 'both' ? '**image + video ads**' : creativeType === 'video' ? 'a **video ad**' : '**image ads**';
-  const model = getRecommendedModel(creativeType === 'both' ? 'video' : creativeType);
+  if (creativeType === 'video' || creativeType === 'both') {
+    // Video flow: show use case templates directly
+    return {
+      creativeType,
+      response: {
+        content: creativeType === 'both'
+          ? `Great — I'll create both **image + video ads**! 🚀\n\nLet's start with the video. **Pick a use case template** below — it'll define the style and structure of your video ad.`
+          : `I'll create a **video ad** for you! 🎬\n\n**Pick a use case template** below — it defines how your product will be presented.`,
+        artifacts: [{
+          type: 'use-case-templates' as ArtifactType,
+          titleSuffix: 'Choose a Video Template',
+          dataOverrides: {
+            templates: VIDEO_USE_CASE_TEMPLATES,
+            selectedTemplateId: null,
+          },
+        }],
+      },
+    };
+  }
 
+  // Image flow: show style selection directly
   return {
-    creativeType,
+    creativeType: 'image',
     response: {
-      content: `Got it — I'll create ${typeLabel} for you! 🚀\n\nFirst, I need your product details so I can tailor everything perfectly.\n\n**Share a product URL**, describe it, or use a sample.`,
+      content: `I'll generate **image ads** for you! 🖼️\n\nWhat style do you want?`,
       actionChips: [
-        { label: '🔗 Paste a URL', action: 'unified-product-url' },
-        { label: '📝 Describe it', action: 'unified-product-describe' },
-        { label: '⚡ Use sample product', action: 'unified-product-sample' },
-        { label: '📤 Upload product image', action: 'unified-product-upload' },
+        { label: '😎 Bold & Trendy', action: 'unified-style-bold' },
+        { label: '🌿 Clean & Minimal', action: 'unified-style-minimal' },
+        { label: '🎉 Fun & Vibrant', action: 'unified-style-fun' },
+        { label: '✨ AI picks the best', action: 'unified-style-auto' },
       ],
     },
   };
@@ -1554,18 +1572,71 @@ export function useWorkspace() {
       creativeFlowModeRef.current = type === 'both' ? 'both' : type === 'video' ? 'video' : 'images';
       const model = getRecommendedModel(type === 'both' ? 'video' : type);
       selectedModelRef.current = model;
-      const typeLabel = type === 'both' ? '**image + video ads**' : type === 'video' ? 'a **video ad**' : '**image ads**';
-      respondWithSim(activeThreadId, {
-        content: `Great choice — I'll create ${typeLabel}! 🚀\n\nFirst, I need your product details. **Share a URL**, describe it, or use a sample.`,
-        actionChips: [
-          { label: '🔗 Paste a URL', action: 'unified-product-url' },
-          { label: '📝 Describe it', action: 'unified-product-describe' },
-          { label: '⚡ Use sample product', action: 'unified-product-sample' },
-          { label: '📤 Upload product image', action: 'unified-product-upload' },
-        ],
-      });
+
+      if (type === 'video' || type === 'both') {
+        // Show use-case templates for video flows
+        const typeLabel = type === 'both' ? 'both **image + video ads**' : 'a **video ad**';
+        respondWithSim(activeThreadId, {
+          content: `Great choice — I'll create ${typeLabel}! 🚀\n\n**Pick a use case template** below to define the video style.`,
+          artifacts: [{
+            type: 'use-case-templates' as ArtifactType,
+            titleSuffix: 'Choose a Video Template',
+            dataOverrides: {
+              templates: VIDEO_USE_CASE_TEMPLATES,
+              selectedTemplateId: null,
+            },
+          }],
+        });
+      } else {
+        // Image flow: style selection
+        respondWithSim(activeThreadId, {
+          content: `I'll generate **image ads** for you! 🖼️\n\nWhat style do you want?`,
+          actionChips: [
+            { label: '😎 Bold & Trendy', action: 'unified-style-bold' },
+            { label: '🌿 Clean & Minimal', action: 'unified-style-minimal' },
+            { label: '🎉 Fun & Vibrant', action: 'unified-style-fun' },
+            { label: '✨ AI picks the best', action: 'unified-style-auto' },
+          ],
+        });
+      }
       return;
     }
+
+    // Template selected → show video setup panel
+    if (action === 'template-selected') {
+      return; // Handled by handleArtifactAction
+    }
+
+    // Unified style selection → generate images
+    if (action.startsWith('unified-style-')) {
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : 'both';
+      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
+      selectedModelRef.current = model;
+      // Go straight to image generation
+      respondWithSim(activeThreadId, unifiedGenerationResponse('image', model.name), 800);
+      setTimeout(() => respondWithSim(activeThreadId, creativeResultResponse(model.name, true), 600), 9000);
+      return;
+    }
+
+    // Model change
+    if (action.startsWith('unified-change-model-')) {
+      const type = action.replace('unified-change-model-', '') as 'image' | 'video' | 'both';
+      respondWithSim(activeThreadId, modelSelectionResponse(type));
+      return;
+    }
+
+    // Start generating (unified)
+    if (action === 'unified-generate') {
+      const mode = creativeFlowModeRef.current || 'images';
+      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
+      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
+      respondWithSim(activeThreadId, unifiedGenerationResponse(creativeType as 'image' | 'video' | 'both', model.name), 800);
+      setTimeout(() => respondWithSim(activeThreadId, creativeResultResponse(model.name, creativeType === 'image'), 600), 9000);
+      return;
+    }
+
+    // Legacy unified product flow actions — keep for backward compat but not used in new flow
     if (action === 'unified-product-url') {
       respondWithSim(activeThreadId, { content: "Sure! Paste your product URL below and I'll analyze it automatically. 🔗" });
       return;
@@ -1579,7 +1650,6 @@ export function useWorkspace() {
       return;
     }
     if (action === 'unified-product-sample') {
-      const thread = threads[activeThreadId];
       respondWithSim(activeThreadId, {
         ...styleToProductAnalysis('bold', 'tshirt'),
         actionChips: [
@@ -1593,37 +1663,6 @@ export function useWorkspace() {
       const mode = creativeFlowModeRef.current || 'images';
       const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
       respondWithSim(activeThreadId, unifiedProductConfirmedResponse(creativeType as 'image' | 'video' | 'both'));
-      return;
-    }
-    // Unified style selection → show model selection, then generate
-    if (action.startsWith('unified-style-')) {
-      const mode = creativeFlowModeRef.current || 'images';
-      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : 'both';
-      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
-      selectedModelRef.current = model;
-      // Go straight to generation with smart default model
-      respondWithSim(activeThreadId, {
-        content: `🎨 Style locked in! I'll generate your creatives using **${model.name}** — our top pick for ${creativeType === 'image' ? 'product images' : 'video ads'}.`,
-        actionChips: [
-          { label: '🚀 Start generating', action: 'unified-generate' },
-          { label: '🔄 Change AI model', action: `unified-change-model-${creativeType}` },
-        ],
-      });
-      return;
-    }
-    // Model change
-    if (action.startsWith('unified-change-model-')) {
-      const type = action.replace('unified-change-model-', '') as 'image' | 'video' | 'both';
-      respondWithSim(activeThreadId, modelSelectionResponse(type));
-      return;
-    }
-    // Start generating (unified)
-    if (action === 'unified-generate') {
-      const mode = creativeFlowModeRef.current || 'images';
-      const creativeType = mode === 'images' ? 'image' : mode === 'video' ? 'video' : mode === 'both' ? 'both' : 'image';
-      const model = selectedModelRef.current || getRecommendedModel(creativeType as 'image' | 'video');
-      respondWithSim(activeThreadId, unifiedGenerationResponse(creativeType as 'image' | 'video' | 'both', model.name), 800);
-      setTimeout(() => respondWithSim(activeThreadId, creativeResultResponse(model.name, creativeType === 'image'), 600), 9000);
       return;
     }
 
@@ -2145,12 +2184,64 @@ export function useWorkspace() {
       return;
     }
     if (action === 'script-selected') {
-      // In unified flow, after script → show avatar, then model selection
       respondWithSim(activeThreadId, avatarResponse);
       return;
     }
+    // Template selected → show video setup panel
+    if (action === 'template-selected' && payload?.templateId) {
+      const tmpl = VIDEO_USE_CASE_TEMPLATES.find((t: any) => t.id === payload.templateId);
+      respondWithSim(activeThreadId, {
+        content: `Great pick — **${tmpl?.label || 'Template'}**! 🎬\n\nNow configure your video below — pick an avatar, set parameters, add your product details, and hit **Generate Video**.`,
+        artifacts: [{
+          type: 'video-setup' as ArtifactType,
+          titleSuffix: `AI Video Generation — ${tmpl?.label || 'Video'}`,
+          dataOverrides: {
+            selectedTemplateId: payload.templateId,
+            templateLabel: tmpl?.label || 'Video Ad',
+            templateThumbnail: tmpl?.thumbnail,
+            avatars: AVATARS.slice(0, 8).map(a => ({ id: a.id, name: a.name, style: a.style, imageUrl: a.imageUrl })),
+            selectedAvatarId: null,
+            productDescription: '',
+            referenceImageUrl: null,
+            aspect: '16:9',
+            length: '30s',
+            model: 'VEO',
+          },
+        }],
+      });
+      return;
+    }
+    // Generate video from setup panel
+    if (action === 'generate-video' && payload) {
+      const avatarObj = AVATARS.find(a => a.id === payload.avatarId);
+      const avatarName = avatarObj?.name || 'AI Avatar';
+      respondWithSim(activeThreadId, {
+        content: `🎬 Generating your **${payload.length || '30s'} video** using **${payload.model || 'VEO'}** with **${avatarName}**...\n\nAspect: ${payload.aspect || '16:9'} · This takes about a minute.`,
+        artifacts: [{ type: 'generation-progress' as ArtifactType, titleSuffix: 'Generating Video', dataOverrides: {
+          stage: 'rendering', progress: 35,
+          outputs: [
+            { id: 'out-v1', type: 'video', label: `${avatarName} — Video Ad`, format: 'video', dimensions: payload.aspect === '9:16' ? '1080×1920' : payload.aspect === '1:1' ? '1080×1080' : '1920×1080', status: 'generating', duration: payload.length || '30s' },
+          ],
+        } }],
+      }, 800);
+      setTimeout(() => respondWithSim(activeThreadId, {
+        content: `🎉 **Your video is ready!** Preview it below.`,
+        artifacts: [{ type: 'creative-result' as ArtifactType, titleSuffix: 'Generated Video', dataOverrides: {
+          outputs: [
+            { id: 'res-v1', type: 'video', label: `${avatarName} — Video Ad`, url: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1080&h=1920&fit=crop', thumbnailUrl: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=350&fit=crop', format: 'mp4', dimensions: payload.aspect === '9:16' ? '1080×1920' : '1920×1080', duration: payload.length || '30s' },
+          ],
+          selectedIndex: 0,
+        } }],
+        actionChips: [
+          { label: '📱 Connect Facebook & publish', action: 'connect-facebook' },
+          { label: '📥 Download', action: 'download-all' },
+          { label: '🔄 Generate another', action: 'create-flow-from-campaign' },
+          ...(creativeFlowModeRef.current === 'both' ? [{ label: '🖼️ Now generate images', action: 'unified-type-image' }] : []),
+        ],
+      }, 600), 9000);
+      return;
+    }
     if (action === 'model-selected') {
-      // Just update ref, user can confirm via artifact button
       if (payload?.modelId && payload?.modelName) {
         selectedModelRef.current = { id: payload.modelId, name: payload.modelName };
       }
