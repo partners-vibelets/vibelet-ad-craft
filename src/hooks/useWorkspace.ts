@@ -21,7 +21,7 @@ interface ConversationStep {
 type Intent =
   | 'campaign' | 'create-flow' | 'creative-images' | 'creative-video' | 'creative-both'
   | 'creative-video-motion' | 'connect-facebook' | 'audit' | 'publish' | 'performance'
-  | 'insights' | 'rule' | 'demo' | 'product-url' | 'upload' | 'library' | 'multi-variant' | 'strategist' | 'default';
+  | 'insights' | 'rule' | 'demo' | 'product-url' | 'upload' | 'library' | 'multi-variant' | 'strategist' | 'advance-strategy' | 'default';
 
 function isUrl(message: string): boolean {
   return /https?:\/\/|www\.|\.com|\.shop|\.store|\.co\b|\.io\b|\.net\b|\.org\b/i.test(message);
@@ -46,10 +46,11 @@ function detectIntent(message: string): Intent {
   // Broader creative detection: "ad for X", "promote X", "advertise X"
   if ((l.includes('ad ') || l.includes('ads ') || l.includes('ad') || l.includes('promote') || l.includes('advertise') || l.includes('marketing'))
     && (l.includes(' for ') || l.includes(' my ') || l.includes(' our ') || l.includes(' this '))) return 'create-flow';
-  if (l.includes('campaign') || l.includes('plan') || l.includes('blueprint') || l.includes('summer') || l.includes('launch')) return 'campaign';
+  if (l.includes('campaign') || l.includes('blueprint') || l.includes('summer') || l.includes('launch')) return 'campaign';
   if (l.includes('performance') || l.includes('metrics') || (l.includes('how') && l.includes('doing'))) return 'performance';
   if (l.includes('insight') || l.includes('signal') || l.includes('anomal')) return 'insights';
   if (l.includes('rule') || l.includes('automat') || l.includes('trigger')) return 'rule';
+  if ((l.includes('advance') && l.includes('strateg')) || l.includes('media buying') || l.includes('campaign architecture') || (l.includes('complex') && l.includes('campaign')) || (l.includes('multiple') && l.includes('ad set')) || l.includes('scaling strategy') || (l.includes('advanced') && l.includes('planning')) || (l.includes('meta') && l.includes('strateg')) || (l.includes('scale') && l.includes('ads'))) return 'advance-strategy';
   if ((l.includes('strateg') && (l.includes('playbook') || l.includes('plan') || l.includes('full') || l.includes('market'))) || l.includes('playbook') || l.includes('chief of staff') || l.includes('execution plan') || (l.includes('full') && l.includes('strategy')) || l.includes('channel strategy') || l.includes('marketing strategy')) return 'strategist';
   if (isUrl(message)) return 'product-url';
   return 'default';
@@ -954,6 +955,14 @@ async function callChatAI(messages: { role: string; content: string }[], threadC
   return data?.reply || "I'm here to help! What would you like to work on?";
 }
 
+async function callAdvanceStrategistAI(messages: { role: string; content: string }[]): Promise<any> {
+  const { data, error } = await supabase.functions.invoke('advance-strategist', {
+    body: { messages },
+  });
+  if (error) throw error;
+  return data;
+}
+
 function aiDataToPlaybookResponse(aiData: any, productName: string): SimResponse {
   const confidence = aiData.confidence ?? 0.85;
   const hasQuestions = aiData.questions && Array.isArray(aiData.questions);
@@ -1143,6 +1152,7 @@ export function useWorkspace() {
   const selectedModelRef = useRef<{ id: string; name: string } | null>(null);
   const variantStrategyRef = useRef<string>('cbo');
   const variantSelectedCountRef = useRef<number>(3);
+  const advanceStrategyHistoryRef = useRef<{ role: string; content: string }[]>([]);
 
   const activeThread = activeThreadId ? threads[activeThreadId] : null;
 
@@ -1215,6 +1225,37 @@ export function useWorkspace() {
     return timer;
   }, [appendMessage]);
 
+  const handleAdvanceStrategyResponse = useCallback((threadId: string, aiResponse: any) => {
+    if (aiResponse.mode === 'plan' && aiResponse.strategyPlan) {
+      // AI generated a structured plan — render it as strategy-architecture artifact
+      respondWithSim(threadId, {
+        content: aiResponse.message || "Here's my recommended campaign architecture based on everything you've shared.",
+        artifacts: [{
+          type: 'strategy-architecture' as ArtifactType,
+          titleSuffix: 'Campaign Architecture',
+          dataOverrides: {
+            strategyPlan: aiResponse.strategyPlan,
+          },
+        }],
+        actionChips: [
+          { label: '✅ Approve & Execute', action: 'approve-advance-strategy' },
+          { label: '✏️ I want to tweak something', action: 'tweak-advance-strategy' },
+          { label: '🔄 Rethink the approach', action: 'rethink-advance-strategy' },
+        ],
+      }, 300);
+    } else {
+      // Discovery mode — show AI message with suggested chips
+      const chips: ActionChip[] = (aiResponse.suggestedChips || []).map((chip: any) => ({
+        label: chip.label,
+        action: `advance-strategy-chip::${chip.value || chip.label}`,
+      }));
+      respondWithSim(threadId, {
+        content: aiResponse.message || "Tell me more about your business so I can design the right strategy.",
+        actionChips: chips.length > 0 ? chips : undefined,
+      }, 300);
+    }
+  }, [respondWithSim]);
+
   const enterWorkspaceFromHome = useCallback((message: string, context?: { path: string; filters?: Record<string, string[]> }) => {
     if (!message.trim() && !context) {
       setIsHomeMode(true);
@@ -1238,6 +1279,7 @@ export function useWorkspace() {
       : intent === 'upload' ? 'Upload Creatives'
       : intent === 'library' ? 'Creative Library'
       : intent === 'strategist' ? 'Marketing Strategy'
+      : intent === 'advance-strategy' ? 'Advanced Strategy Planning'
       : 'New Thread';
 
     const newThread: Thread = {
@@ -1254,6 +1296,20 @@ export function useWorkspace() {
       appendMessage(id, userMsg);
 
       if (intent === 'demo') { isDemoRef.current = true; setIsTyping(true); runConversationSteps(id, buildDemoFlow()); }
+      else if (intent === 'advance-strategy') {
+        advanceStrategyHistoryRef.current = [{ role: 'user', content: message }];
+        setIsTyping(true);
+        (async () => {
+          try {
+            const aiResponse = await callAdvanceStrategistAI(advanceStrategyHistoryRef.current);
+            advanceStrategyHistoryRef.current.push({ role: 'assistant', content: JSON.stringify(aiResponse) });
+            handleAdvanceStrategyResponse(id, aiResponse);
+          } catch (e) {
+            console.error('Advance strategist error:', e);
+            respondWithSim(id, { content: '❌ Something went wrong connecting to the AI strategist. Please try again.' }, 300);
+          }
+        })();
+      }
       else if (intent === 'strategist') { setIsTyping(true); runConversationSteps(id, buildStrategistFlow()); }
       else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(id, buildMultiVariantFlow()); }
       else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(id, buildCampaignConversation(message)); }
@@ -1344,7 +1400,7 @@ export function useWorkspace() {
         })();
       }
     }, 100);
-  }, [appendMessage, runConversationSteps, respondWithSim]);
+  }, [appendMessage, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
 
   const sendMessage = useCallback((content: string) => {
     if (!activeThreadId) return;
@@ -1362,8 +1418,27 @@ export function useWorkspace() {
     const wasAskingForBudget = lastContent.includes('what budget');
     const wasAskingForPlan = lastChips.some(a => a.startsWith('plan-') || a.startsWith('demo-plan-')) || lastContent.includes('what\'s the main goal') || lastContent.includes('how much are you comfortable spending');
     const wasAskingForMotionStyle = lastContent.includes('motion style') || lastContent.includes('describe the video') || lastContent.includes('describe the motion');
+    const isAdvanceStrategyThread = thread?.title === 'Advanced Strategy Planning';
     const isStrategistThread = thread?.title === 'Marketing Strategy';
     const wasAskingForStrategyInput = lastContent.includes('tell me about your business') || lastContent.includes('what are you selling') || lastChips.some(a => a === 'strategist-describe');
+
+    // Advance Strategy flow: multi-turn AI conversation
+    if (isAdvanceStrategyThread) {
+      advanceStrategyHistoryRef.current.push({ role: 'user', content });
+      setIsTyping(true);
+      const tid = activeThreadId;
+      (async () => {
+        try {
+          const aiResponse = await callAdvanceStrategistAI(advanceStrategyHistoryRef.current);
+          advanceStrategyHistoryRef.current.push({ role: 'assistant', content: JSON.stringify(aiResponse) });
+          handleAdvanceStrategyResponse(tid, aiResponse);
+        } catch (e) {
+          console.error('Advance strategist error:', e);
+          respondWithSim(tid, { content: '❌ Something went wrong. Please try again.' }, 300);
+        }
+      })();
+      return;
+    }
 
     // Strategist flow: user describes business → generate playbook
     if (isStrategistThread && wasAskingForStrategyInput && intent === 'default') {
@@ -1371,7 +1446,6 @@ export function useWorkspace() {
       respondWithSim(activeThreadId, {
         content: `⏳ Building your complete marketing strategy based on what you described...\n\n🤖 **AI is analyzing** product-market fit, channel allocation, and audience signals...`,
       }, 600);
-      // Call real AI
       const tid = activeThreadId;
       setTimeout(async () => {
         try {
@@ -1506,6 +1580,21 @@ export function useWorkspace() {
         }
       })();
     } else if (intent === 'multi-variant') { setIsTyping(true); runConversationSteps(activeThreadId, buildMultiVariantFlow()); }
+    else if (intent === 'advance-strategy') {
+      advanceStrategyHistoryRef.current = [{ role: 'user', content }];
+      setIsTyping(true);
+      const tid = activeThreadId;
+      (async () => {
+        try {
+          const aiResponse = await callAdvanceStrategistAI(advanceStrategyHistoryRef.current);
+          advanceStrategyHistoryRef.current.push({ role: 'assistant', content: JSON.stringify(aiResponse) });
+          handleAdvanceStrategyResponse(tid, aiResponse);
+        } catch (e) {
+          console.error('Advance strategist error:', e);
+          respondWithSim(tid, { content: '❌ Something went wrong. Please try again.' }, 300);
+        }
+      })();
+    }
     else if (intent === 'strategist') { setIsTyping(true); runConversationSteps(activeThreadId, buildStrategistFlow()); }
     else if (intent === 'campaign') { setIsTyping(true); runConversationSteps(activeThreadId, buildCampaignConversation(content)); }
     else if (intent === 'creative-images' || intent === 'creative-video' || intent === 'creative-video-motion' || intent === 'creative-both' || intent === 'create-flow') {
@@ -1561,10 +1650,79 @@ export function useWorkspace() {
         }
       })();
     }
-  }, [activeThreadId, threads, appendMessage, runConversationSteps, respondWithSim]);
+  }, [activeThreadId, threads, appendMessage, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
 
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
+
+    // ===== ADVANCE STRATEGY FLOW ACTIONS =====
+    if (action.startsWith('advance-strategy-chip::')) {
+      const chipValue = action.replace('advance-strategy-chip::', '');
+      advanceStrategyHistoryRef.current.push({ role: 'user', content: chipValue });
+      setIsTyping(true);
+      const tid = activeThreadId;
+      (async () => {
+        try {
+          const aiResponse = await callAdvanceStrategistAI(advanceStrategyHistoryRef.current);
+          advanceStrategyHistoryRef.current.push({ role: 'assistant', content: JSON.stringify(aiResponse) });
+          handleAdvanceStrategyResponse(tid, aiResponse);
+        } catch (e) {
+          console.error('Advance strategist error:', e);
+          respondWithSim(tid, { content: '❌ Something went wrong. Please try again.' }, 300);
+        }
+      })();
+      return;
+    }
+    if (action === 'approve-advance-strategy') {
+      respondWithSim(activeThreadId, {
+        content: `🚀 **Strategy approved!** Executing the plan now...\n\n1. ⏳ Creating campaigns...\n2. ⏳ Configuring ad sets...\n3. ⏳ Assigning creatives...`,
+      }, 600);
+      setTimeout(() => {
+        respondWithSim(activeThreadId, {
+          content: `✅ **All done!** Your campaign architecture has been set up.\n\n1. ✅ Campaigns created\n2. ✅ Ad sets configured with targeting\n3. ✅ Creatives assigned\n4. ✅ Tracking & pixels connected\n\n🎉 **Everything is ready to publish.** Review one more time or go live!`,
+          artifacts: [{
+            type: 'publish-confirmation' as ArtifactType,
+            titleSuffix: 'Strategy Execution Complete',
+            dataOverrides: {
+              campaignName: 'Advanced Strategy Campaign',
+              platform: 'Facebook & Instagram',
+              publishedAt: new Date().toISOString(),
+              adCount: 6,
+              budget: { daily: 100, total: 3000 },
+              status: 'confirmed',
+            },
+          }],
+          actionChips: [
+            { label: '🚀 Publish to Facebook', action: 'publish-campaign' },
+            { label: '📱 Preview on device', action: 'preview-device' },
+            { label: '📊 View performance', action: 'performance' },
+          ],
+        }, 600);
+      }, 4000);
+      return;
+    }
+    if (action === 'tweak-advance-strategy') {
+      respondWithSim(activeThreadId, {
+        content: `Sure! Tell me what you'd like to change — budget, targeting, number of ad sets, creative formats, or anything else. I'll update the plan.`,
+      });
+      return;
+    }
+    if (action === 'rethink-advance-strategy') {
+      advanceStrategyHistoryRef.current.push({ role: 'user', content: 'I want you to rethink the entire approach. Consider a different campaign structure.' });
+      setIsTyping(true);
+      const tid = activeThreadId;
+      (async () => {
+        try {
+          const aiResponse = await callAdvanceStrategistAI(advanceStrategyHistoryRef.current);
+          advanceStrategyHistoryRef.current.push({ role: 'assistant', content: JSON.stringify(aiResponse) });
+          handleAdvanceStrategyResponse(tid, aiResponse);
+        } catch (e) {
+          console.error('Advance strategist error:', e);
+          respondWithSim(tid, { content: '❌ Something went wrong. Please try again.' }, 300);
+        }
+      })();
+      return;
+    }
 
     // ===== UNIFIED CREATIVE FLOW ACTIONS =====
     if (action === 'unified-type-image' || action === 'unified-type-video' || action === 'unified-type-both') {
@@ -2175,10 +2333,23 @@ export function useWorkspace() {
     const simple = simpleResponses[action];
     if (simple) { respondWithSim(activeThreadId, simple); return; }
     respondWithSim(activeThreadId, simpleResponses.default);
-  }, [activeThreadId, threads, runConversationSteps, respondWithSim]);
+  }, [activeThreadId, threads, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
 
   const handleArtifactAction = useCallback((artifactId: string, action: string, payload?: any) => {
     if (!activeThreadId) return;
+    // Strategy architecture artifact actions
+    if (action === 'approve-strategy-plan') {
+      handleActionChip('approve-advance-strategy');
+      return;
+    }
+    if (action === 'tweak-strategy-plan') {
+      handleActionChip('tweak-advance-strategy');
+      return;
+    }
+    if (action === 'rethink-strategy-plan') {
+      handleActionChip('rethink-advance-strategy');
+      return;
+    }
     if (action === 'facebook-connect-auth') {
       respondWithSim(activeThreadId, facebookConnectedResponse(), 2000);
       return;
