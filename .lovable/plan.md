@@ -1,142 +1,152 @@
 
 
-# Workspace UX Overhaul — Chat-First, End-to-End Simulation
+# Advanced Strategy Planning Flow — Implementation Plan
 
-## Problem Summary
+## Overview
 
-Four core issues identified:
+A new "Advanced Strategy Planning" flow powered by a real LLM (via `supabase/functions/advance-strategist/index.ts`) that behaves as a 10+ year Meta advertising expert. The AI conducts a multi-turn discovery conversation, determines the optimal campaign architecture (simple Advantage+ vs complex multi-campaign/multi-ad-set), presents an editable plan artifact, and executes on approval.
 
-1. **UI/UX lacks polish** — The guided chip-driven flow feels mechanical rather than conversational. Artifacts and responses could be richer and more contextual.
-2. **Custom upload flow is incomplete** — "Upload your own" exists but doesn't simulate the full journey (upload, preview, use in campaign). No creative library integration.
-3. **Standalone creative generation (image-only / video-only) has no tailored UX** — Different generation models need different inputs (reference image, description, script+avatar, or fully automated), but the current flow is one-size-fits-all.
-4. **Homepage use-case cards are unintuitive** — The path cards + filter chips system should be replaced with a clean chat-first homepage where everything flows from the input box via suggestion prompts.
+## UX Philosophy
+
+```text
+User intent → AI discovery conversation → AI-designed architecture → User review/edit → Auto-execute
+```
+
+No step wizards. No forms. The AI asks only what it needs via natural conversation + action chips.
 
 ---
 
-## Plan
+## 1. New Edge Function: `supabase/functions/advance-strategist/index.ts`
 
-### Phase 1: Replace Homepage Cards with Chat-First Entry
+System prompt encodes a senior Meta media buyer persona with:
+- Deep knowledge of Meta campaign structure (Campaign → Ad Set → Ad hierarchy)
+- Advantage+ Shopping vs manual campaign architecture decision logic
+- Budget allocation best practices, audience structuring, creative strategy
+- Guardrails: ask only essential questions, follow Meta policies
 
-**Remove** the `WorkspaceHome` path cards grid (the 2x2 use-case boxes + filter chips system).
+**Multi-turn conversation support**: The function accepts full `messages[]` history so the AI maintains context across turns. Uses tool-calling to extract structured output when the AI has enough info to generate the plan.
 
-**Replace with** a minimal homepage that has:
-- Personalized greeting (keep existing logic)
-- A prominent chat input at center
-- Below the input: a single row of lightweight suggestion chips that map to all existing demos/flows:
-  - "Plan a campaign" | "Generate a video ad" | "Generate image ads" | "Run account audit" | "Check performance" | "Connect Facebook" | "Set up automation" | "Run full demo"
-- No path selection, no filter chips, no category cards
-- Typing or clicking a chip immediately creates a thread and starts the flow
+**Two modes**:
+- **Discovery mode**: AI returns natural conversation text + optional `suggestedChips[]` for quick responses
+- **Plan mode**: AI returns a structured `strategyPlan` JSON with campaigns, ad sets, ads, budgets, targeting, and creatives
 
-**Files:** `src/components/workspace/WorkspaceHome.tsx` (rewrite), `src/pages/Workspace.tsx` (minor cleanup)
-
-### Phase 2: Improve Creative Generation UX for Different Models
-
-Refactor `buildCreativeConversation` and related handlers to support three distinct creative sub-flows:
-
-**A. Image-only generation:**
-1. AI asks: "Share a product URL, upload a reference image, or describe what you want" (chips: Paste URL | Upload image | Describe it | Use sample)
-2. If upload: show upload artifact with preview, then ask for style preference
-3. If URL/describe: product analysis, then style selection
-4. Generate images (no script/avatar step)
-5. Show results with download + "Use in campaign" options
-
-**B. Video generation (avatar-based):**
-1. Product input (URL/upload/describe)
-2. Script selection (3 options + "Write your own")
-3. Avatar selection grid
-4. Generation progress + results
-
-**C. Video generation (reference-image-based / description-based):**
-1. AI detects this variant when user says things like "create a video from this image" or "generate a motion video"
-2. Ask for reference image upload OR product URL
-3. Ask for motion style / duration preferences
-4. Skip script + avatar
-5. Generation progress + results
-
-**D. "Both" flow:** Combines A + B sequentially
-
-**Files:** `src/hooks/useWorkspace.ts` (refactor creative flow builders), `src/components/workspace/ArtifactRenderer.tsx` (add upload artifact body)
-
-### Phase 3: Add Upload Simulation + Creative Library Integration
-
-**Upload artifact:** New artifact type `media-upload` that renders:
-- Drag-and-drop zone or file picker
-- Simulated upload progress bar
-- Preview of uploaded file(s)
-- "Use this" action button
-
-**Creative Library chip:** Add a "Pick from library" option in creative flows that:
-- Shows a simulated library artifact (grid of previously "saved" creatives from sidebar mock data)
-- User clicks to select
-- Flow continues with the selected creative
-
-**Files:** `src/types/workspace.ts` (add `media-upload` type), `src/components/workspace/ArtifactRenderer.tsx` (add `MediaUploadBody`), `src/hooks/useWorkspace.ts` (add upload + library handlers)
-
-### Phase 4: Polish the End-to-End New Thread Flow
-
-Ensure a single new thread can walk through the complete lifecycle with proper conversational transitions:
-
-1. **Planning** (category, goal, budget, audience -- all conversational)
-2. **Product analysis** (URL/upload/describe)
-3. **Blueprint** (editable artifact)
-4. **Creative generation** (branching based on type: image/video/both)
-5. **Upload your own** option at creative step (with library integration)
-6. **Facebook connect** (artifact-based)
-7. **Campaign config** (artifact-based)
-8. **Publish** (confetti + feedback)
-9. **Performance monitoring** (live dashboard)
-10. **Audit** (30-day report with time toggles)
-11. **AI recommendations** (apply/defer/dismiss with impact tracking)
-12. **Automation rules** (create rules)
-13. **Loop back** to "Create another campaign" or "Generate more creatives"
-
-Key improvements:
-- Remove duplicate demo threads from sidebar (they become unnecessary since everything is accessible from homepage chips)
-- Action chips after each step should be contextual (not showing all options)
-- Transition messages should feel natural, not labeled as "Phase X"
-
-**Files:** `src/hooks/useWorkspace.ts` (refine all transition handlers), `src/data/workspaceMockData.ts` (clean up demo thread definitions)
-
-### Phase 5: Visual Polish
-
-- AI messages: render markdown properly (already using `formatMarkdown` but could be richer)
-- Artifact cards: subtle entrance animations (already present but could be smoother)
-- Chat input: add upload button functionality (currently decorative `Paperclip` icon)
-- Remove the "Run full demo" chip from homepage (replaced by individual flow chips)
-- Clean up suggestion chips in thread view to be contextual based on thread state
-
-**Files:** `src/pages/Workspace.tsx` (suggestion chips, chat input), `src/components/workspace/WorkspaceHome.tsx`
-
----
-
-## Technical Details
-
-### New Artifact Type
-```text
-'media-upload' added to ArtifactType union in workspace.ts
+**Tool-calling schema for structured plan extraction**:
+```typescript
+{
+  planType: 'simple' | 'complex',
+  // simple = 1 campaign, 1 ad set, 1-6 ads (Advantage+)
+  // complex = multiple campaigns/ad sets
+  campaigns: [{
+    name, objective, budgetType, dailyBudget,
+    adSets: [{
+      name, targeting, budget, placements,
+      ads: [{ name, format, primaryText, headline, cta }]
+    }]
+  }],
+  totalDailyBudget, totalMonthlyBudget,
+  rationale, confidenceScore,
+  guardrailNotes: string[]
+}
 ```
 
-### Intent Detection Updates
-- Add `'upload'` intent for messages like "upload my creative", "use my own image"
-- Add `'library'` intent for "pick from library", "use existing creative"
-- Refine `'creative-video'` vs `'creative-video-motion'` differentiation
+## 2. New Artifact Type: `strategy-architecture`
 
-### Homepage Chip-to-Flow Mapping
-```text
-"Plan a campaign"      -> campaign planning flow
-"Generate a video ad"  -> video creative flow (avatar-based)
-"Generate image ads"   -> image-only creative flow
-"Run account audit"    -> audit flow (asks for FB connect if not connected)
-"Check performance"    -> performance dashboard
-"Connect Facebook"     -> FB connect flow
-"Set up automation"    -> automation rule creation
+Added to `src/types/workspace.ts` as a new `ArtifactType`. Renders as a visual campaign architecture diagram showing:
+- Campaign(s) with objectives and budget types
+- Ad Set(s) with targeting summaries and budgets  
+- Ad(s) with format indicators and creative briefs
+- Inline editing for names, budgets, targeting
+- Color-coded confidence scores per component
+- "Simple vs Complex" badge at top
+
+Rendered in `ArtifactRenderer.tsx` as `StrategyArchitectureBody`.
+
+## 3. Intent Detection & Routing
+
+Add `'advance-strategy'` intent to `detectIntent()`:
+```
+Keywords: 'advance strategy', 'advanced strategy', 'media buying', 
+'campaign architecture', 'complex campaign', 'multiple ad sets',
+'scaling strategy', 'advanced planning', 'meta strategy'
 ```
 
-### Files Changed (Summary)
-1. `src/components/workspace/WorkspaceHome.tsx` — Rewrite to chat-first layout
-2. `src/hooks/useWorkspace.ts` — Refactor creative flows, add upload/library handlers, remove demo threads, polish transitions
-3. `src/types/workspace.ts` — Add `media-upload` artifact type
-4. `src/components/workspace/ArtifactRenderer.tsx` — Add `MediaUploadBody` and `CreativeLibraryBody`
-5. `src/pages/Workspace.tsx` — Update suggestion chips, minor cleanup
-6. `src/data/workspaceMockData.ts` — Remove demo thread templates, add upload/library artifact templates
+Add suggestion chip to `WorkspaceHome.tsx`:
+```
+{ label: '🧠 Advanced Strategy Planning', message: 'Help me plan an advanced Meta advertising strategy' }
+```
+
+## 4. Conversation Flow in `useWorkspace.ts`
+
+### Entry
+When `advance-strategy` intent detected → create thread titled "Advanced Strategy Planning" → send first AI message via edge function with empty history.
+
+### Multi-turn Discovery  
+Each user response (typed or chip-clicked) → append to `conversationHistoryRef` → call edge function with full history → render AI response + optional chips.
+
+The AI will ask things like:
+- "What's your product/service?"
+- "What's your monthly ad budget?"
+- "Have you run Meta ads before? What worked?"
+- "Do you have multiple products/audiences to target?"
+- "What's your primary KPI — ROAS, CPA, or volume?"
+
+### Plan Generation
+When the AI determines it has enough context, it returns a structured plan via tool-calling. The frontend:
+1. Renders a `strategy-architecture` artifact with the full campaign tree
+2. Shows action chips: "✅ Approve & Execute", "✏️ I want to tweak something", "🔄 Rethink the approach"
+
+### Edit Loop
+If user wants changes → their feedback goes back to the AI → AI returns an updated plan artifact (version incremented).
+
+### Execution
+On approval → simulated execution sequence:
+1. "Creating Campaign 1..." 
+2. "Configuring Ad Sets..."
+3. "Assigning creatives..."
+4. "✅ Everything is set up and ready to publish"
+→ Shows `publish-confirmation` artifact
+
+## 5. Guardrails Layer
+
+Built into the edge function system prompt:
+- **Minimum viable questions**: AI must determine strategy in ≤5 questions
+- **No redundant asks**: If product info already exists in thread, skip
+- **Meta policy compliance**: Flag restricted categories, required disclaimers
+- **Budget sanity checks**: Warn if daily budget < $10 or > $10K
+- **Structure validation**: Ensure every ad set has ≥1 ad, every campaign has objective
+
+## 6. Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `supabase/functions/advance-strategist/index.ts` | **Create** — New edge function with expert Meta strategist persona |
+| `src/types/workspace.ts` | **Modify** — Add `'strategy-architecture'` to `ArtifactType` |
+| `src/components/workspace/ArtifactRenderer.tsx` | **Modify** — Add `StrategyArchitectureBody` component with campaign tree visualization |
+| `src/hooks/useWorkspace.ts` | **Modify** — Add `advance-strategy` intent, conversation history tracking, multi-turn AI calls, plan approval/execution handlers |
+| `src/components/workspace/WorkspaceHome.tsx` | **Modify** — Add suggestion chip for advanced strategy |
+| `supabase/config.toml` | **Modify** — Add function entry with `verify_jwt = false` |
+
+## 7. Architecture Artifact Visual Design
+
+```text
+┌─────────────────────────────────────────────┐
+│ 🏗️ Campaign Architecture    Simple │ Complex │
+├─────────────────────────────────────────────┤
+│                                             │
+│ ┌─ Campaign: Summer Sales (Sales) ─── $80/d │
+│ │  ┌─ Ad Set: Broad 18-35 ──────── $50/d   │
+│ │  │  ├─ Ad: Hero Image (Feed)              │
+│ │  │  ├─ Ad: Carousel (Story)               │
+│ │  │  └─ Ad: Video (Reels)                  │
+│ │  └─ Ad Set: Retargeting ──────── $30/d    │
+│ │     ├─ Ad: DPA Feed                       │
+│ │     └─ Ad: Reminder Story                 │
+│ └───────────────────────────────────────────│
+│                                             │
+│ Confidence: 87%  │  Total: $80/day          │
+│ Rationale: "Advantage+ with retargeting..." │
+└─────────────────────────────────────────────┘
+```
+
+Each node is clickable/editable. Budget bars show proportional allocation.
 
