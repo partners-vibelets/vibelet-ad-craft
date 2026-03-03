@@ -2674,11 +2674,45 @@ export function useWorkspace() {
 
   const allThreads = Object.values(threads);
 
+  // Derive active strategy artifact for 2-column layout
+  const activeStrategyArtifact = activeThread
+    ? activeThread.artifacts.filter(a => a.type === 'strategy-architecture').slice(-1)[0] || null
+    : null;
+
+  const updateStrategyNode = useCallback((
+    campaignIdx: number,
+    field: string,
+    value: any,
+    adSetIdx?: number,
+    adIdx?: number
+  ) => {
+    if (!activeStrategyArtifact) return;
+    const newData = JSON.parse(JSON.stringify(activeStrategyArtifact.data));
+    const plan = newData.strategyPlan || newData;
+    const campaigns = plan.campaigns || [];
+    if (campaignIdx >= campaigns.length) return;
+
+    if (adSetIdx !== undefined && adIdx !== undefined) {
+      // Ad-level edit
+      const ads = campaigns[campaignIdx]?.adSets?.[adSetIdx]?.ads;
+      if (ads && adIdx < ads.length) ads[adIdx][field] = value;
+    } else if (adSetIdx !== undefined) {
+      // Ad Set-level edit
+      const adSets = campaigns[campaignIdx]?.adSets;
+      if (adSets && adSetIdx < adSets.length) adSets[adSetIdx][field] = value;
+    } else {
+      // Campaign-level edit
+      campaigns[campaignIdx][field] = value;
+    }
+
+    updateArtifactData(activeStrategyArtifact.id, newData);
+  }, [activeStrategyArtifact, updateArtifactData]);
+
   return {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
-    isHomeMode, enterWorkspaceFromHome,
+    isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
   };
 }
