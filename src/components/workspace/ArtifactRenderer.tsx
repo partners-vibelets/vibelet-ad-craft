@@ -57,6 +57,7 @@ const typeLabels: Record<ArtifactType, string> = {
   'model-selection': 'AI Model',
   'video-setup': 'Video Setup',
   'use-case-templates': 'Templates',
+  'strategy-architecture': 'Strategy',
 };
 
 const typeIcons: Record<ArtifactType, React.ReactNode> = {
@@ -91,6 +92,7 @@ const typeIcons: Record<ArtifactType, React.ReactNode> = {
   'model-selection': <Wand2 className="w-3.5 h-3.5" />,
   'video-setup': <Video className="w-3.5 h-3.5" />,
   'use-case-templates': <Layers className="w-3.5 h-3.5" />,
+  'strategy-architecture': <Target className="w-3.5 h-3.5" />,
 };
 
 const statusStyles: Record<string, string> = {
@@ -176,6 +178,7 @@ const ArtifactBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact: 
     case 'model-selection': return <ModelSelectionBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'video-setup': return <VideoSetupBody artifact={artifact} onUpdateData={onUpdateData} onArtifactAction={onArtifactAction} />;
     case 'use-case-templates': return <UseCaseTemplatesBody artifact={artifact} onArtifactAction={onArtifactAction} />;
+    case 'strategy-architecture': return <StrategyArchitectureBody artifact={artifact} onArtifactAction={onArtifactAction} />;
     default: return <pre className="text-xs text-muted-foreground">{JSON.stringify(artifact.data, null, 2)}</pre>;
   }
 };
@@ -3818,6 +3821,167 @@ const VideoSetupBody = ({ artifact, onUpdateData, onArtifactAction }: { artifact
         >
           <Sparkles className="w-3.5 h-3.5" />
           Generate Video
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// ========== STRATEGY ARCHITECTURE BODY ==========
+const StrategyArchitectureBody = ({ artifact, onArtifactAction }: { artifact: Artifact; onArtifactAction?: (artifactId: string, action: string, payload?: any) => void }) => {
+  const d = artifact.data;
+  const plan = d.strategyPlan || d;
+  const campaigns = plan.campaigns || [];
+  const planType = plan.planType || 'simple';
+  const confidence = plan.confidenceScore || 0;
+  const totalDaily = plan.totalDailyBudget || 0;
+  const totalMonthly = plan.totalMonthlyBudget || 0;
+  const rationale = plan.rationale || '';
+  const guardrails = plan.guardrailNotes || [];
+  const learningNotes = plan.learningPhaseNotes || '';
+
+  return (
+    <div className="space-y-4">
+      {/* Header badges */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="secondary" className={cn(
+          "text-[10px] font-semibold uppercase tracking-wider",
+          planType === 'simple' ? "bg-secondary/15 text-secondary" : "bg-primary/15 text-primary"
+        )}>
+          {planType === 'simple' ? '⚡ Advantage+ (Simple)' : '🏗️ Multi-Campaign (Complex)'}
+        </Badge>
+        {confidence > 0 && (
+          <Badge variant="outline" className={cn(
+            "text-[10px]",
+            confidence >= 80 ? "border-secondary/40 text-secondary" : confidence >= 60 ? "border-amber-500/40 text-amber-600" : "border-destructive/40 text-destructive"
+          )}>
+            Confidence: {confidence}%
+          </Badge>
+        )}
+        <span className="text-[10px] text-muted-foreground ml-auto">
+          ${totalDaily}/day · ${totalMonthly.toLocaleString()}/mo
+        </span>
+      </div>
+
+      {/* Campaign tree */}
+      <div className="space-y-3">
+        {campaigns.map((campaign: any, ci: number) => (
+          <div key={ci} className="border border-border/40 rounded-lg overflow-hidden">
+            {/* Campaign header */}
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-primary/5 border-b border-border/30">
+              <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="text-xs font-semibold text-foreground flex-1">{campaign.name}</span>
+              <Badge variant="outline" className="text-[9px]">{campaign.objective}</Badge>
+              <span className="text-[10px] text-muted-foreground font-medium">${campaign.dailyBudget}/day</span>
+              <Badge variant="secondary" className="text-[9px]">{campaign.budgetType}</Badge>
+            </div>
+
+            {/* Ad Sets */}
+            <div className="px-3 py-2 space-y-2">
+              {(campaign.adSets || []).map((adSet: any, si: number) => (
+                <div key={si} className="ml-3 border-l-2 border-primary/20 pl-3 space-y-1.5">
+                  {/* Ad Set header */}
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-3 h-3 text-primary/50 shrink-0" />
+                    <span className="text-[11px] font-medium text-foreground flex-1">{adSet.name}</span>
+                    <span className="text-[10px] text-muted-foreground">${adSet.budget}/day</span>
+                  </div>
+                  {adSet.targeting && (
+                    <p className="text-[10px] text-muted-foreground ml-5">{adSet.targeting}</p>
+                  )}
+                  {adSet.placements && (
+                    <p className="text-[10px] text-muted-foreground/60 ml-5">📍 {adSet.placements}</p>
+                  )}
+
+                  {/* Ads */}
+                  <div className="ml-5 space-y-1">
+                    {(adSet.ads || []).map((ad: any, ai: number) => (
+                      <div key={ai} className="flex items-center gap-2 py-0.5">
+                        <span className="text-[10px] text-muted-foreground/50">
+                          {ad.format === 'Video' ? '🎬' : ad.format === 'Carousel' ? '🔄' : ad.format === 'Collection' ? '📦' : '🖼️'}
+                        </span>
+                        <span className="text-[11px] text-foreground">{ad.name}</span>
+                        <Badge variant="outline" className="text-[8px] h-4 px-1">{ad.format}</Badge>
+                        {ad.cta && <span className="text-[9px] text-muted-foreground ml-auto">{ad.cta}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Rationale */}
+      {rationale && (
+        <div className="px-3 py-2.5 rounded-lg bg-muted/15 border border-border/30">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <Lightbulb className="w-3 h-3" /> Rationale
+          </p>
+          <p className="text-xs text-foreground leading-relaxed">{rationale}</p>
+        </div>
+      )}
+
+      {/* Learning phase notes */}
+      {learningNotes && (
+        <div className="px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/20">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1.5">
+            <Clock className="w-3 h-3" /> Learning Phase
+          </p>
+          <p className="text-xs text-foreground leading-relaxed">{learningNotes}</p>
+        </div>
+      )}
+
+      {/* Guardrails */}
+      {guardrails.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Shield className="w-3 h-3" /> Guardrails
+          </p>
+          {guardrails.map((note: string, i: number) => (
+            <div key={i} className="flex items-start gap-2 text-[11px]">
+              <AlertTriangle className="w-3 h-3 text-amber-500 mt-0.5 shrink-0" />
+              <span className="text-muted-foreground">{note}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Budget summary bar */}
+      <div className="grid grid-cols-3 gap-2">
+        <MetricCard label="Daily Budget" value={`$${totalDaily}`} />
+        <MetricCard label="Monthly Budget" value={`$${totalMonthly.toLocaleString()}`} />
+        <MetricCard label="Campaigns" value={campaigns.length} />
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-2 pt-2 border-t border-border/30">
+        <Button
+          size="sm"
+          className="text-xs h-8 gap-1.5 flex-1"
+          onClick={() => onArtifactAction?.(artifact.id, 'approve-strategy-plan')}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          Approve & Execute
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-8 gap-1.5"
+          onClick={() => onArtifactAction?.(artifact.id, 'tweak-strategy-plan')}
+        >
+          <Edit3 className="w-3.5 h-3.5" />
+          Tweak
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-xs h-8 gap-1.5"
+          onClick={() => onArtifactAction?.(artifact.id, 'rethink-strategy-plan')}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Rethink
         </Button>
       </div>
     </div>

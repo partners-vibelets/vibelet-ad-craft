@@ -72,7 +72,8 @@ export type ArtifactType =
   | 'strategy-playbook'
   | 'model-selection'
   | 'video-setup'
-  | 'use-case-templates';
+  | 'use-case-templates'
+  | 'strategy-architecture';
 
 export type ArtifactStatus = 'draft' | 'live' | 'archived';
 
