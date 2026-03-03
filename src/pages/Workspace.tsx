@@ -4,6 +4,7 @@ import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { StrategyMapPanel } from '@/components/workspace/StrategyMapPanel';
+import { StrategyContextCards } from '@/components/workspace/StrategyContextCards';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin, X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
@@ -138,6 +139,13 @@ const Workspace = () => {
                               );
                             })}
                             {isTyping && <TypingIndicator />}
+                            {/* Strategy context cards in chat column */}
+                            {!isTyping && activeStrategyArtifact && (
+                              <StrategyContextCards
+                                artifact={activeStrategyArtifact}
+                                onArtifactAction={handleArtifactAction}
+                              />
+                            )}
                           </div>
                         </div>
                         <div className="bg-gradient-to-t from-background via-background/95 to-transparent pt-6 pb-3 px-3 shrink-0">
@@ -150,7 +158,6 @@ const Workspace = () => {
                       <StrategyMapPanel
                         artifact={activeStrategyArtifact}
                         onUpdateNode={updateStrategyNode}
-                        onArtifactAction={handleArtifactAction}
                       />
                     </ResizablePanel>
                   </ResizablePanelGroup>
