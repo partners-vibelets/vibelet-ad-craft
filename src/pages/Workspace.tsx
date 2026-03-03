@@ -3,7 +3,9 @@ import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
+import { StrategyMapPanel } from '@/components/workspace/StrategyMapPanel';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin, X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThreadMessage, ActionChip } from '@/types/workspace';
@@ -21,7 +23,7 @@ const Workspace = () => {
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
-    isHomeMode, enterWorkspaceFromHome,
+    isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -115,87 +117,127 @@ const Workspace = () => {
 
             <div className="flex-1 overflow-hidden relative">
               {activeThread ? (
-                <>
-                  <div ref={scrollRef} className="h-full overflow-y-auto">
-                    <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
-                      {activeThread.pinnedArtifactIds.length > 0 && (
-                        <div className="space-y-2">
-                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium flex items-center gap-1 px-1">
-                            <Pin className="w-3 h-3" /> Pinned
-                          </span>
-                          <ArtifactStream
-                            artifacts={activeThread.artifacts.filter(a => activeThread.pinnedArtifactIds.includes(a.id))}
-                            onToggleCollapse={toggleArtifactCollapse}
-                            onUpdateData={updateArtifactData}
-                            onArtifactAction={handleArtifactAction}
-                            focusedArtifactId={focusedArtifactId}
-                            pinnedIds={activeThread.pinnedArtifactIds}
-                            onPinArtifact={pinArtifact}
-                          />
-                        </div>
-                      )}
-                      {activeThread.messages.map((msg, msgIdx) => {
-                        const relatedArtifacts = msg.artifactIds
-                          ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
-                          : [];
-                        const isLastAssistantMsg = msg.role === 'assistant' &&
-                          msgIdx === activeThread.messages.length - 1;
-
-                        return (
-                          <div
-                            key={msg.id}
-                            className="space-y-3 animate-fade-in"
-                            style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}
-                          >
-                            <MessageBubble msg={msg} />
-                            {relatedArtifacts.length > 0 && (
-                              <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
-                                <ArtifactStream
-                                  artifacts={relatedArtifacts}
-                                  onToggleCollapse={toggleArtifactCollapse}
-                                  onUpdateData={updateArtifactData}
-                                  onArtifactAction={handleArtifactAction}
-                                  focusedArtifactId={focusedArtifactId}
-                                  pinnedIds={activeThread.pinnedArtifactIds}
-                                  onPinArtifact={pinArtifact}
-                                />
-                              </div>
-                            )}
-                            {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
-                              <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
-                                <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
-                              </div>
-                            )}
+                activeStrategyArtifact ? (
+                  /* ===== 2-COLUMN STRATEGY MODE ===== */
+                  <ResizablePanelGroup direction="horizontal" className="h-full">
+                    <ResizablePanel defaultSize={40} minSize={30} maxSize={55}>
+                      <div className="h-full flex flex-col">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+                          <div className="px-4 pt-5 pb-48 space-y-4">
+                            {activeThread.messages.map((msg, msgIdx) => {
+                              const isLastAssistantMsg = msg.role === 'assistant' && msgIdx === activeThread.messages.length - 1;
+                              return (
+                                <div key={msg.id} className="space-y-2 animate-fade-in" style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}>
+                                  <MessageBubble msg={msg} />
+                                  {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
+                                    <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                                      <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {isTyping && <TypingIndicator />}
                           </div>
-                        );
-                      })}
-
-                      {isTyping && <TypingIndicator />}
-                    </div>
-                  </div>
-
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4">
-                    <div className="max-w-[720px] mx-auto">
-                      {showSuggestions && (
-                        <div className="flex flex-wrap gap-2 mb-3 justify-center">
-                          {suggestionChips.map(chip => (
-                            <button
-                              key={chip}
-                              onClick={() => {
-                                const text = chip.replace(/^[^\w]*\s/, '');
-                                sendMessage(text);
-                              }}
-                              className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground bg-muted/50 border border-border/50 hover:bg-muted hover:text-foreground hover:border-border transition-all"
-                            >
-                              {chip}
-                            </button>
-                          ))}
                         </div>
-                      )}
-                      <ChatInput onSendMessage={sendMessage} />
+                        <div className="bg-gradient-to-t from-background via-background/95 to-transparent pt-6 pb-3 px-3 shrink-0">
+                          <ChatInput onSendMessage={sendMessage} />
+                        </div>
+                      </div>
+                    </ResizablePanel>
+                    <ResizableHandle withHandle className="bg-border/30 hover:bg-border/60 transition-colors" />
+                    <ResizablePanel defaultSize={60} minSize={40}>
+                      <StrategyMapPanel
+                        artifact={activeStrategyArtifact}
+                        onUpdateNode={updateStrategyNode}
+                        onArtifactAction={handleArtifactAction}
+                      />
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                ) : (
+                  /* ===== STANDARD SINGLE-COLUMN ===== */
+                  <>
+                    <div ref={scrollRef} className="h-full overflow-y-auto">
+                      <div className="max-w-[720px] mx-auto px-5 pt-6 pb-48 space-y-5">
+                        {activeThread.pinnedArtifactIds.length > 0 && (
+                          <div className="space-y-2">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium flex items-center gap-1 px-1">
+                              <Pin className="w-3 h-3" /> Pinned
+                            </span>
+                            <ArtifactStream
+                              artifacts={activeThread.artifacts.filter(a => activeThread.pinnedArtifactIds.includes(a.id))}
+                              onToggleCollapse={toggleArtifactCollapse}
+                              onUpdateData={updateArtifactData}
+                              onArtifactAction={handleArtifactAction}
+                              focusedArtifactId={focusedArtifactId}
+                              pinnedIds={activeThread.pinnedArtifactIds}
+                              onPinArtifact={pinArtifact}
+                            />
+                          </div>
+                        )}
+                        {activeThread.messages.map((msg, msgIdx) => {
+                          const relatedArtifacts = msg.artifactIds
+                            ? activeThread.artifacts.filter(a => msg.artifactIds!.includes(a.id))
+                            : [];
+                          const isLastAssistantMsg = msg.role === 'assistant' &&
+                            msgIdx === activeThread.messages.length - 1;
+
+                          return (
+                            <div
+                              key={msg.id}
+                              className="space-y-3 animate-fade-in"
+                              style={{ animationDelay: `${msgIdx * 40}ms`, animationFillMode: 'backwards' }}
+                            >
+                              <MessageBubble msg={msg} />
+                              {relatedArtifacts.length > 0 && (
+                                <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                                  <ArtifactStream
+                                    artifacts={relatedArtifacts}
+                                    onToggleCollapse={toggleArtifactCollapse}
+                                    onUpdateData={updateArtifactData}
+                                    onArtifactAction={handleArtifactAction}
+                                    focusedArtifactId={focusedArtifactId}
+                                    pinnedIds={activeThread.pinnedArtifactIds}
+                                    onPinArtifact={pinArtifact}
+                                  />
+                                </div>
+                              )}
+                              {msg.actionChips && msg.actionChips.length > 0 && isLastAssistantMsg && !isTyping && (
+                                <div className={cn(msg.role === 'assistant' ? "pl-9" : "")}>
+                                  <ActionChips chips={msg.actionChips} onChipClick={handleActionChip} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        {isTyping && <TypingIndicator />}
+                      </div>
                     </div>
-                  </div>
-                </>
+
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background via-background/95 to-transparent pt-8 pb-4 px-4">
+                      <div className="max-w-[720px] mx-auto">
+                        {showSuggestions && (
+                          <div className="flex flex-wrap gap-2 mb-3 justify-center">
+                            {suggestionChips.map(chip => (
+                              <button
+                                key={chip}
+                                onClick={() => {
+                                  const text = chip.replace(/^[^\w]*\s/, '');
+                                  sendMessage(text);
+                                }}
+                                className="px-3 py-1.5 rounded-full text-xs font-medium text-muted-foreground bg-muted/50 border border-border/50 hover:bg-muted hover:text-foreground hover:border-border transition-all"
+                              >
+                                {chip}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <ChatInput onSendMessage={sendMessage} />
+                      </div>
+                    </div>
+                  </>
+                )
               ) : (
                 <EmptyState />
               )}
