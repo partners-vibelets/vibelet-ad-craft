@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
+import { ExecutionPanelContent } from '@/components/workspace/ExecutionPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { getThreadWithData, artifactTemplates, mockThreads as baseMockThreads, VIDEO_USE_CASE_TEMPLATES } from '@/data/workspaceMockData';
 import { AVATARS } from '@/data/avatars';
@@ -1145,6 +1146,7 @@ export function useWorkspace() {
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [focusedArtifactId, setFocusedArtifactId] = useState<string | null>(null);
+  const [executionPanelContent, setExecutionPanelContent] = useState<ExecutionPanelContent>(null);
   const pendingStepsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isDemoRef = useRef(false);
   // Track creative flow mode per thread
@@ -1652,6 +1654,98 @@ export function useWorkspace() {
     }
   }, [activeThreadId, threads, appendMessage, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
 
+  // ========== EXECUTION PANEL ACTIONS ==========
+  const handleExecutionAction = useCallback((action: string, payload?: any) => {
+    if (!activeThreadId) return;
+
+    if (action === 'exec-template-selected') {
+      const tmpl = VIDEO_USE_CASE_TEMPLATES.find((t: any) => t.id === payload?.templateId);
+      setExecutionPanelContent('video-setup');
+      respondWithSim(activeThreadId, {
+        content: `Great pick — **${tmpl?.label || 'Template'}**! 🎬\n\nNow configure your video on the right — I've pre-selected the best avatar and generated a script based on your product. Adjust anything you like, then hit **Generate**.`,
+      }, 400);
+      return;
+    }
+    if (action === 'exec-generate-video') {
+      setExecutionPanelContent('deep-work-creative');
+      const avatarObj = AVATARS.find(a => a.id === payload?.avatarId);
+      respondWithSim(activeThreadId, {
+        content: `🎨 **Generating creatives** with **${avatarObj?.name || 'AI Avatar'}**...\n\n☕ This takes about a minute. Here are some things I'm doing:\n• Rendering ${payload?.length || '30s'} video in ${payload?.aspect || '9:16'}\n• Creating 3 image ad formats\n• Optimizing for Meta placements\n\n*Sit tight — I'll let you know when it's ready!*`,
+      }, 300);
+      return;
+    }
+    if (action === 'exec-creative-done') {
+      setExecutionPanelContent('creative-results');
+      respondWithSim(activeThreadId, {
+        content: `🎉 **Your creatives are ready!** 4 assets generated — 3 images + 1 video.\n\nReview them on the right and approve to continue.`,
+        actionChips: [
+          { label: '✅ Approve all creatives', action: 'exec-approve-creatives-chip' },
+          { label: '🔄 Regenerate', action: 'exec-regenerate-chip' },
+        ],
+      }, 300);
+      return;
+    }
+    if (action === 'exec-approve-creatives' || action === 'exec-approve-creatives-chip') {
+      setExecutionPanelContent('facebook-connect');
+      respondWithSim(activeThreadId, {
+        content: `✅ **Creatives approved!** Now let's connect your Facebook account to publish.\n\nClick **Connect with Facebook** on the right panel.`,
+      }, 400);
+      return;
+    }
+    if (action === 'exec-regenerate' || action === 'exec-regenerate-chip') {
+      setExecutionPanelContent('deep-work-creative');
+      respondWithSim(activeThreadId, { content: `🔄 Regenerating with different creative angles...` }, 300);
+      return;
+    }
+    if (action === 'exec-fb-connected') {
+      setExecutionPanelContent('deep-work-config');
+      respondWithSim(activeThreadId, {
+        content: `✅ **Facebook connected!** Primary Ad Account linked.\n\n⚙️ Now configuring your campaign structure based on the approved strategy...`,
+      }, 400);
+      return;
+    }
+    if (action === 'exec-config-done') {
+      setExecutionPanelContent('campaign-config');
+      respondWithSim(activeThreadId, {
+        content: `📋 **Campaign configured!** Review on the right — all fields pre-filled from your strategy.`,
+        actionChips: [
+          { label: '✅ Approve configuration', action: 'exec-config-approved-chip' },
+          { label: '✏️ I want to edit something', action: 'tweak-advance-strategy' },
+        ],
+      }, 300);
+      return;
+    }
+    if (action === 'exec-config-approved' || action === 'exec-config-approved-chip') {
+      setExecutionPanelContent('device-preview');
+      respondWithSim(activeThreadId, {
+        content: `📱 **Ad preview ready!** Toggle mobile/desktop on the right. Hit **Publish** when ready! 🚀`,
+        actionChips: [
+          { label: '🚀 Looks great — Publish!', action: 'exec-publish-chip' },
+          { label: '✏️ Edit ad copy', action: 'tweak-advance-strategy' },
+        ],
+      }, 400);
+      return;
+    }
+    if (action === 'exec-publish' || action === 'exec-publish-chip') {
+      setExecutionPanelContent('publish-success');
+      setThreads(prev => {
+        const thread = prev[activeThreadId];
+        if (!thread) return prev;
+        return { ...prev, [activeThreadId]: { ...thread, status: 'live-campaign' } };
+      });
+      respondWithSim(activeThreadId, {
+        content: `🎉🎊 **Campaign published successfully!** Your ads are now live on Facebook & Instagram.\n\n*Journey: Plan ✅ → Strategy ✅ → Create ✅ → Configure ✅ → Publish ✅ → **Monitor** (next)*`,
+        actionChips: [
+          { label: '📊 View performance', action: 'performance' },
+          { label: '🔍 Run account audit', action: 'audit' },
+          { label: '🤖 Set up automation', action: 'setup-rule' },
+          { label: '🚀 Create another campaign', action: 'new-campaign' },
+        ],
+      }, 600);
+      return;
+    }
+  }, [activeThreadId, respondWithSim]);
+
   const handleActionChip = useCallback((action: string) => {
     if (!activeThreadId) return;
 
@@ -1674,31 +1768,11 @@ export function useWorkspace() {
       return;
     }
     if (action === 'approve-advance-strategy') {
+      // Step 1: Strategy approved → show use-case templates in Col2
+      setExecutionPanelContent('use-case-templates');
       respondWithSim(activeThreadId, {
-        content: `🚀 **Strategy approved!** Executing the plan now...\n\n1. ⏳ Creating campaigns...\n2. ⏳ Configuring ad sets...\n3. ⏳ Assigning creatives...`,
+        content: `🚀 **Strategy approved!** Great — now let's create the creatives for each ad.\n\n**Pick a video template** from the panel on the right — it defines the style and structure of your video ad. I've highlighted my top recommendation based on your product category.`,
       }, 600);
-      setTimeout(() => {
-        respondWithSim(activeThreadId, {
-          content: `✅ **All done!** Your campaign architecture has been set up.\n\n1. ✅ Campaigns created\n2. ✅ Ad sets configured with targeting\n3. ✅ Creatives assigned\n4. ✅ Tracking & pixels connected\n\n🎉 **Everything is ready to publish.** Review one more time or go live!`,
-          artifacts: [{
-            type: 'publish-confirmation' as ArtifactType,
-            titleSuffix: 'Strategy Execution Complete',
-            dataOverrides: {
-              campaignName: 'Advanced Strategy Campaign',
-              platform: 'Facebook & Instagram',
-              publishedAt: new Date().toISOString(),
-              adCount: 6,
-              budget: { daily: 100, total: 3000 },
-              status: 'confirmed',
-            },
-          }],
-          actionChips: [
-            { label: '🚀 Publish to Facebook', action: 'publish-campaign' },
-            { label: '📱 Preview on device', action: 'preview-device' },
-            { label: '📊 View performance', action: 'performance' },
-          ],
-        }, 600);
-      }, 4000);
       return;
     }
     if (action === 'tweak-advance-strategy') {
@@ -2330,10 +2404,16 @@ export function useWorkspace() {
       return;
     }
 
+    // ===== EXECUTION FLOW CHIP ACTIONS (from Col1) =====
+    if (action.startsWith('exec-')) {
+      handleExecutionAction(action);
+      return;
+    }
+
     const simple = simpleResponses[action];
     if (simple) { respondWithSim(activeThreadId, simple); return; }
     respondWithSim(activeThreadId, simpleResponses.default);
-  }, [activeThreadId, threads, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
+  }, [activeThreadId, threads, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse, handleExecutionAction]);
 
   const handleArtifactAction = useCallback((artifactId: string, action: string, payload?: any) => {
     if (!activeThreadId) return;
@@ -2708,11 +2788,13 @@ export function useWorkspace() {
     updateArtifactData(activeStrategyArtifact.id, newData);
   }, [activeStrategyArtifact, updateArtifactData]);
 
+
   return {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
+    executionPanelContent, setExecutionPanelContent, handleExecutionAction,
   };
 }

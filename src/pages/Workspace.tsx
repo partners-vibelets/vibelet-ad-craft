@@ -3,8 +3,8 @@ import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
-import { StrategyMapPanel } from '@/components/workspace/StrategyMapPanel';
 import { StrategyContextCards } from '@/components/workspace/StrategyContextCards';
+import { ExecutionPanel } from '@/components/workspace/ExecutionPanel';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin, X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
@@ -25,6 +25,7 @@ const Workspace = () => {
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
+    executionPanelContent, handleExecutionAction,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -118,8 +119,8 @@ const Workspace = () => {
 
             <div className="flex-1 overflow-hidden relative">
               {activeThread ? (
-                activeStrategyArtifact ? (
-                  /* ===== 2-COLUMN STRATEGY MODE ===== */
+                activeStrategyArtifact || executionPanelContent ? (
+                  /* ===== 2-COLUMN STRATEGY/EXECUTION MODE ===== */
                   <ResizablePanelGroup direction="horizontal" className="h-full">
                     <ResizablePanel defaultSize={40} minSize={30} maxSize={55}>
                       <div className="h-full flex flex-col">
@@ -139,8 +140,8 @@ const Workspace = () => {
                               );
                             })}
                             {isTyping && <TypingIndicator />}
-                            {/* Strategy context cards in chat column */}
-                            {!isTyping && activeStrategyArtifact && (
+                            {/* Strategy context cards in chat column — only when on strategy-map */}
+                            {!isTyping && activeStrategyArtifact && (!executionPanelContent || executionPanelContent === 'strategy-map') && (
                               <StrategyContextCards
                                 artifact={activeStrategyArtifact}
                                 onArtifactAction={handleArtifactAction}
@@ -155,9 +156,11 @@ const Workspace = () => {
                     </ResizablePanel>
                     <ResizableHandle withHandle className="bg-border/30 hover:bg-border/60 transition-colors" />
                     <ResizablePanel defaultSize={60} minSize={40}>
-                      <StrategyMapPanel
+                      <ExecutionPanel
+                        content={executionPanelContent || 'strategy-map'}
                         artifact={activeStrategyArtifact}
                         onUpdateNode={updateStrategyNode}
+                        onExecutionAction={handleExecutionAction}
                       />
                     </ResizablePanel>
                   </ResizablePanelGroup>
