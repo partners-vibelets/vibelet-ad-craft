@@ -2312,10 +2312,16 @@ export function useWorkspace() {
       return;
     }
 
+    // ===== EXECUTION FLOW CHIP ACTIONS (from Col1) =====
+    if (action.startsWith('exec-')) {
+      handleExecutionAction(action);
+      return;
+    }
+
     const simple = simpleResponses[action];
     if (simple) { respondWithSim(activeThreadId, simple); return; }
     respondWithSim(activeThreadId, simpleResponses.default);
-  }, [activeThreadId, threads, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse]);
+  }, [activeThreadId, threads, runConversationSteps, respondWithSim, handleAdvanceStrategyResponse, handleExecutionAction]);
 
   const handleArtifactAction = useCallback((artifactId: string, action: string, payload?: any) => {
     if (!activeThreadId) return;
