@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { Thread, ThreadMessage, Artifact, ArtifactType, ActionChip } from '@/types/workspace';
+import { ExecutionPanelContent } from '@/components/workspace/ExecutionPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { getThreadWithData, artifactTemplates, mockThreads as baseMockThreads, VIDEO_USE_CASE_TEMPLATES } from '@/data/workspaceMockData';
 import { AVATARS } from '@/data/avatars';
@@ -1145,6 +1146,7 @@ export function useWorkspace() {
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [focusedArtifactId, setFocusedArtifactId] = useState<string | null>(null);
+  const [executionPanelContent, setExecutionPanelContent] = useState<ExecutionPanelContent>(null);
   const pendingStepsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isDemoRef = useRef(false);
   // Track creative flow mode per thread
