@@ -1676,31 +1676,11 @@ export function useWorkspace() {
       return;
     }
     if (action === 'approve-advance-strategy') {
+      // Step 1: Strategy approved → show use-case templates in Col2
+      setExecutionPanelContent('use-case-templates');
       respondWithSim(activeThreadId, {
-        content: `🚀 **Strategy approved!** Executing the plan now...\n\n1. ⏳ Creating campaigns...\n2. ⏳ Configuring ad sets...\n3. ⏳ Assigning creatives...`,
+        content: `🚀 **Strategy approved!** Great — now let's create the creatives for each ad.\n\n**Pick a video template** from the panel on the right — it defines the style and structure of your video ad. I've highlighted my top recommendation based on your product category.`,
       }, 600);
-      setTimeout(() => {
-        respondWithSim(activeThreadId, {
-          content: `✅ **All done!** Your campaign architecture has been set up.\n\n1. ✅ Campaigns created\n2. ✅ Ad sets configured with targeting\n3. ✅ Creatives assigned\n4. ✅ Tracking & pixels connected\n\n🎉 **Everything is ready to publish.** Review one more time or go live!`,
-          artifacts: [{
-            type: 'publish-confirmation' as ArtifactType,
-            titleSuffix: 'Strategy Execution Complete',
-            dataOverrides: {
-              campaignName: 'Advanced Strategy Campaign',
-              platform: 'Facebook & Instagram',
-              publishedAt: new Date().toISOString(),
-              adCount: 6,
-              budget: { daily: 100, total: 3000 },
-              status: 'confirmed',
-            },
-          }],
-          actionChips: [
-            { label: '🚀 Publish to Facebook', action: 'publish-campaign' },
-            { label: '📱 Preview on device', action: 'preview-device' },
-            { label: '📊 View performance', action: 'performance' },
-          ],
-        }, 600);
-      }, 4000);
       return;
     }
     if (action === 'tweak-advance-strategy') {
