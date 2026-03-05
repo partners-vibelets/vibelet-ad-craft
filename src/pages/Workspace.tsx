@@ -3,8 +3,8 @@ import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
-import { StrategyMapPanel } from '@/components/workspace/StrategyMapPanel';
 import { StrategyContextCards } from '@/components/workspace/StrategyContextCards';
+import { ExecutionPanel } from '@/components/workspace/ExecutionPanel';
 import { useWorkspace } from '@/hooks/useWorkspace';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin, X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
@@ -25,6 +25,7 @@ const Workspace = () => {
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
+    executionPanelContent, handleExecutionAction,
   } = useWorkspace();
 
   const scrollRef = useRef<HTMLDivElement>(null);
