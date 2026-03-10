@@ -53,6 +53,25 @@ const Workspace = () => {
 
   const showSuggestions = activeThread && activeThread.messages.length <= 1 && !isTyping;
 
+  // Show demo path selector first
+  if (showDemoSelector) {
+    return (
+      <DemoPathSelector
+        onSelectPath={(stateOverride) => {
+          update(stateOverride as Partial<UserState>);
+          setShowDemoSelector(false);
+          setOnboardingComplete(true);
+        }}
+        onSkip={() => {
+          setShowDemoSelector(false);
+          // Check if onboarding was done before
+          const wasOnboarded = localStorage.getItem('vibelets-onboarded');
+          if (wasOnboarded) setOnboardingComplete(true);
+        }}
+      />
+    );
+  }
+
   // Show onboarding for first-time users
   if (!onboardingComplete) {
     return (
