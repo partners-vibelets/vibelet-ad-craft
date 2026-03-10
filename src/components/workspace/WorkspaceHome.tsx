@@ -355,9 +355,6 @@ const VibespaceWithActions = ({ input, setInput, inputRef, onSubmit, onKeyDown, 
 interface NewUserLayoutProps extends VibespaceProps {
   onConnectFB: () => void;
   onStartTour: () => void;
-  alerts: ReturnType<typeof generateAlerts>;
-  pausedAlerts: string[];
-  onMicroAction: (id: string, action: string, name: string) => void;
 }
 
 const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: NewUserLayoutProps) => (
