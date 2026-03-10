@@ -1,52 +1,34 @@
-import { useState, useRef } from 'react';
-import { ArrowUp, Sparkles } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { ArrowUp, Sparkles, HelpCircle, BookOpen, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OnboardingData } from '@/components/workspace/OnboardingFlow';
+import { useUserState, OnboardingAnswers } from '@/hooks/useUserState';
+import { demoKPIs, demoAssets, generateAlerts, computePrimaryAction, generateCampaignDraft } from '@/data/homepageDemoData';
+import { HeroCard } from '@/components/workspace/homepage/HeroCard';
+import { AISignalsStrip } from '@/components/workspace/homepage/AISignalsStrip';
+import { VibeboardSnapshot } from '@/components/workspace/homepage/VibeboardSnapshot';
+import { QuickActionsGrid } from '@/components/workspace/homepage/QuickActionsGrid';
+import { AssetsPreview } from '@/components/workspace/homepage/AssetsPreview';
+import { AppsIntegrations } from '@/components/workspace/homepage/AppsIntegrations';
+import { ThreadsActivity } from '@/components/workspace/homepage/ThreadsActivity';
+import { ConnectFacebookModal } from '@/components/workspace/homepage/ConnectFacebookModal';
+import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
+import { useToast } from '@/hooks/use-toast';
 
-function getPersonalizedGreeting(onboardingData?: OnboardingData | null, userName?: string): { title: string; subtitle: string } {
-  const firstName = userName?.split(' ')[0] || '';
-  const goals = onboardingData?.goals || [];
+const vibespacePrompts = [
+  { label: '🚀 Create campaign', message: 'Plan a campaign' },
+  { label: '🔍 Run audit (7d)', message: 'Run account audit' },
+  { label: '🎬 Generate 3 video ads', message: 'Generate a video ad' },
+  { label: '↩️ Resume last thread', message: 'Resume last thread' },
+];
 
-  if (goals.includes('launch')) {
-    return {
-      title: firstName ? `Let's get started, ${firstName}` : "Let's get started",
-      subtitle: "Tell me what you need — I'll handle the rest.",
-    };
-  }
-  if (goals.includes('scale')) {
-    return {
-      title: firstName ? `Ready to scale, ${firstName}?` : 'Ready to scale?',
-      subtitle: "Let's find your next growth lever.",
-    };
-  }
-  if (goals.includes('creative')) {
-    return {
-      title: firstName ? `Let's create something great, ${firstName}` : "Let's create something great",
-      subtitle: 'AI-powered images, videos, and copy — tailored to your brand.',
-    };
-  }
-  if (goals.includes('optimize')) {
-    return {
-      title: firstName ? `Let's optimize, ${firstName}` : "Let's optimize your spend",
-      subtitle: "I'll find what's underperforming and give you one-click fixes.",
-    };
-  }
-
-  return {
-    title: firstName ? `Welcome back, ${firstName}` : 'Welcome to Vibelets',
-    subtitle: 'Your AI marketing OS. Tell me what you need, or pick a suggestion below.',
-  };
-}
-
-const suggestionChips = [
+const originalSuggestionChips = [
   { label: '🚀 Plan a campaign', message: 'Plan a campaign' },
   { label: '🧠 Advanced Strategy Planning', message: 'Help me plan an advanced Meta advertising strategy' },
   { label: '📦 Multi-variant product campaign', message: 'Plan a campaign for a product with multiple variants' },
   { label: '🎬 Generate a video ad', message: 'Generate a video ad' },
   { label: '🖼️ Generate image ads', message: 'Generate image ads' },
-  { label: '🔍 Run account audit', message: 'Run account audit' },
   { label: '📊 Check performance', message: 'Check performance' },
-  { label: '📱 Connect Facebook', message: 'Connect Facebook' },
   { label: '🤖 Set up automation', message: 'Set up automation' },
 ];
 
@@ -56,13 +38,27 @@ interface WorkspaceHomeProps {
   credits?: number;
   onboardingComplete?: boolean;
   onboardingData?: OnboardingData | null;
+  threads?: { id: string; title: string; status: string; updatedAt: Date }[];
+  onSelectThread?: (threadId: string) => void;
 }
 
-export const WorkspaceHome = ({ onSendMessage, userName, onboardingData }: WorkspaceHomeProps) => {
+export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads = [], onSelectThread }: WorkspaceHomeProps) => {
   const [input, setInput] = useState('');
   const ref = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
+  const {
+    state, connectFacebook, saveOnboardingAnswers, publishDraft,
+    createDraft, pauseAlert, connectSlack,
+  } = useUserState();
 
-  const greeting = getPersonalizedGreeting(onboardingData, userName);
+  const [showFBModal, setShowFBModal] = useState(false);
+  const [showQuizModal, setShowQuizModal] = useState(false);
+
+  const firstName = userName?.split(' ')[0] || '';
+  const alerts = generateAlerts(demoKPIs);
+  const primaryAction = state.connected_facebook
+    ? computePrimaryAction(demoKPIs, state.has_draft)
+    : null;
 
   const handleSubmit = () => {
     if (!input.trim()) return;
@@ -74,10 +70,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData }: Works
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };
 
-  const handleChipClick = (message: string) => {
-    onSendMessage(message);
-  };
-
   const autoResize = () => {
     if (ref.current) {
       ref.current.style.height = 'auto';
@@ -85,65 +77,242 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData }: Works
     }
   };
 
+  const handleFBConnected = () => {
+    connectFacebook();
+    toast({ title: '✅ Facebook connected', description: 'Your ad account is now linked. Dashboard populated with demo data.' });
+  };
+
+  const handleQuizComplete = (answers: OnboardingAnswers) => {
+    saveOnboardingAnswers(answers);
+    if (answers.generate_now) {
+      createDraft();
+      const draft = generateCampaignDraft(answers as Record<string, any>);
+      toast({ title: '📋 Campaign draft created', description: `"${draft.name}" is ready to review and publish.` });
+      // Send to vibespace
+      onSendMessage(`Create a ${draft.style}-style ${draft.objective.toLowerCase()} campaign with $${draft.dailyBudget}/day budget targeting ${draft.audience} audiences on ${draft.platforms.join(', ')}`);
+    } else {
+      toast({ title: '✅ Setup complete', description: 'Your preferences are saved. Start creating anytime!' });
+    }
+  };
+
+  const handleMicroAction = useCallback((alertId: string, action: string, campaignName: string) => {
+    if (action === 'pause') {
+      pauseAlert(alertId);
+      toast({ title: '⏸️ Adset paused (prototype)', description: `Low-performing adset in "${campaignName}" has been paused.` });
+    } else if (action === 'regenerate') {
+      const style = state.onboarding_answers?.style || 'UGC';
+      onSendMessage(`Regenerate creatives for ${campaignName} — style: ${style}`);
+    } else if (action === 'view') {
+      onSendMessage(`Show me details for ${campaignName}`);
+    } else if (action === 'adjust-budget') {
+      onSendMessage(`Help me adjust the budget for ${campaignName}`);
+    }
+  }, [pauseAlert, toast, state.onboarding_answers, onSendMessage]);
+
+  const handlePrimaryAction = useCallback((action: string) => {
+    if (action === 'pause') {
+      toast({ title: '⏸️ Low-performing adset paused', description: 'Spring Sale 2026 — Ad Set 3 has been paused.' });
+    } else if (action === 'regenerate') {
+      onSendMessage('Regenerate creatives for Spring Sale 2026');
+    } else if (action === 'publish-draft') {
+      publishDraft();
+      toast({ title: '🚀 Campaign published!', description: 'Your draft campaign is now live on Facebook.' });
+    } else if (action === 'increase-budget') {
+      onSendMessage('Increase budget for my top performing ad in Spring Sale 2026');
+    }
+  }, [toast, onSendMessage, publishDraft]);
+
+  const handleQuickAction = useCallback((actionId: string) => {
+    const actionMap: Record<string, string> = {
+      'create-campaign': 'Plan a campaign',
+      'generate-video': 'Generate a video ad',
+      'generate-image': 'Generate image ads',
+      'upload-asset': 'Upload asset',
+      'run-audit': 'Run account audit',
+      'connect-integrations': 'Connect integrations',
+    };
+    if (actionId === 'connect-integrations') {
+      setShowFBModal(true);
+      return;
+    }
+    onSendMessage(actionMap[actionId] || actionId);
+  }, [onSendMessage]);
+
+  const handleAppConnect = useCallback((appId: string) => {
+    if (appId === 'facebook' || appId === 'trackers') {
+      setShowFBModal(true);
+    } else if (appId === 'slack') {
+      connectSlack();
+      toast({ title: '💬 Slack connected', description: 'Notifications will now be sent to your Slack workspace.' });
+    }
+  }, [connectSlack, toast]);
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
-      <div className="max-w-2xl w-full space-y-8 animate-fade-in">
-        {/* Hero */}
-        <div className="text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-7 h-7 text-primary" />
+    <>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-5 py-6 space-y-6 pb-8">
+          {/* Greeting */}
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-semibold text-foreground">
+              {firstName ? `Welcome back, ${firstName}` : 'Welcome to Vibelets'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {state.connected_facebook
+                ? "Here's what's happening with your campaigns."
+                : "Your AI marketing OS. Let's get you set up."}
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">{greeting.title}</h1>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">{greeting.subtitle}</p>
-        </div>
 
-        {/* Chat input */}
-        <div className={cn(
-          "flex items-end gap-2 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3",
-          "shadow-lg shadow-primary/5 focus-within:border-primary/30 focus-within:shadow-xl focus-within:shadow-primary/10 transition-all"
-        )}>
-          <textarea
-            ref={ref}
-            value={input}
-            onChange={e => { setInput(e.target.value); autoResize(); }}
-            onKeyDown={handleKeyDown}
-            placeholder="Tell me what you'd like to work on..."
-            rows={1}
-            className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground/60 min-h-[36px] max-h-[150px] py-1.5"
+          {/* Hero Card */}
+          <HeroCard
+            connectedFacebook={state.connected_facebook}
+            primaryAction={primaryAction || undefined}
+            onConnectFacebook={() => setShowFBModal(true)}
+            onStartTour={() => setShowQuizModal(true)}
+            onPrimaryAction={handlePrimaryAction}
           />
-          <button
-            onClick={handleSubmit}
-            disabled={!input.trim()}
-            className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
-              input.trim()
-                ? "bg-primary text-primary-foreground hover:opacity-90"
-                : "bg-muted/50 text-muted-foreground/30"
-            )}
-          >
-            <ArrowUp className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Suggestion chips */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {suggestionChips.map((chip, i) => (
-            <button
-              key={chip.message}
-              onClick={() => handleChipClick(chip.message)}
-              style={{ animationDelay: `${i * 50}ms` }}
-              className={cn(
-                "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 animate-fade-in",
-                "bg-muted/30 border border-border/40 text-muted-foreground",
-                "hover:bg-muted/60 hover:text-foreground hover:border-border hover:shadow-sm",
-                "active:scale-[0.97]"
-              )}
-            >
-              {chip.label}
+          {/* Vibespace — always present */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-medium text-foreground">Vibespace</h3>
+            </div>
+            <div className={cn(
+              "flex items-end gap-2 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3",
+              "shadow-lg shadow-primary/5 focus-within:border-primary/30 focus-within:shadow-xl focus-within:shadow-primary/10 transition-all"
+            )}>
+              <textarea
+                ref={ref}
+                value={input}
+                onChange={e => { setInput(e.target.value); autoResize(); }}
+                onKeyDown={handleKeyDown}
+                placeholder="Hi — I can help you launch a campaign in <1 minute. Try: 'Create campaign — budget $300 — sales'"
+                rows={1}
+                className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground/60 min-h-[36px] max-h-[150px] py-1.5"
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!input.trim()}
+                className={cn(
+                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+                  input.trim()
+                    ? "bg-primary text-primary-foreground hover:opacity-90"
+                    : "bg-muted/50 text-muted-foreground/30"
+                )}
+              >
+                <ArrowUp className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick prompts */}
+            <div className="flex flex-wrap gap-2">
+              {vibespacePrompts.map((p, i) => (
+                <button
+                  key={p.message}
+                  onClick={() => onSendMessage(p.message)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl text-xs font-medium transition-all animate-fade-in",
+                    "bg-muted/30 border border-border/40 text-muted-foreground",
+                    "hover:bg-muted/60 hover:text-foreground hover:border-border hover:shadow-sm",
+                    "active:scale-[0.97]"
+                  )}
+                  style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Threads preview under vibespace */}
+            {threads.length > 0 && (
+              <ThreadsActivity
+                threads={threads}
+                onResume={(threadId) => onSelectThread?.(threadId)}
+              />
+            )}
+          </div>
+
+          {/* AI Signals */}
+          <AISignalsStrip
+            alerts={alerts}
+            isSample={!state.connected_facebook}
+            pausedAlerts={state.paused_alerts}
+            onMicroAction={handleMicroAction}
+          />
+
+          {/* Vibeboard Snapshot */}
+          <VibeboardSnapshot
+            kpis={demoKPIs}
+            isSample={!state.connected_facebook}
+            onViewFull={() => onSendMessage('Check performance')}
+          />
+
+          {/* Quick Actions */}
+          <QuickActionsGrid onAction={handleQuickAction} />
+
+          {/* Assets Preview */}
+          <AssetsPreview
+            assets={state.connected_facebook ? demoAssets : []}
+            onUpload={() => onSendMessage('Upload asset')}
+            onGenerate={() => onSendMessage('Generate image ads')}
+          />
+
+          {/* Apps & Integrations */}
+          <AppsIntegrations
+            connectedFacebook={state.connected_facebook}
+            slackConnected={state.apps.slack_connected}
+            onConnect={handleAppConnect}
+          />
+
+          {/* Original suggestion chips section */}
+          <div className="space-y-2.5">
+            <h3 className="text-sm font-medium text-foreground">More flows</h3>
+            <div className="flex flex-wrap gap-2">
+              {originalSuggestionChips.map((chip, i) => (
+                <button
+                  key={chip.message}
+                  onClick={() => onSendMessage(chip.message)}
+                  className={cn(
+                    "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 animate-fade-in",
+                    "bg-muted/30 border border-border/40 text-muted-foreground",
+                    "hover:bg-muted/60 hover:text-foreground hover:border-border hover:shadow-sm",
+                    "active:scale-[0.97]"
+                  )}
+                  style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-center gap-4 pt-4 pb-2 border-t border-border/20">
+            <button className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+              <HelpCircle className="w-3.5 h-3.5" /> Help
             </button>
-          ))}
+            <button className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+              <BookOpen className="w-3.5 h-3.5" /> Docs
+            </button>
+            <button className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+              <Mail className="w-3.5 h-3.5" /> Contact
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <ConnectFacebookModal
+        open={showFBModal}
+        onClose={() => setShowFBModal(false)}
+        onConnected={handleFBConnected}
+      />
+
+      <OnboardingQuizModal
+        open={showQuizModal}
+        onClose={() => setShowQuizModal(false)}
+        onComplete={handleQuizComplete}
+      />
+    </>
   );
 };
