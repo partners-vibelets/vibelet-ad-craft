@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { ArrowUp, Sparkles, HelpCircle, BookOpen, Mail } from 'lucide-react';
+import { ArrowUp, Sparkles, HelpCircle, BookOpen, Mail, Rocket, Video, ImageIcon, Upload, Search, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { useUserState, OnboardingAnswers } from '@/hooks/useUserState';
@@ -7,19 +7,18 @@ import { demoKPIs, demoAssets, generateAlerts, computePrimaryAction, generateCam
 import { HeroCard } from '@/components/workspace/homepage/HeroCard';
 import { AISignalsStrip } from '@/components/workspace/homepage/AISignalsStrip';
 import { VibeboardSnapshot } from '@/components/workspace/homepage/VibeboardSnapshot';
-import { QuickActionsGrid } from '@/components/workspace/homepage/QuickActionsGrid';
-import { AssetsPreview } from '@/components/workspace/homepage/AssetsPreview';
 import { AppsIntegrations } from '@/components/workspace/homepage/AppsIntegrations';
-import { ThreadsActivity } from '@/components/workspace/homepage/ThreadsActivity';
 import { ConnectFacebookModal } from '@/components/workspace/homepage/ConnectFacebookModal';
 import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
 import { useToast } from '@/hooks/use-toast';
 
-const vibespacePrompts = [
-  { label: '🚀 Create campaign', message: 'Plan a campaign' },
-  { label: '🔍 Run audit (7d)', message: 'Run account audit' },
-  { label: '🎬 Generate 3 video ads', message: 'Generate a video ad' },
-  { label: '↩️ Resume last thread', message: 'Resume last thread' },
+const quickActions = [
+  { id: 'create-campaign', label: 'Create Campaign', icon: Rocket, message: 'Plan a campaign' },
+  { id: 'generate-video', label: 'Generate Video', icon: Video, message: 'Generate a video ad' },
+  { id: 'generate-image', label: 'Generate Image', icon: ImageIcon, message: 'Generate image ads' },
+  { id: 'upload-asset', label: 'Upload Asset', icon: Upload, message: 'Upload asset' },
+  { id: 'run-audit', label: 'Run Audit', icon: Search, message: 'Run account audit' },
+  { id: 'connect-integrations', label: 'Integrations', icon: Link2, message: '' },
 ];
 
 const originalSuggestionChips = [
@@ -88,7 +87,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
       createDraft();
       const draft = generateCampaignDraft(answers as Record<string, any>);
       toast({ title: '📋 Campaign draft created', description: `"${draft.name}" is ready to review and publish.` });
-      // Send to vibespace
       onSendMessage(`Create a ${draft.style}-style ${draft.objective.toLowerCase()} campaign with $${draft.dailyBudget}/day budget targeting ${draft.audience} audiences on ${draft.platforms.join(', ')}`);
     } else {
       toast({ title: '✅ Setup complete', description: 'Your preferences are saved. Start creating anytime!' });
@@ -123,19 +121,12 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
   }, [toast, onSendMessage, publishDraft]);
 
   const handleQuickAction = useCallback((actionId: string) => {
-    const actionMap: Record<string, string> = {
-      'create-campaign': 'Plan a campaign',
-      'generate-video': 'Generate a video ad',
-      'generate-image': 'Generate image ads',
-      'upload-asset': 'Upload asset',
-      'run-audit': 'Run account audit',
-      'connect-integrations': 'Connect integrations',
-    };
     if (actionId === 'connect-integrations') {
       setShowFBModal(true);
       return;
     }
-    onSendMessage(actionMap[actionId] || actionId);
+    const action = quickActions.find(a => a.id === actionId);
+    if (action?.message) onSendMessage(action.message);
   }, [onSendMessage]);
 
   const handleAppConnect = useCallback((appId: string) => {
@@ -147,6 +138,9 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
     }
   }, [connectSlack, toast]);
 
+  // --- LAYOUT: Different for new vs connected users ---
+  const isConnected = state.connected_facebook;
+
   return (
     <>
       <div className="flex-1 overflow-y-auto">
@@ -157,115 +151,101 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
               {firstName ? `Welcome back, ${firstName}` : 'Welcome to Vibelets'}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {state.connected_facebook
-                ? "Here's what's happening with your campaigns."
+              {isConnected
+                ? "Here's what needs your attention today."
                 : "Your AI marketing OS. Let's get you set up."}
             </p>
           </div>
 
-          {/* Hero Card */}
-          <HeroCard
-            connectedFacebook={state.connected_facebook}
-            primaryAction={primaryAction || undefined}
-            onConnectFacebook={() => setShowFBModal(true)}
-            onStartTour={() => setShowQuizModal(true)}
-            onPrimaryAction={handlePrimaryAction}
-          />
+          {/* ========== NEW USER FLOW ========== */}
+          {!isConnected && (
+            <>
+              {/* Hero Card — connect CTA */}
+              <HeroCard
+                connectedFacebook={false}
+                onConnectFacebook={() => setShowFBModal(true)}
+                onStartTour={() => setShowQuizModal(true)}
+                onPrimaryAction={handlePrimaryAction}
+              />
 
-          {/* Vibespace — always present */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-medium text-foreground">Vibespace</h3>
-            </div>
-            <div className={cn(
-              "flex items-end gap-2 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3",
-              "shadow-lg shadow-primary/5 focus-within:border-primary/30 focus-within:shadow-xl focus-within:shadow-primary/10 transition-all"
-            )}>
-              <textarea
-                ref={ref}
-                value={input}
-                onChange={e => { setInput(e.target.value); autoResize(); }}
+              {/* Vibespace + Quick Actions combined */}
+              <VibespaceWithActions
+                input={input}
+                setInput={setInput}
+                inputRef={ref}
+                onSubmit={handleSubmit}
                 onKeyDown={handleKeyDown}
-                placeholder="Hi — I can help you launch a campaign in <1 minute. Try: 'Create campaign — budget $300 — sales'"
-                rows={1}
-                className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground/60 min-h-[36px] max-h-[150px] py-1.5"
+                onAutoResize={autoResize}
+                onQuickAction={handleQuickAction}
+                onSendMessage={onSendMessage}
               />
-              <button
-                onClick={handleSubmit}
-                disabled={!input.trim()}
-                className={cn(
-                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
-                  input.trim()
-                    ? "bg-primary text-primary-foreground hover:opacity-90"
-                    : "bg-muted/50 text-muted-foreground/30"
-                )}
-              >
-                <ArrowUp className="w-4 h-4" />
-              </button>
-            </div>
 
-            {/* Quick prompts */}
-            <div className="flex flex-wrap gap-2">
-              {vibespacePrompts.map((p, i) => (
-                <button
-                  key={p.message}
-                  onClick={() => onSendMessage(p.message)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-xs font-medium transition-all animate-fade-in",
-                    "bg-muted/30 border border-border/40 text-muted-foreground",
-                    "hover:bg-muted/60 hover:text-foreground hover:border-border hover:shadow-sm",
-                    "active:scale-[0.97]"
-                  )}
-                  style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Threads preview under vibespace */}
-            {threads.length > 0 && (
-              <ThreadsActivity
-                threads={threads}
-                onResume={(threadId) => onSelectThread?.(threadId)}
+              {/* AI Signals (sample) */}
+              <AISignalsStrip
+                alerts={alerts}
+                isSample={true}
+                pausedAlerts={state.paused_alerts}
+                onMicroAction={handleMicroAction}
               />
-            )}
-          </div>
 
-          {/* AI Signals */}
-          <AISignalsStrip
-            alerts={alerts}
-            isSample={!state.connected_facebook}
-            pausedAlerts={state.paused_alerts}
-            onMicroAction={handleMicroAction}
-          />
+              {/* Vibeboard (sample) */}
+              <VibeboardSnapshot
+                kpis={demoKPIs}
+                isSample={true}
+                onViewFull={() => onSendMessage('Check performance')}
+              />
+            </>
+          )}
 
-          {/* Vibeboard Snapshot */}
-          <VibeboardSnapshot
-            kpis={demoKPIs}
-            isSample={!state.connected_facebook}
-            onViewFull={() => onSendMessage('Check performance')}
-          />
+          {/* ========== CONNECTED USER FLOW ========== */}
+          {isConnected && (
+            <>
+              {/* AI Signals — PRIMARY section for connected users */}
+              <AISignalsStrip
+                alerts={alerts}
+                isSample={false}
+                pausedAlerts={state.paused_alerts}
+                onMicroAction={handleMicroAction}
+              />
 
-          {/* Quick Actions */}
-          <QuickActionsGrid onAction={handleQuickAction} />
+              {/* Hero Card — primary action recommendation */}
+              <HeroCard
+                connectedFacebook={true}
+                primaryAction={primaryAction || undefined}
+                onConnectFacebook={() => setShowFBModal(true)}
+                onStartTour={() => setShowQuizModal(true)}
+                onPrimaryAction={handlePrimaryAction}
+              />
 
-          {/* Assets Preview */}
-          <AssetsPreview
-            assets={state.connected_facebook ? demoAssets : []}
-            onUpload={() => onSendMessage('Upload asset')}
-            onGenerate={() => onSendMessage('Generate image ads')}
-          />
+              {/* Vibeboard — live data */}
+              <VibeboardSnapshot
+                kpis={demoKPIs}
+                isSample={false}
+                onViewFull={() => onSendMessage('Check performance')}
+              />
 
-          {/* Apps & Integrations */}
+              {/* Vibespace + Quick Actions combined */}
+              <VibespaceWithActions
+                input={input}
+                setInput={setInput}
+                inputRef={ref}
+                onSubmit={handleSubmit}
+                onKeyDown={handleKeyDown}
+                onAutoResize={autoResize}
+                onQuickAction={handleQuickAction}
+                onSendMessage={onSendMessage}
+              />
+            </>
+          )}
+
+          {/* Apps & Integrations — always */}
           <AppsIntegrations
             connectedFacebook={state.connected_facebook}
             slackConnected={state.apps.slack_connected}
             onConnect={handleAppConnect}
           />
 
-          {/* Original suggestion chips section */}
+          {/* More flows — always */}
           <div className="space-y-2.5">
             <h3 className="text-sm font-medium text-foreground">More flows</h3>
             <div className="flex flex-wrap gap-2">
@@ -316,3 +296,73 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
     </>
   );
 };
+
+// ---- Combined Vibespace + Quick Actions ----
+interface VibespaceWithActionsProps {
+  input: string;
+  setInput: (v: string) => void;
+  inputRef: React.RefObject<HTMLTextAreaElement>;
+  onSubmit: () => void;
+  onKeyDown: (e: React.KeyboardEvent) => void;
+  onAutoResize: () => void;
+  onQuickAction: (actionId: string) => void;
+  onSendMessage: (msg: string) => void;
+}
+
+const VibespaceWithActions = ({
+  input, setInput, inputRef, onSubmit, onKeyDown, onAutoResize, onQuickAction, onSendMessage,
+}: VibespaceWithActionsProps) => (
+  <div className="space-y-3">
+    <div className="flex items-center gap-2">
+      <Sparkles className="w-4 h-4 text-primary" />
+      <h3 className="text-sm font-medium text-foreground">Vibespace</h3>
+    </div>
+
+    {/* Chat input */}
+    <div className={cn(
+      "flex items-end gap-2 rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm px-4 py-3",
+      "shadow-lg shadow-primary/5 focus-within:border-primary/30 focus-within:shadow-xl focus-within:shadow-primary/10 transition-all"
+    )}>
+      <textarea
+        ref={inputRef}
+        value={input}
+        onChange={e => { setInput(e.target.value); onAutoResize(); }}
+        onKeyDown={onKeyDown}
+        placeholder="Hi — I can help you launch a campaign in <1 minute. Try: 'Create campaign — budget $300 — sales'"
+        rows={1}
+        className="flex-1 bg-transparent border-none outline-none resize-none text-sm text-foreground placeholder:text-muted-foreground/60 min-h-[36px] max-h-[150px] py-1.5"
+      />
+      <button
+        onClick={onSubmit}
+        disabled={!input.trim()}
+        className={cn(
+          "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all",
+          input.trim()
+            ? "bg-primary text-primary-foreground hover:opacity-90"
+            : "bg-muted/50 text-muted-foreground/30"
+        )}
+      >
+        <ArrowUp className="w-4 h-4" />
+      </button>
+    </div>
+
+    {/* Quick Actions inline — chat OR click */}
+    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      {quickActions.map((action, i) => (
+        <button
+          key={action.id}
+          onClick={() => onQuickAction(action.id)}
+          className={cn(
+            "flex flex-col items-center gap-2 p-3 rounded-xl border border-border/40 bg-card/60",
+            "hover:bg-muted/40 hover:border-border hover:shadow-sm transition-all active:scale-[0.97]",
+            "animate-fade-in"
+          )}
+          style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}
+        >
+          <action.icon className="w-4.5 h-4.5 text-muted-foreground" />
+          <span className="text-[10px] font-medium text-muted-foreground text-center leading-tight">{action.label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+);

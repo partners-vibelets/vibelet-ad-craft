@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Plus, MessageSquare, ChevronDown, Search, Settings, Image, Zap, Workflow, Link2, Building2,
-  PanelLeftClose, PanelLeft, Archive, Home, Coins
+  PanelLeftClose, PanelLeft, Archive, Home, Coins, FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { mockWorkspaces } from '@/data/workspaceMockData';
 import { Thread, ThreadStatus } from '@/types/workspace';
 import vibeLogo from '@/assets/vibelets-logo-unified.png';
 
-type SidebarSection = 'threads' | 'creatives' | 'signals' | 'rules' | 'accounts';
+type SidebarSection = 'threads' | 'creatives' | 'assets' | 'signals' | 'rules' | 'accounts';
 
 interface WorkspaceSidebarProps {
   activeThreadId: string | null;
@@ -31,6 +31,7 @@ interface WorkspaceSidebarProps {
 const sectionConfig: { id: SidebarSection; label: string; icon: React.ElementType }[] = [
   { id: 'threads', label: 'Threads', icon: MessageSquare },
   { id: 'creatives', label: 'Creative Library', icon: Image },
+  { id: 'assets', label: 'Asset Library', icon: FolderOpen },
   { id: 'signals', label: 'AI Signals', icon: Zap },
   { id: 'rules', label: 'Rules & Automation', icon: Workflow },
   { id: 'accounts', label: 'Connected Accounts', icon: Link2 },
@@ -40,6 +41,13 @@ const mockCreatives = [
   { id: 'cr-1', name: 'Spring Banner v2', type: 'image', date: 'Feb 14' },
   { id: 'cr-2', name: 'Product Showcase', type: 'video', date: 'Feb 12' },
   { id: 'cr-3', name: 'Sale Announcement', type: 'image', date: 'Feb 10' },
+];
+
+const mockAssets = [
+  { id: 'asset-1', name: 'Spring Banner Hero', type: 'image', dimensions: '1200×628', date: 'Mar 5' },
+  { id: 'asset-2', name: 'Product Showcase Reel', type: 'video', dimensions: '1080×1920', date: 'Mar 3' },
+  { id: 'asset-3', name: 'Carousel Card Set', type: 'image', dimensions: '1080×1080', date: 'Mar 1' },
+  { id: 'asset-4', name: 'UGC Avatar Ad', type: 'video', dimensions: '1080×1080', date: 'Feb 28' },
 ];
 
 const mockSignals = [
@@ -78,8 +86,9 @@ export const WorkspaceSidebar = ({
 
   const activeWs = mockWorkspaces.find(w => w.id === activeWorkspaceId) || mockWorkspaces[0];
 
-  // Separate demo threads from regular threads
-  const allThreads = threads.filter(t => t.workspaceId === activeWorkspaceId);
+  // Sort threads: latest first
+  const allThreads = [...threads.filter(t => t.workspaceId === activeWorkspaceId)]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   const demoThreads = allThreads.filter(t => t.id.startsWith('demo-'));
   const regularThreads = allThreads.filter(t => !t.id.startsWith('demo-'));
 
@@ -93,12 +102,9 @@ export const WorkspaceSidebar = ({
           <PanelLeft className="w-4 h-4" />
         </button>
         <div className="w-6 h-px bg-border/50 mb-1" />
-
-        {/* Home button */}
         <button onClick={onGoHome} title="Home" className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
           <Home className="w-4 h-4" />
         </button>
-
         {sectionConfig.map(sec => (
           <button key={sec.id} onClick={() => { setActiveSection(sec.id); onToggleCollapse(); }} title={sec.label}
             className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", activeSection === sec.id && !isHomeMode ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}>
@@ -115,7 +121,7 @@ export const WorkspaceSidebar = ({
 
   return (
     <div className="w-72 bg-card/50 border-r border-border/50 flex flex-col shrink-0">
-      {/* Header: Logo + Company + Credits */}
+      {/* Header */}
       <div className="px-3 py-3 border-b border-border/50">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -126,7 +132,6 @@ export const WorkspaceSidebar = ({
           </button>
         </div>
 
-        {/* Company name + credits */}
         <div className="flex items-center justify-between px-1 mb-2.5">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -143,7 +148,6 @@ export const WorkspaceSidebar = ({
           </div>
         </div>
 
-        {/* Home button */}
         <button
           onClick={onGoHome}
           className={cn(
@@ -155,7 +159,6 @@ export const WorkspaceSidebar = ({
           <span>Home</span>
         </button>
 
-        {/* Section nav */}
         <div className="flex flex-col gap-0.5">
           {sectionConfig.map(sec => (
             <button key={sec.id}
@@ -173,11 +176,11 @@ export const WorkspaceSidebar = ({
       </div>
 
       {/* Search */}
-      {activeSection === 'threads' && (
+      {(activeSection === 'threads' || activeSection === 'assets') && (
         <div className="px-3 py-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search threads..." className="pl-8 h-8 text-xs bg-muted/30 border-border/50" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={`Search ${activeSection}...`} className="pl-8 h-8 text-xs bg-muted/30 border-border/50" />
           </div>
         </div>
       )}
@@ -186,7 +189,6 @@ export const WorkspaceSidebar = ({
       <div className="flex-1 overflow-y-auto px-2 pb-2">
         {activeSection === 'threads' && (
           <div className="space-y-3 mt-1">
-            {/* Regular threads */}
             <div className="space-y-0.5">
               {filteredRegular.map(thread => {
                 const sc = statusConfig[thread.status];
@@ -223,7 +225,6 @@ export const WorkspaceSidebar = ({
               </button>
             </div>
 
-            {/* Demo threads section */}
             {filteredDemo.length > 0 && (
               <div className="space-y-0.5">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-medium px-3 block pt-1 pb-1">Demo Flows</span>
@@ -249,6 +250,20 @@ export const WorkspaceSidebar = ({
                 <div className="flex-1 min-w-0">
                   <span className="block truncate">{c.name}</span>
                   <span className="text-[10px] text-muted-foreground">{c.type} · {c.date}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeSection === 'assets' && (
+          <div className="space-y-0.5 mt-1">
+            {mockAssets.map(a => (
+              <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors cursor-pointer">
+                <FolderOpen className="w-3.5 h-3.5 shrink-0 text-primary/60" />
+                <div className="flex-1 min-w-0">
+                  <span className="block truncate">{a.name}</span>
+                  <span className="text-[10px] text-muted-foreground">{a.type} · {a.dimensions} · {a.date}</span>
                 </div>
               </div>
             ))}
