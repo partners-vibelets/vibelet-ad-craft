@@ -192,7 +192,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
             input={input} setInput={setInput} inputRef={ref}
             onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
             onQuickAction={handleQuickAction} onSendMessage={onSendMessage}
-            alerts={alerts} pausedAlerts={state.paused_alerts} onMicroAction={handleMicroAction}
           />}
 
           {/* ========== DRAFT READY ========== */}
