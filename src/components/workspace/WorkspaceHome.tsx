@@ -361,7 +361,7 @@ interface NewUserLayoutProps extends VibespaceProps {
   onMicroAction: (id: string, action: string, name: string) => void;
 }
 
-const NewUserLayout = ({ onConnectFB, onStartTour, alerts, pausedAlerts, onMicroAction, ...vibespace }: NewUserLayoutProps) => (
+const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: NewUserLayoutProps) => (
   <>
     {/* Hero — Connect CTA (dominant) */}
     <HeroCard connectedFacebook={false} onConnectFacebook={onConnectFB} onStartTour={onStartTour} onPrimaryAction={() => {}} />
@@ -369,15 +369,44 @@ const NewUserLayout = ({ onConnectFB, onStartTour, alerts, pausedAlerts, onMicro
     {/* Vibespace — chat + quick actions for exploration */}
     <VibespaceWithActions {...vibespace} placeholder="Try: 'Create a sample campaign' or 'Show me what Vibelets can do'" />
 
-    {/* Sample AI Signals — labeled as demo */}
-    <AISignalsStrip
-      alerts={alerts} isSample={true} pausedAlerts={pausedAlerts}
-      onMicroAction={onMicroAction}
-      onViewAllRecommendations={() => vibespace.onSendMessage('Run account audit')}
-    />
+    {/* Empty state: Pending Approvals */}
+    <div className="rounded-2xl border border-dashed border-border/50 bg-muted/5 p-6 space-y-3 animate-fade-in">
+      <div className="flex items-center gap-2">
+        <AlertTriangle className="w-4 h-4 text-muted-foreground/40" />
+        <h3 className="text-sm font-medium text-muted-foreground/60">Pending Approvals</h3>
+      </div>
+      <div className="flex flex-col items-center py-4 space-y-2">
+        <div className="w-10 h-10 rounded-xl bg-muted/20 flex items-center justify-center">
+          <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
+        </div>
+        <p className="text-sm text-muted-foreground/60 text-center max-w-xs">
+          AI-powered recommendations will appear here once your ad account is connected
+        </p>
+        <button onClick={onConnectFB} className="text-xs text-primary hover:underline mt-1">
+          Connect account to get started →
+        </button>
+      </div>
+    </div>
 
-    {/* Sample Vibeboard */}
-    <VibeboardSnapshot kpis={demoKPIs} isSample={true} onViewFull={() => vibespace.onSendMessage('Check performance')} />
+    {/* Empty state: Vibeboard */}
+    <div className="rounded-2xl border border-dashed border-border/50 bg-muted/5 p-6 space-y-3 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
+      <div className="flex items-center gap-2">
+        <Search className="w-4 h-4 text-muted-foreground/40" />
+        <h3 className="text-sm font-medium text-muted-foreground/60">Vibeboard</h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+        {['Spend', 'ROAS', 'CPA', 'CTR'].map((label, i) => (
+          <div key={label} className="rounded-xl border border-border/20 bg-muted/10 p-3.5 space-y-2" style={{ animationDelay: `${i * 60 + 150}ms` }}>
+            <p className="text-[11px] text-muted-foreground/40">{label}</p>
+            <div className="h-5 w-16 rounded bg-muted/20" />
+            <div className="h-3 w-12 rounded bg-muted/15" />
+          </div>
+        ))}
+      </div>
+      <p className="text-[11px] text-muted-foreground/50 text-center">
+        Live performance metrics will populate after connecting your ad account
+      </p>
+    </div>
   </>
 );
 
