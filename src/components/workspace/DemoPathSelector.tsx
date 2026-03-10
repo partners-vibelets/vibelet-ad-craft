@@ -47,6 +47,7 @@ const demoPaths: DemoPath[] = [
       onboarding_answers: { objective: 'sales', monthly_budget: '$500-2.5k', platforms: ['Facebook', 'Instagram'], audience: 'lookalike', style: 'UGC' },
       paused_alerts: [],
       apps: { slack_connected: false },
+      last_active: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
     },
   },
   {

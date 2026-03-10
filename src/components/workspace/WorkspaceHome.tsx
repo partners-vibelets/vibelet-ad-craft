@@ -10,6 +10,7 @@ import { VibeboardSnapshot } from '@/components/workspace/homepage/VibeboardSnap
 import { AppsIntegrations } from '@/components/workspace/homepage/AppsIntegrations';
 import { ConnectFacebookModal } from '@/components/workspace/homepage/ConnectFacebookModal';
 import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
+import { WhileYouWereAwaySummary } from '@/components/workspace/homepage/WhileYouWereAwaySummary';
 import { useToast } from '@/hooks/use-toast';
 
 const quickActions = [
@@ -186,6 +187,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
                 isSample={true}
                 pausedAlerts={state.paused_alerts}
                 onMicroAction={handleMicroAction}
+                onViewAllRecommendations={() => onSendMessage('Run account audit')}
               />
 
               {/* Vibeboard (sample) */}
@@ -200,21 +202,21 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
           {/* ========== CONNECTED USER FLOW ========== */}
           {isConnected && (
             <>
-              {/* AI Signals — PRIMARY section for connected users */}
+              {/* While You Were Away — executive summary */}
+              <WhileYouWereAwaySummary
+                lastActive={state.last_active}
+                kpis={demoKPIs}
+                onDismiss={() => {}}
+                onViewDetails={() => onSendMessage('Run account audit')}
+              />
+
+              {/* AI Signals — PRIMARY section: rich recommendation cards */}
               <AISignalsStrip
                 alerts={alerts}
                 isSample={false}
                 pausedAlerts={state.paused_alerts}
                 onMicroAction={handleMicroAction}
-              />
-
-              {/* Hero Card — primary action recommendation */}
-              <HeroCard
-                connectedFacebook={true}
-                primaryAction={primaryAction || undefined}
-                onConnectFacebook={() => setShowFBModal(true)}
-                onStartTour={() => setShowQuizModal(true)}
-                onPrimaryAction={handlePrimaryAction}
+                onViewAllRecommendations={() => onSendMessage('Run account audit')}
               />
 
               {/* Vibeboard — live data */}
