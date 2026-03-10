@@ -5,7 +5,9 @@ import { OnboardingFlow, OnboardingData } from '@/components/workspace/Onboardin
 import { ArtifactStream } from '@/components/workspace/ArtifactStream';
 import { StrategyContextCards } from '@/components/workspace/StrategyContextCards';
 import { ExecutionPanel } from '@/components/workspace/ExecutionPanel';
+import { DemoPathSelector } from '@/components/workspace/DemoPathSelector';
 import { useWorkspace } from '@/hooks/useWorkspace';
+import { useUserState, UserState } from '@/hooks/useUserState';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Sparkles, ArrowUp, Paperclip, FileText, Pin, X, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,6 +16,8 @@ import { Button } from '@/components/ui/button';
 
 const Workspace = () => {
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [showDemoSelector, setShowDemoSelector] = useState(true);
+  const { update } = useUserState();
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(() => {
     const saved = localStorage.getItem('vibelets-onboarding-data');
     return saved ? JSON.parse(saved) : null;
