@@ -10,6 +10,7 @@ import { VibeboardSnapshot } from '@/components/workspace/homepage/VibeboardSnap
 import { AppsIntegrations } from '@/components/workspace/homepage/AppsIntegrations';
 import { ConnectFacebookModal } from '@/components/workspace/homepage/ConnectFacebookModal';
 import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
+import { WhileYouWereAwaySummary } from '@/components/workspace/homepage/WhileYouWereAwaySummary';
 import { useToast } from '@/hooks/use-toast';
 
 const quickActions = [
