@@ -187,6 +187,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
                 isSample={true}
                 pausedAlerts={state.paused_alerts}
                 onMicroAction={handleMicroAction}
+                onViewAllRecommendations={() => onSendMessage('Run account audit')}
               />
 
               {/* Vibeboard (sample) */}
