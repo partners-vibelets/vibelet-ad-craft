@@ -84,6 +84,8 @@ const Workspace = () => {
             credits={247}
             onboardingComplete={onboardingComplete}
             onboardingData={onboardingData}
+            threads={allThreads.filter(t => t.status !== 'archived').slice(0, 3)}
+            onSelectThread={selectThread}
           />
         ) : (
           <>
