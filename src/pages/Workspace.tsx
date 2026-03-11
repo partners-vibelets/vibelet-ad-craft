@@ -17,6 +17,8 @@ import { ThreadMessage, ActionChip } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
 
 const Workspace = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [showDemoSelector, setShowDemoSelector] = useState(true);
   const { update } = useUserState();
