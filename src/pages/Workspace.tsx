@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
@@ -15,6 +17,8 @@ import { ThreadMessage, ActionChip } from '@/types/workspace';
 import { Button } from '@/components/ui/button';
 
 const Workspace = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [showDemoSelector, setShowDemoSelector] = useState(true);
   const { update } = useUserState();
@@ -31,6 +35,13 @@ const Workspace = () => {
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
     executionPanelContent, handleExecutionAction,
   } = useWorkspace();
+
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
