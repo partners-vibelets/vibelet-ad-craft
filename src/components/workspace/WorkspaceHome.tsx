@@ -201,6 +201,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
           {/* ========== RETURNING STALE ========== */}
           {persona === 'returning-stale' && <ReturningStaleLayout
             state={state}
+            onPrimaryAction={handlePrimaryAction}
             onKeyMomentAction={handleKeyMomentAction}
             {...vibespaceProps}
           />}
