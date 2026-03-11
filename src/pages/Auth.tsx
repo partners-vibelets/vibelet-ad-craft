@@ -4,12 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Loader2, Sparkles, ArrowRight, Mail, Lock, Eye, EyeOff, ChevronLeft, Check, Shield } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, Mail, Lock, Eye, EyeOff, ChevronLeft, Check } from 'lucide-react';
 import vibeLogo from '@/assets/vibelets-logo-unified.png';
 import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
 import { OnboardingAnswers, useUserState } from '@/hooks/useUserState';
 
 type AuthStep = 'method' | 'otp-email' | 'otp-verify' | 'otp-password' | 'onboarding' | 'welcome';
+type AuthMode = 'signup' | 'signin';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const Auth = () => {
   const { saveOnboardingAnswers } = useUserState();
   const [step, setStep] = useState<AuthStep>('method');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>('signup');
+  const [isFlipping, setIsFlipping] = useState(false);
 
   // OTP flow state
   const [email, setEmail] = useState('');
@@ -50,12 +53,43 @@ const Auth = () => {
 
   const validateEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
+  const handleFlipMode = () => {
+    setIsFlipping(true);
+    setTimeout(() => {
+      setAuthMode(prev => prev === 'signup' ? 'signin' : 'signup');
+      setTimeout(() => setIsFlipping(false), 50);
+    }, 250);
+  };
+
   const handleGoogleLogin = async () => {
     setIsLoading('google');
     try {
       await login('google');
-      setStep('onboarding');
-      setShowOnboarding(true);
+      if (authMode === 'signup') {
+        setStep('onboarding');
+        setShowOnboarding(true);
+      } else {
+        completeOnboarding();
+        navigate('/workspace');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setIsLoading(null);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setIsLoading('facebook');
+    try {
+      await login('facebook');
+      if (authMode === 'signup') {
+        setStep('onboarding');
+        setShowOnboarding(true);
+      } else {
+        completeOnboarding();
+        navigate('/workspace');
+      }
     } catch (error) {
       console.error('Login failed:', error);
     } finally {
@@ -70,7 +104,6 @@ const Auth = () => {
     }
     setEmailError('');
     setIsLoading('otp-send');
-    // Simulate OTP send
     await new Promise(r => setTimeout(r, 1200));
     setOtpSent(true);
     setOtpCountdown(30);
@@ -109,8 +142,22 @@ const Auth = () => {
     if (password.length < 6) return;
     setIsLoading('create');
     await login('google'); // mock signup
-    setStep('onboarding');
-    setShowOnboarding(true);
+    if (authMode === 'signup') {
+      setStep('onboarding');
+      setShowOnboarding(true);
+    } else {
+      completeOnboarding();
+      navigate('/workspace');
+    }
+    setIsLoading(null);
+  };
+
+  const handleSignIn = async () => {
+    if (!validateEmail(email) || password.length < 6) return;
+    setIsLoading('signin');
+    await login('google'); // mock signin
+    completeOnboarding();
+    navigate('/workspace');
     setIsLoading(null);
   };
 
@@ -131,6 +178,8 @@ const Auth = () => {
   const strengthLabels = ['', 'Weak', 'Good', 'Strong'];
   const strengthColors = ['', 'bg-destructive', 'bg-amber-400', 'bg-secondary'];
 
+  const isSignup = authMode === 'signup';
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background */}
@@ -148,26 +197,30 @@ const Auth = () => {
         />
       )}
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* ========== METHOD SELECTION ========== */}
+      <div className="relative z-10 w-full max-w-md" style={{ perspective: '1200px' }}>
+        {/* ========== METHOD SELECTION (Sign Up / Sign In) ========== */}
         {step === 'method' && (
-          <div className="rounded-2xl border border-border/50 bg-card shadow-2xl p-8 space-y-6 animate-fade-in">
+          <div
+            className={cn(
+              "rounded-2xl border border-border/50 bg-card shadow-2xl p-8 space-y-6 transition-all duration-500",
+              isFlipping ? "opacity-0 [transform:rotateY(90deg)]" : "opacity-100 [transform:rotateY(0deg)]"
+            )}
+            style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+          >
             {/* Header */}
             <div className="text-center space-y-3">
               <div className="flex justify-center">
                 <img src={vibeLogo} alt="Vibelets" className="h-9" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Create your account</h1>
-                <p className="text-sm text-muted-foreground mt-1">Start creating AI-powered campaigns in minutes</p>
-              </div>
-            </div>
-
-            {/* Trust badge */}
-            <div className="flex justify-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/10 border border-secondary/20">
-                <Shield className="w-3.5 h-3.5 text-secondary" />
-                <span className="text-xs font-medium text-secondary">Free forever · No credit card</span>
+                <h1 className="text-xl font-bold text-foreground">
+                  {isSignup ? 'Create your account' : 'Welcome back'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isSignup
+                    ? 'Start smarter ads in minutes. Join early access today.'
+                    : 'Sign in to continue to your workspace'}
+                </p>
               </div>
             </div>
 
@@ -194,6 +247,26 @@ const Auth = () => {
               )}
             </Button>
 
+            {/* Facebook */}
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full h-13 rounded-xl border-2 hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-3 transition-all"
+              onClick={handleFacebookLogin}
+              disabled={isLoading !== null}
+            >
+              {isLoading === 'facebook' ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                  <span className="font-medium">Continue with Facebook</span>
+                </>
+              )}
+            </Button>
+
             {/* Divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-border" />
@@ -201,17 +274,63 @@ const Auth = () => {
               <div className="flex-1 h-px bg-border" />
             </div>
 
-            {/* Email OTP option */}
-            <Button
-              variant="ghost"
-              size="lg"
-              className="w-full h-13 rounded-xl border-2 border-border/60 hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-3 transition-all"
-              onClick={() => setStep('otp-email')}
-              disabled={isLoading !== null}
-            >
-              <Mail className="w-5 h-5 text-muted-foreground" />
-              <span className="font-medium">Sign up with email</span>
-            </Button>
+            {/* Sign In: email + password inline */}
+            {!isSignup ? (
+              <div className="space-y-3">
+                <Input
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setEmailError(''); }}
+                  className={cn("h-12 rounded-xl text-base", emailError && "border-destructive focus-visible:ring-destructive")}
+                />
+                {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="h-12 rounded-xl text-base pl-10 pr-10"
+                    onKeyDown={e => e.key === 'Enter' && handleSignIn()}
+                  />
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button className="text-xs text-primary hover:underline">Forgot password?</button>
+                </div>
+                <Button
+                  size="lg"
+                  className="w-full h-12 rounded-xl"
+                  onClick={handleSignIn}
+                  disabled={!email || password.length < 6 || isLoading === 'signin'}
+                >
+                  {isLoading === 'signin' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>Sign in <ArrowRight className="w-4 h-4" /></>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              /* Sign Up: email OTP option */
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full h-13 rounded-xl border-2 border-border/60 hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-3 transition-all"
+                onClick={() => setStep('otp-email')}
+                disabled={isLoading !== null}
+              >
+                <Mail className="w-5 h-5 text-muted-foreground" />
+                <span className="font-medium">Sign up with email</span>
+              </Button>
+            )}
 
             {/* Terms */}
             <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
@@ -221,9 +340,12 @@ const Auth = () => {
               <a href="#" className="text-primary hover:underline">Privacy Policy</a>
             </p>
 
+            {/* Flip toggle */}
             <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
-              <button className="text-primary font-medium hover:underline">Sign in</button>
+              {isSignup ? 'Already have an account? ' : "Don't have an account? "}
+              <button onClick={handleFlipMode} className="text-primary font-medium hover:underline">
+                {isSignup ? 'Sign in' : 'Sign up'}
+              </button>
             </p>
           </div>
         )}
@@ -286,7 +408,6 @@ const Auth = () => {
               </p>
             </div>
 
-            {/* OTP inputs */}
             <div className="flex justify-center gap-2.5">
               {otp.map((digit, i) => (
                 <input
@@ -363,7 +484,6 @@ const Auth = () => {
                 </button>
               </div>
 
-              {/* Strength bar */}
               {password.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex gap-1">
