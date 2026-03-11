@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { ArrowRight, Check, X, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, Check, X, Sparkles, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { onboardingQuizQuestions } from '@/data/homepageDemoData';
+import { onboardingQuizQuestions, advancedQuizQuestions, QuizQuestion } from '@/data/onboardingQuizData';
 import { OnboardingAnswers } from '@/hooks/useUserState';
 
 interface OnboardingQuizModalProps {
@@ -10,45 +10,53 @@ interface OnboardingQuizModalProps {
   onComplete: (answers: OnboardingAnswers) => void;
 }
 
-const optionEmojis: Record<string, string> = {
-  sales: '💰', leads: '📋', awareness: '📣', app_installs: '📱',
-  '<$500': '🌱', '$500-2.5k': '📈', '$2.5k-10k': '🚀', '>$10k': '🏢',
-  Facebook: '📘', Instagram: '📸', TikTok: '🎵', Google: '🔍',
-  yes: '✅', no: '❌',
-  existing_customers: '🎯', lookalike: '🔄', interest_based: '🧲',
-  UGC: '🎬', lifestyle: '🌿', demo: '📦',
-};
-
 export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQuizModalProps) => {
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({
+    generate_now: true,
+    consent_personalization: true,
+  });
   const [multiSelections, setMultiSelections] = useState<string[]>([]);
-  const [generateNow, setGenerateNow] = useState(true);
-
-  useEffect(() => {
-    if (!open) { setStep(0); setAnswers({}); setMultiSelections([]); }
-  }, [open]);
+  const [inAdvanced, setInAdvanced] = useState(false);
+  const [advancedStep, setAdvancedStep] = useState(0);
 
   if (!open) return null;
 
-  const questions = onboardingQuizQuestions;
-  const isLastRegular = step === questions.length - 1; // generate_now question
-  const question = questions[step];
+  const mainQuestions = onboardingQuizQuestions;
+  const question = inAdvanced ? advancedQuizQuestions[advancedStep] : mainQuestions[step];
+  const totalMain = mainQuestions.length;
+  const isLastMain = step === totalMain - 1;
+  const progress = inAdvanced ? 100 : ((step + 1) / totalMain) * 100;
 
   if (!question) return null;
 
+  const advanceStep = (currentAnswers: Record<string, any>) => {
+    if (inAdvanced) {
+      if (advancedStep < advancedQuizQuestions.length - 1) {
+        setAdvancedStep(prev => prev + 1);
+        setMultiSelections([]);
+      } else {
+        onComplete(currentAnswers as OnboardingAnswers);
+        onClose();
+      }
+    } else if (isLastMain) {
+      onComplete(currentAnswers as OnboardingAnswers);
+      onClose();
+    } else {
+      setStep(prev => prev + 1);
+      setMultiSelections([]);
+    }
+  };
+
   const handleSelect = (value: string) => {
     if (question.type === 'multiselect') {
-      setMultiSelections(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
-    } else if (question.type === 'boolean') {
-      // handled separately
-    } else {
+      setMultiSelections(prev =>
+        prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+      );
+    } else if (question.type === 'select') {
       const newAnswers = { ...answers, [question.id]: value };
       setAnswers(newAnswers);
-      if (step < questions.length - 1) {
-        setStep(step + 1);
-        setMultiSelections([]);
-      }
+      advanceStep(newAnswers);
     }
   };
 
@@ -56,17 +64,21 @@ export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQui
     if (multiSelections.length === 0) return;
     const newAnswers = { ...answers, [question.id]: multiSelections };
     setAnswers(newAnswers);
-    setStep(step + 1);
-    setMultiSelections([]);
+    advanceStep(newAnswers);
   };
 
-  const handleFinish = () => {
-    const finalAnswers = { ...answers, generate_now: generateNow };
-    onComplete(finalAnswers as OnboardingAnswers);
+  const handleBooleanToggle = (value: boolean) => {
+    setAnswers(prev => ({ ...prev, [question.id]: value }));
+  };
+
+  const handleBooleanContinue = () => {
+    advanceStep(answers);
+  };
+
+  const handleSkip = () => {
+    onComplete(answers as OnboardingAnswers);
     onClose();
   };
-
-  const progress = ((step + 1) / questions.length) * 100;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-fade-in">
@@ -78,12 +90,21 @@ export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQui
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Quick setup</p>
-              <p className="text-[10px] text-muted-foreground">{step + 1} of {questions.length}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {inAdvanced
+                  ? `Advanced ${advancedStep + 1} of ${advancedQuizQuestions.length}`
+                  : `${step + 1} of ${totalMain}`}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSkip} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              Skip & use defaults
+            </button>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Progress */}
@@ -92,46 +113,56 @@ export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQui
         </div>
 
         {/* Question */}
-        <h3 className="text-base font-semibold text-foreground">{question.label}</h3>
+        <div>
+          {inAdvanced && advancedStep === 0 && (
+            <p className="text-xs text-primary font-medium mb-1">Advanced preferences</p>
+          )}
+          <h3 className="text-base font-semibold text-foreground">{question.label}</h3>
+          {question.help && (
+            <p className="text-xs text-muted-foreground mt-1">{question.help}</p>
+          )}
+        </div>
 
         {question.type === 'boolean' ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">I'll auto-create a campaign draft based on your answers</p>
             <div className="flex gap-3">
               {[true, false].map(val => (
                 <button
                   key={String(val)}
-                  onClick={() => setGenerateNow(val)}
+                  onClick={() => handleBooleanToggle(val)}
                   className={cn(
                     "flex-1 p-4 rounded-xl border text-center transition-all",
-                    generateNow === val
+                    (answers[question.id] ?? question.default) === val
                       ? "border-primary/40 bg-primary/5"
                       : "border-border/40 hover:border-border hover:bg-muted/20"
                   )}
                 >
-                  <span className="text-2xl block mb-1">{val ? '🚀' : '⏳'}</span>
-                  <span className="text-sm font-medium text-foreground">{val ? 'Yes, create it!' : 'Not now'}</span>
+                  <span className="text-2xl block mb-1">{val ? '✅' : '⏭️'}</span>
+                  <span className="text-sm font-medium text-foreground">{val ? 'Yes' : 'No, skip'}</span>
                 </button>
               ))}
             </div>
-            <button onClick={handleFinish} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
-              Finish setup <ArrowRight className="w-4 h-4" />
+            <button onClick={handleBooleanContinue} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
+              Continue <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className={cn(
+              "grid gap-2.5",
+              question.options && question.options.length <= 3 ? "grid-cols-1" : "grid-cols-2"
+            )}>
               {question.options?.map(opt => {
                 const isSelected = question.type === 'multiselect'
-                  ? multiSelections.includes(opt)
-                  : answers[question.id] === opt;
+                  ? multiSelections.includes(opt.value)
+                  : answers[question.id] === opt.value;
 
                 return (
                   <button
-                    key={opt}
-                    onClick={() => handleSelect(opt)}
+                    key={opt.value}
+                    onClick={() => handleSelect(opt.value)}
                     className={cn(
-                      "relative flex items-center gap-2.5 p-3.5 rounded-xl border text-left transition-all",
+                      "relative flex items-start gap-2.5 p-3.5 rounded-xl border text-left transition-all",
                       isSelected
                         ? "border-primary/40 bg-primary/5"
                         : "border-border/40 hover:border-border hover:bg-muted/20"
@@ -142,8 +173,13 @@ export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQui
                         <Check className="w-3 h-3 text-primary-foreground" />
                       </div>
                     )}
-                    <span className="text-lg">{optionEmojis[opt] || '•'}</span>
-                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                    {opt.emoji && <span className="text-lg mt-0.5">{opt.emoji}</span>}
+                    <div>
+                      <span className="text-sm font-medium text-foreground">{opt.label}</span>
+                      {opt.desc && (
+                        <span className="block text-[11px] text-muted-foreground leading-snug mt-0.5">{opt.desc}</span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -164,6 +200,17 @@ export const OnboardingQuizModal = ({ open, onClose, onComplete }: OnboardingQui
               </button>
             )}
           </>
+        )}
+
+        {/* Advanced link on last main question */}
+        {!inAdvanced && isLastMain && (
+          <button
+            onClick={() => { setInAdvanced(true); setAdvancedStep(0); setMultiSelections([]); }}
+            className="flex items-center justify-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors mx-auto"
+          >
+            <span>Answer advanced questions to tune recommendations</span>
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
     </div>

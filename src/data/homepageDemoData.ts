@@ -48,48 +48,32 @@ export function generateAlerts(kpis: DemoKPI[]): DemoAlert[] {
     const absDelta = Math.abs(kpi.delta);
     if (absDelta > 20) {
       const impact = Math.round(absDelta * 0.45);
-      const severity = absDelta > 40 ? 'high' : absDelta > 25 ? 'medium' : 'low';
       alerts.push({
         id: `alert-${kpi.id}`,
-        title: `${kpi.label} ${kpi.direction === 'up' ? '↑' : '↓'} ${absDelta.toFixed(0)}% vs last 7d`,
-        rationale: `Your ${kpi.label} moved from ${kpi.previousValue} to ${kpi.value} — ${!kpi.good ? 'this needs attention' : 'great progress'}`,
+        title: `${kpi.label} shifted ${kpi.direction === 'up' ? '↑' : '↓'} ${absDelta.toFixed(1)}%`,
+        rationale: `${kpi.label} went from ${kpi.previousValue} → ${kpi.value}`,
         kpi: kpi.label,
         delta: kpi.delta,
         estimatedImpact: impact,
-        severity,
+        severity: absDelta > 40 ? 'high' : absDelta > 25 ? 'medium' : 'low',
         status: 'active',
-        microActions: getMicroActions(kpi),
-        campaignName: 'Spring Sale 2026',
+        microActions: [
+          { label: 'Pause underperformer', action: `pause-${kpi.id}` },
+          { label: 'Reallocate budget', action: `realloc-${kpi.id}` },
+        ],
+        campaignName: 'Spring Sale Campaign',
       });
     }
   });
   return alerts;
 }
 
-function getMicroActions(kpi: DemoKPI): { label: string; action: string }[] {
-  if (kpi.id === 'cpa') return [
-    { label: '🔄 Regenerate creative', action: 'regenerate' },
-    { label: '⏸️ Pause low performers', action: 'pause' },
-  ];
-  if (kpi.id === 'roas') return [
-    { label: '💰 Adjust budget', action: 'adjust-budget' },
-    { label: '👁️ View details', action: 'view' },
-  ];
-  if (kpi.id === 'ctr') return [
-    { label: '🎨 New creative test', action: 'regenerate' },
-    { label: '🎯 Refine targeting', action: 'view' },
-  ];
-  return [{ label: '👁️ View', action: 'view' }];
-}
-
 export const demoAssets: DemoAsset[] = [
-  { id: 'asset-1', name: 'Spring Banner Hero', type: 'image', thumbnail: '🖼️', dimensions: '1200×628', date: 'Mar 5' },
-  { id: 'asset-2', name: 'Product Showcase Reel', type: 'video', thumbnail: '🎬', dimensions: '1080×1920', date: 'Mar 3' },
-  { id: 'asset-3', name: 'Carousel Card Set', type: 'image', thumbnail: '🖼️', dimensions: '1080×1080', date: 'Mar 1' },
-  { id: 'asset-4', name: 'UGC Avatar Ad', type: 'video', thumbnail: '🎬', dimensions: '1080×1080', date: 'Feb 28' },
+  { id: 'asset-1', name: 'hero-banner-spring.png', type: 'image', thumbnail: '', dimensions: '1200×628', date: '2 days ago' },
+  { id: 'asset-2', name: 'product-demo-v3.mp4', type: 'video', thumbnail: '', dimensions: '1080×1920', date: '4 days ago' },
+  { id: 'asset-3', name: 'ugc-testimonial.mp4', type: 'video', thumbnail: '', dimensions: '1080×1080', date: '1 week ago' },
 ];
 
-// Primary action selection heuristic
 interface ActionCandidate {
   id: string;
   label: string;
@@ -140,15 +124,8 @@ export function computePrimaryAction(kpis: DemoKPI[], hasDraft: boolean): { labe
   };
 }
 
-export const onboardingQuizQuestions = [
-  { id: 'objective', label: "What's your top objective?", type: 'select' as const, options: ['sales', 'leads', 'awareness', 'app_installs'] },
-  { id: 'monthly_budget', label: 'Monthly ad budget range?', type: 'select' as const, options: ['<$500', '$500-2.5k', '$2.5k-10k', '>$10k'] },
-  { id: 'platforms', label: 'Which platforms?', type: 'multiselect' as const, options: ['Facebook', 'Instagram', 'TikTok', 'Google'], default: ['Facebook'] },
-  { id: 'creatives', label: 'Do you have creatives?', type: 'select' as const, options: ['yes', 'no'] },
-  { id: 'audience', label: 'Primary audience?', type: 'select' as const, options: ['existing_customers', 'lookalike', 'interest_based'] },
-  { id: 'style', label: 'Preferred creative style?', type: 'select' as const, options: ['UGC', 'lifestyle', 'demo'] },
-  { id: 'generate_now', label: 'Create a campaign draft now?', type: 'boolean' as const, default: true },
-];
+// Re-export quiz questions from new location for backward compat
+export { onboardingQuizQuestions } from '@/data/onboardingQuizData';
 
 // Demo campaign draft auto-generated from onboarding
 export function generateCampaignDraft(answers: Record<string, any>) {
@@ -156,22 +133,22 @@ export function generateCampaignDraft(answers: Record<string, any>) {
     sales: 'Conversions — Sales',
     leads: 'Lead Generation',
     awareness: 'Brand Awareness',
-    app_installs: 'App Installs',
+    experimentation: 'A/B Testing',
   };
   const budgetMap: Record<string, number> = {
     '<$500': 15,
-    '$500-2.5k': 50,
+    '$500-2500': 50,
     '$2.5k-10k': 150,
     '>$10k': 400,
   };
 
   return {
-    name: `${answers.objective ? objectiveMap[answers.objective] || 'New' : 'New'} Campaign — Draft`,
-    objective: objectiveMap[answers.objective] || 'Sales',
-    dailyBudget: budgetMap[answers.monthly_budget] || 50,
-    platforms: answers.platforms || ['Facebook'],
-    audience: answers.audience || 'interest_based',
-    style: answers.style || 'UGC',
-    creativePrompt: `Create ${answers.style || 'UGC'}-style ad creatives for a ${answers.objective || 'sales'} campaign targeting ${answers.audience || 'interest-based'} audiences on ${(answers.platforms || ['Facebook']).join(', ')}`,
+    name: `${answers.top_objective ? objectiveMap[answers.top_objective] || 'New' : 'New'} Campaign — Draft`,
+    objective: objectiveMap[answers.top_objective] || 'Sales',
+    dailyBudget: budgetMap[answers.monthly_budget_range] || 50,
+    platforms: answers.tools_connected || ['facebook'],
+    audience: 'interest_based',
+    style: answers.creative_availability === 'no' ? 'ai-generated' : 'upload',
+    creativePrompt: `Create ad creatives for a ${answers.top_objective || 'sales'} campaign with ${answers.monthly_budget_range || 'moderate'} budget`,
   };
 }
