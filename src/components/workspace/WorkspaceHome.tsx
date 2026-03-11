@@ -423,31 +423,70 @@ const DraftDetail = ({ label, value }: { label: string; value: string }) => (
 
 
 // ========== 3. RETURNING STALE ==========
-const ReturningStaleLayout = ({ state, onKeyMomentAction, ...vibespace }: {
+const ReturningStaleLayout = ({ state, onPrimaryAction, onKeyMomentAction, ...vibespace }: {
   state: ReturnType<typeof useUserState>['state'];
+  onPrimaryAction: (action: string) => void;
   onKeyMomentAction: (id: string, action: string, name: string) => void;
-} & VibespaceProps) => (
-  <>
-    {/* While You Were Away — bullet summary + alert chips */}
-    <WhileYouWereAwaySummary
-      lastActive={state.last_active}
-      kpis={demoKPIs}
-      onDismiss={() => {}}
-      onViewDetails={() => vibespace.onSendMessage('Run account audit')}
-    />
+} & VibespaceProps) => {
+  const draft = state.has_draft
+    ? (state.onboarding_answers ? generateCampaignDraft(state.onboarding_answers as Record<string, any>) : null)
+    : null;
 
-    {/* Key Moments — side by side */}
-    <KeyMomentsPanel
-      moments={demoKeyMoments}
-      potentialSavings="$102/day"
-      onAction={onKeyMomentAction}
-      onViewAll={() => vibespace.onSendMessage('Run account audit')}
-      maxPerColumn={3}
-    />
+  return (
+    <>
+      {/* While You Were Away — bullet summary + alert chips */}
+      <WhileYouWereAwaySummary
+        lastActive={state.last_active}
+        kpis={demoKPIs}
+        onDismiss={() => {}}
+        onViewDetails={() => vibespace.onSendMessage('Run account audit')}
+      />
 
-    <VibespaceWithActions {...vibespace} placeholder="Ask: 'What happened while I was away?' or 'Run a full audit'" />
-  </>
-);
+      {/* Draft card — shown when user has a pending draft */}
+      {state.has_draft && (
+        <div className="rounded-2xl border border-secondary/30 bg-gradient-to-br from-secondary/8 via-card to-card p-5 space-y-4 animate-fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+              <FileEdit className="w-5 h-5 text-secondary" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Campaign draft ready</p>
+              <h2 className="text-base font-semibold text-foreground">{draft?.name || 'Your Campaign Draft'}</h2>
+              <p className="text-sm text-muted-foreground">Your draft is still waiting — publish it now or fine-tune it first.</p>
+            </div>
+          </div>
+          {draft && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-1">
+              <DraftDetail label="Objective" value={draft.objective} />
+              <DraftDetail label="Daily Budget" value={`$${draft.dailyBudget}`} />
+              <DraftDetail label="Platforms" value={draft.platforms.join(', ')} />
+              <DraftDetail label="Creative Style" value={draft.style} />
+            </div>
+          )}
+          <div className="flex items-center gap-3 pt-1">
+            <button onClick={() => onPrimaryAction('publish-draft')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:opacity-90 transition-all active:scale-[0.98] shadow-md">
+              <Play className="w-4 h-4" /> Publish campaign
+            </button>
+            <button onClick={() => vibespace.onSendMessage(`Fine-tune my draft campaign: ${draft?.name || 'campaign'}`)} className="px-4 py-2.5 rounded-xl border border-border/60 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all">
+              Fine-tune in Vibespace
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Key Moments — side by side */}
+      <KeyMomentsPanel
+        moments={demoKeyMoments}
+        potentialSavings="$102/day"
+        onAction={onKeyMomentAction}
+        onViewAll={() => vibespace.onSendMessage('Run account audit')}
+        maxPerColumn={3}
+      />
+
+      <VibespaceWithActions {...vibespace} placeholder="Ask: 'What happened while I was away?' or 'Run a full audit'" />
+    </>
+  );
+};
 
 
 // ========== 4. HIGH CPA / ALERT FOCUSED ==========
