@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { WorkspaceSidebar } from '@/components/workspace/WorkspaceSidebar';
 import { WorkspaceHome } from '@/components/workspace/WorkspaceHome';
 import { OnboardingFlow, OnboardingData } from '@/components/workspace/OnboardingFlow';
