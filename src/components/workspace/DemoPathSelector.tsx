@@ -79,7 +79,7 @@ const demoPaths: DemoPath[] = [
       connected_facebook: true,
       has_published_campaign: true,
       has_draft: true,
-      onboarding_answers: { objective: 'sales', monthly_budget: '>$10k', platforms: ['Facebook', 'Instagram', 'TikTok'], audience: 'lookalike', style: 'demo' },
+      onboarding_answers: { top_objective: 'sales', monthly_budget_range: '>$10k', role: 'agency', ai_autonomy: 'autonomous', tools_connected: ['facebook', 'tiktok'] },
       paused_alerts: ['alert-ctr'],
       apps: { slack_connected: true },
     },
