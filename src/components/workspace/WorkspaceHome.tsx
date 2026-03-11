@@ -119,7 +119,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
       pauseAlert(alertId);
       toast({ title: '⏸️ Adset paused (prototype)', description: `Low-performing adset in "${campaignName}" has been paused.` });
     } else if (action === 'regenerate') {
-      const style = state.onboarding_answers?.style || 'UGC';
+      const style = state.onboarding_answers?.creative_availability || 'some';
       onSendMessage(`Regenerate creatives for ${campaignName} — style: ${style}`);
     } else if (action === 'view') {
       onSendMessage(`Show me details for ${campaignName}`);

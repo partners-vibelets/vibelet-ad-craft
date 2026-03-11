@@ -11,13 +11,18 @@ export interface UserState {
 }
 
 export interface OnboardingAnswers {
-  objective?: string;
-  monthly_budget?: string;
-  platforms?: string[];
-  creatives?: string;
-  audience?: string;
-  style?: string;
+  role?: string;
+  top_objective?: string;
+  monthly_budget_range?: string;
+  num_products?: string;
+  creative_availability?: string;
+  ai_autonomy?: string;
   generate_now?: boolean;
+  show_advanced_link?: boolean;
+  primary_metric?: string;
+  how_involved?: string;
+  tools_connected?: string[];
+  consent_personalization?: boolean;
 }
 
 const STORAGE_KEY = 'vibelets-user-state';
