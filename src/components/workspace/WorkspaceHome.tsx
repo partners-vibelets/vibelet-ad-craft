@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
-import { ArrowUp, Sparkles, HelpCircle, BookOpen, Mail, Rocket, Video, ImageIcon, Upload, Search, Link2, FileEdit, Zap, Play, Clock, TrendingDown, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowUp, Sparkles, HelpCircle, BookOpen, Mail, Rocket, Video, ImageIcon, Upload, Search, Link2, FileEdit, Zap, Play, TrendingDown, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { OnboardingData } from '@/components/workspace/OnboardingFlow';
 import { useUserState, OnboardingAnswers } from '@/hooks/useUserState';
-import { demoKPIs, demoAssets, generateAlerts, computePrimaryAction, generateCampaignDraft } from '@/data/homepageDemoData';
+import { demoKPIs, generateAlerts, computePrimaryAction, generateCampaignDraft, moneyFlowData, demoKeyMoments, demoRecentDecisions } from '@/data/homepageDemoData';
 import { HeroCard } from '@/components/workspace/homepage/HeroCard';
-import { AISignalsStrip } from '@/components/workspace/homepage/AISignalsStrip';
-import { VibeboardSnapshot } from '@/components/workspace/homepage/VibeboardSnapshot';
+import { MoneyFlowCard } from '@/components/workspace/homepage/MoneyFlowCard';
+import { KeyMomentsPanel } from '@/components/workspace/homepage/KeyMomentsPanel';
+import { RecentDecisionsCard } from '@/components/workspace/homepage/RecentDecisionsCard';
 import { AppsIntegrations } from '@/components/workspace/homepage/AppsIntegrations';
 import { ConnectFacebookModal } from '@/components/workspace/homepage/ConnectFacebookModal';
 import { OnboardingQuizModal } from '@/components/workspace/homepage/OnboardingQuizModal';
@@ -18,19 +19,12 @@ type HomepagePersona = 'new-user' | 'draft-ready' | 'returning-stale' | 'high-cp
 
 function detectPersona(state: ReturnType<typeof useUserState>['state']): HomepagePersona {
   if (!state.connected_facebook) return 'new-user';
-
-  // Check staleness — if last_active > 6 hours ago
   if (state.last_active) {
     const hoursAway = (Date.now() - new Date(state.last_active).getTime()) / 3600000;
     if (hoursAway >= 6) return 'returning-stale';
   }
-
   if (state.has_draft && !state.has_published_campaign) return 'draft-ready';
-
-  // Power user: has published + has draft + multiple platforms
   if (state.has_published_campaign && state.has_draft) return 'power-user';
-
-  // Default connected user with alerts
   return 'high-cpa';
 }
 
@@ -114,19 +108,30 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
     }
   };
 
+  const handleKeyMomentAction = useCallback((momentId: string, actionType: string, campaignName: string) => {
+    if (actionType === 'pause') {
+      pauseAlert(momentId);
+      toast({ title: '⏸️ Paused (prototype)', description: `"${campaignName}" has been paused.` });
+    } else if (actionType === 'play') {
+      toast({ title: '▶️ Restarted (prototype)', description: `"${campaignName}" has been restarted.` });
+      onSendMessage(`Restart campaign: ${campaignName}`);
+    } else if (actionType === 'increase') {
+      onSendMessage(`Increase budget for ${campaignName}`);
+    } else if (actionType === 'decrease') {
+      toast({ title: '📉 Budget decreased (prototype)', description: `Budget reduced for "${campaignName}".` });
+    }
+  }, [pauseAlert, toast, onSendMessage]);
+
   const handleMicroAction = useCallback((alertId: string, action: string, campaignName: string) => {
     if (action === 'pause') {
       pauseAlert(alertId);
       toast({ title: '⏸️ Adset paused (prototype)', description: `Low-performing adset in "${campaignName}" has been paused.` });
     } else if (action === 'regenerate') {
-      const style = state.onboarding_answers?.creative_availability || 'some';
-      onSendMessage(`Regenerate creatives for ${campaignName} — style: ${style}`);
-    } else if (action === 'view') {
-      onSendMessage(`Show me details for ${campaignName}`);
+      onSendMessage(`Regenerate creatives for ${campaignName}`);
     } else if (action === 'adjust-budget') {
       onSendMessage(`Help me adjust the budget for ${campaignName}`);
     }
-  }, [pauseAlert, toast, state.onboarding_answers, onSendMessage]);
+  }, [pauseAlert, toast, onSendMessage]);
 
   const handlePrimaryAction = useCallback((action: string) => {
     if (action === 'pause') {
@@ -159,7 +164,6 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
     }
   }, [connectSlack, toast]);
 
-  // ---- Greeting varies by persona ----
   const greeting = useMemo(() => {
     switch (persona) {
       case 'new-user':
@@ -175,6 +179,12 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
     }
   }, [persona, firstName]);
 
+  const vibespaceProps = {
+    input, setInput, inputRef: ref,
+    onSubmit: handleSubmit, onKeyDown: handleKeyDown, onAutoResize: autoResize,
+    onQuickAction: handleQuickAction, onSendMessage,
+  };
+
   return (
     <>
       <div className="flex-1 overflow-y-auto">
@@ -189,9 +199,7 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
           {persona === 'new-user' && <NewUserLayout
             onConnectFB={() => setShowFBModal(true)}
             onStartTour={() => setShowQuizModal(true)}
-            input={input} setInput={setInput} inputRef={ref}
-            onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
-            onQuickAction={handleQuickAction} onSendMessage={onSendMessage}
+            {...vibespaceProps}
           />}
 
           {/* ========== DRAFT READY ========== */}
@@ -199,46 +207,30 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
             state={state}
             primaryAction={primaryAction}
             onPrimaryAction={handlePrimaryAction}
-            input={input} setInput={setInput} inputRef={ref}
-            onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
-            onQuickAction={handleQuickAction} onSendMessage={onSendMessage}
+            onKeyMomentAction={handleKeyMomentAction}
+            {...vibespaceProps}
           />}
 
           {/* ========== RETURNING STALE ========== */}
           {persona === 'returning-stale' && <ReturningStaleLayout
             state={state}
-            alerts={alerts}
-            pausedAlerts={state.paused_alerts}
-            onMicroAction={handleMicroAction}
-            onSendMessage={onSendMessage}
-            input={input} setInput={setInput} inputRef={ref}
-            onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
-            onQuickAction={handleQuickAction}
+            onKeyMomentAction={handleKeyMomentAction}
+            {...vibespaceProps}
           />}
 
           {/* ========== HIGH CPA / ALERT FOCUSED ========== */}
           {persona === 'high-cpa' && <HighCPALayout
-            alerts={alerts}
-            pausedAlerts={state.paused_alerts}
-            onMicroAction={handleMicroAction}
-            onSendMessage={onSendMessage}
-            input={input} setInput={setInput} inputRef={ref}
-            onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
-            onQuickAction={handleQuickAction}
+            onKeyMomentAction={handleKeyMomentAction}
+            {...vibespaceProps}
           />}
 
           {/* ========== POWER USER ========== */}
           {persona === 'power-user' && <PowerUserLayout
             state={state}
-            alerts={alerts}
             primaryAction={primaryAction}
-            pausedAlerts={state.paused_alerts}
-            onMicroAction={handleMicroAction}
             onPrimaryAction={handlePrimaryAction}
-            onSendMessage={onSendMessage}
-            input={input} setInput={setInput} inputRef={ref}
-            onSubmit={handleSubmit} onKeyDown={handleKeyDown} onAutoResize={autoResize}
-            onQuickAction={handleQuickAction}
+            onKeyMomentAction={handleKeyMomentAction}
+            {...vibespaceProps}
           />}
 
           {/* Apps & Integrations — always */}
@@ -292,19 +284,17 @@ export const WorkspaceHome = ({ onSendMessage, userName, onboardingData, threads
 };
 
 // ===========================================================================
-// PERSONA LAYOUTS
+// SHARED COMPONENTS
 // ===========================================================================
 
-// ---- Shared Vibespace + Quick Actions ----
 interface VibespaceProps {
   input: string; setInput: (v: string) => void; inputRef: React.RefObject<HTMLTextAreaElement>;
   onSubmit: () => void; onKeyDown: (e: React.KeyboardEvent) => void; onAutoResize: () => void;
   onQuickAction: (id: string) => void; onSendMessage: (msg: string) => void;
   placeholder?: string;
-  compact?: boolean;
 }
 
-const VibespaceWithActions = ({ input, setInput, inputRef, onSubmit, onKeyDown, onAutoResize, onQuickAction, onSendMessage, placeholder, compact }: VibespaceProps) => (
+const VibespaceWithActions = ({ input, setInput, inputRef, onSubmit, onKeyDown, onAutoResize, onQuickAction, onSendMessage, placeholder }: VibespaceProps) => (
   <div className="space-y-3">
     <div className="flex items-center gap-2">
       <Sparkles className="w-4 h-4 text-primary" />
@@ -331,7 +321,7 @@ const VibespaceWithActions = ({ input, setInput, inputRef, onSubmit, onKeyDown, 
         <ArrowUp className="w-4 h-4" />
       </button>
     </div>
-    <div className={cn("grid gap-2", compact ? "grid-cols-3 md:grid-cols-6" : "grid-cols-3 md:grid-cols-6")}>
+    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
       {quickActions.map((action, i) => (
         <button
           key={action.id} onClick={() => onQuickAction(action.id)}
@@ -349,32 +339,23 @@ const VibespaceWithActions = ({ input, setInput, inputRef, onSubmit, onKeyDown, 
   </div>
 );
 
+// ===========================================================================
+// PERSONA LAYOUTS
+// ===========================================================================
 
 // ========== 1. NEW USER ==========
-// Focus: connect FB, onboarding quiz, sample data preview
-interface NewUserLayoutProps extends VibespaceProps {
-  onConnectFB: () => void;
-  onStartTour: () => void;
-}
-
-const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: NewUserLayoutProps) => (
+const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: { onConnectFB: () => void; onStartTour: () => void } & VibespaceProps) => (
   <>
-    {/* Hero — Connect CTA (dominant) */}
     <HeroCard connectedFacebook={false} onConnectFacebook={onConnectFB} onStartTour={onStartTour} onPrimaryAction={() => {}} />
-
-    {/* Vibespace — chat + quick actions for exploration */}
     <VibespaceWithActions {...vibespace} placeholder="Try: 'Create a sample campaign' or 'Show me what Vibelets can do'" />
 
     {/* Empty state: Pending Approvals */}
     <div className="rounded-2xl border border-dashed border-border/50 bg-muted/5 p-6 space-y-3 animate-fade-in">
       <div className="flex items-center gap-2">
         <AlertTriangle className="w-4 h-4 text-muted-foreground/40" />
-        <h3 className="text-sm font-medium text-muted-foreground/60">Pending Approvals</h3>
+        <h3 className="text-sm font-medium text-muted-foreground/60">Key Moments</h3>
       </div>
       <div className="flex flex-col items-center py-4 space-y-2">
-        <div className="w-10 h-10 rounded-xl bg-muted/20 flex items-center justify-center">
-          <CheckCircle2 className="w-5 h-5 text-muted-foreground/30" />
-        </div>
         <p className="text-sm text-muted-foreground/60 text-center max-w-xs">
           AI-powered recommendations will appear here once your ad account is connected
         </p>
@@ -384,23 +365,23 @@ const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: NewUserLayout
       </div>
     </div>
 
-    {/* Empty state: Vibeboard */}
+    {/* Empty state: Money Flow */}
     <div className="rounded-2xl border border-dashed border-border/50 bg-muted/5 p-6 space-y-3 animate-fade-in" style={{ animationDelay: '100ms', animationFillMode: 'backwards' }}>
       <div className="flex items-center gap-2">
         <Search className="w-4 h-4 text-muted-foreground/40" />
-        <h3 className="text-sm font-medium text-muted-foreground/60">Vibeboard</h3>
+        <h3 className="text-sm font-medium text-muted-foreground/60">Money Flow</h3>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        {['Spend', 'ROAS', 'CPA', 'CTR'].map((label, i) => (
-          <div key={label} className="rounded-xl border border-border/20 bg-muted/10 p-3.5 space-y-2" style={{ animationDelay: `${i * 60 + 150}ms` }}>
-            <p className="text-[11px] text-muted-foreground/40">{label}</p>
-            <div className="h-5 w-16 rounded bg-muted/20" />
-            <div className="h-3 w-12 rounded bg-muted/15" />
+      <div className="grid grid-cols-4 gap-2.5">
+        {['You Spent', 'Sales You Got', 'You Earned', 'Profit'].map((label, i) => (
+          <div key={label} className="rounded-xl border border-border/20 bg-muted/10 p-3.5 space-y-2 text-center">
+            <p className="text-[10px] text-muted-foreground/40 uppercase">{label}</p>
+            <div className="h-5 w-16 mx-auto rounded bg-muted/20" />
+            <div className="h-3 w-12 mx-auto rounded bg-muted/15" />
           </div>
         ))}
       </div>
       <p className="text-[11px] text-muted-foreground/50 text-center">
-        Live performance metrics will populate after connecting your ad account
+        Live financial metrics will populate after connecting your ad account
       </p>
     </div>
   </>
@@ -408,11 +389,11 @@ const NewUserLayout = ({ onConnectFB, onStartTour, ...vibespace }: NewUserLayout
 
 
 // ========== 2. DRAFT READY ==========
-// Focus: publish the draft! Show draft summary card prominently, then Vibespace to fine-tune.
-const DraftReadyLayout = ({ state, primaryAction, onPrimaryAction, ...vibespace }: {
+const DraftReadyLayout = ({ state, primaryAction, onPrimaryAction, onKeyMomentAction, ...vibespace }: {
   state: ReturnType<typeof useUserState>['state'];
   primaryAction: ReturnType<typeof computePrimaryAction> | null;
   onPrimaryAction: (action: string) => void;
+  onKeyMomentAction: (id: string, action: string, name: string) => void;
 } & VibespaceProps) => {
   const draft = state.onboarding_answers
     ? generateCampaignDraft(state.onboarding_answers as Record<string, any>)
@@ -420,7 +401,7 @@ const DraftReadyLayout = ({ state, primaryAction, onPrimaryAction, ...vibespace 
 
   return (
     <>
-      {/* Draft Summary Card — THE primary focus */}
+      {/* Draft Summary Card */}
       <div className="rounded-2xl border border-secondary/30 bg-gradient-to-br from-secondary/8 via-card to-card p-5 space-y-4 animate-fade-in">
         <div className="flex items-start gap-3.5">
           <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
@@ -429,43 +410,41 @@ const DraftReadyLayout = ({ state, primaryAction, onPrimaryAction, ...vibespace 
           <div className="flex-1 space-y-1">
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Campaign draft ready</p>
             <h2 className="text-base font-semibold text-foreground">{draft?.name || 'Your Campaign Draft'}</h2>
-            <p className="text-sm text-muted-foreground">Review the details below and publish when ready — or chat to make changes first.</p>
+            <p className="text-sm text-muted-foreground">Review and publish — or chat to make changes first.</p>
           </div>
         </div>
-
-        {/* Draft details grid */}
         {draft && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-1">
             <DraftDetail label="Objective" value={draft.objective} />
             <DraftDetail label="Daily Budget" value={`$${draft.dailyBudget}`} />
             <DraftDetail label="Platforms" value={draft.platforms.join(', ')} />
-            <DraftDetail label="Audience" value={draft.audience.replace(/_/g, ' ')} />
             <DraftDetail label="Creative Style" value={draft.style} />
           </div>
         )}
-
         <div className="flex items-center gap-3 pt-1">
-          <button
-            onClick={() => onPrimaryAction('publish-draft')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:opacity-90 transition-all active:scale-[0.98] shadow-md"
-          >
-            <Play className="w-4 h-4" />
-            Publish campaign
+          <button onClick={() => onPrimaryAction('publish-draft')} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:opacity-90 transition-all active:scale-[0.98] shadow-md">
+            <Play className="w-4 h-4" /> Publish campaign
           </button>
-          <button
-            onClick={() => vibespace.onSendMessage(`Fine-tune my draft campaign: ${draft?.name || 'campaign'}`)}
-            className="px-4 py-2.5 rounded-xl border border-border/60 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all"
-          >
+          <button onClick={() => vibespace.onSendMessage(`Fine-tune my draft campaign: ${draft?.name || 'campaign'}`)} className="px-4 py-2.5 rounded-xl border border-border/60 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-all">
             Fine-tune in Vibespace
           </button>
         </div>
       </div>
 
-      {/* Vibespace — for tweaking the draft */}
-      <VibespaceWithActions {...vibespace} placeholder="Chat to adjust your draft — e.g. 'Change budget to $500' or 'Switch to lifestyle creatives'" />
+      {/* Money Flow — before recommendations */}
+      <MoneyFlowCard data={moneyFlowData['30days']} onViewFull={() => vibespace.onSendMessage('Check performance')} />
 
-      {/* Vibeboard — show current metrics context */}
-      <VibeboardSnapshot kpis={demoKPIs} isSample={false} onViewFull={() => vibespace.onSendMessage('Check performance')} />
+      {/* Key Moments + Recent Decisions side by side */}
+      <div className="flex gap-4">
+        <div className="flex-1 min-w-0">
+          <KeyMomentsPanel moments={demoKeyMoments} potentialSavings="$102/day" onAction={onKeyMomentAction} onViewAll={() => vibespace.onSendMessage('Run account audit')} />
+        </div>
+        <div className="w-72 shrink-0">
+          <RecentDecisionsCard decisions={demoRecentDecisions} notificationCount={0} />
+        </div>
+      </div>
+
+      <VibespaceWithActions {...vibespace} placeholder="Chat to adjust your draft — e.g. 'Change budget to $500'" />
     </>
   );
 };
@@ -479,55 +458,45 @@ const DraftDetail = ({ label, value }: { label: string; value: string }) => (
 
 
 // ========== 3. RETURNING STALE ==========
-// Focus: "While you were away" executive summary is THE hero. Then signals, then Vibeboard, then quick actions.
-const ReturningStaleLayout = ({ state, alerts, pausedAlerts, onMicroAction, onSendMessage, ...vibespace }: {
+const ReturningStaleLayout = ({ state, onKeyMomentAction, ...vibespace }: {
   state: ReturnType<typeof useUserState>['state'];
-  alerts: ReturnType<typeof generateAlerts>;
-  pausedAlerts: string[];
-  onMicroAction: (id: string, action: string, name: string) => void;
-  onSendMessage: (msg: string) => void;
+  onKeyMomentAction: (id: string, action: string, name: string) => void;
 } & VibespaceProps) => (
   <>
-    {/* While You Were Away — THE primary section, large and detailed */}
+    {/* While You Were Away */}
     <WhileYouWereAwaySummary
       lastActive={state.last_active}
       kpis={demoKPIs}
       onDismiss={() => {}}
-      onViewDetails={() => onSendMessage('Run account audit')}
+      onViewDetails={() => vibespace.onSendMessage('Run account audit')}
     />
 
-    {/* Urgent signals that accumulated */}
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 px-1">
-        <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-        <p className="text-xs font-medium text-muted-foreground">
-          {alerts.length} recommendation{alerts.length !== 1 ? 's' : ''} accumulated while you were away
-        </p>
+    {/* Money Flow — what happened financially */}
+    <MoneyFlowCard data={moneyFlowData['returning']} onViewFull={() => vibespace.onSendMessage('Check performance')} />
+
+    {/* Key Moments + Recent Decisions */}
+    <div className="flex gap-4">
+      <div className="flex-1 min-w-0">
+        <KeyMomentsPanel
+          moments={demoKeyMoments}
+          potentialSavings="$102/day"
+          onAction={onKeyMomentAction}
+          onViewAll={() => vibespace.onSendMessage('Run account audit')}
+        />
       </div>
-      <AISignalsStrip
-        alerts={alerts} isSample={false} pausedAlerts={pausedAlerts}
-        onMicroAction={onMicroAction}
-        onViewAllRecommendations={() => onSendMessage('Run account audit')}
-      />
+      <div className="w-72 shrink-0">
+        <RecentDecisionsCard decisions={demoRecentDecisions} notificationCount={demoRecentDecisions.length} />
+      </div>
     </div>
 
-    {/* Vibeboard — what things look like now */}
-    <VibeboardSnapshot kpis={demoKPIs} isSample={false} onViewFull={() => onSendMessage('Check performance')} />
-
-    {/* Vibespace + Quick Actions — catch up */}
-    <VibespaceWithActions {...vibespace} onSendMessage={onSendMessage}
-      placeholder="Ask: 'What happened while I was away?' or 'Run a full audit'" />
+    <VibespaceWithActions {...vibespace} placeholder="Ask: 'What happened while I was away?' or 'Run a full audit'" />
   </>
 );
 
 
 // ========== 4. HIGH CPA / ALERT FOCUSED ==========
-// Focus: AI Signals are THE primary content. No summary/draft cards — just action-oriented recommendations.
-const HighCPALayout = ({ alerts, pausedAlerts, onMicroAction, onSendMessage, ...vibespace }: {
-  alerts: ReturnType<typeof generateAlerts>;
-  pausedAlerts: string[];
-  onMicroAction: (id: string, action: string, name: string) => void;
-  onSendMessage: (msg: string) => void;
+const HighCPALayout = ({ onKeyMomentAction, ...vibespace }: {
+  onKeyMomentAction: (id: string, action: string, name: string) => void;
 } & VibespaceProps) => (
   <>
     {/* Urgency banner */}
@@ -537,43 +506,44 @@ const HighCPALayout = ({ alerts, pausedAlerts, onMicroAction, onSendMessage, ...
       </div>
       <div className="flex-1">
         <p className="text-sm font-semibold text-foreground">Performance alert: CPA up 50%+</p>
-        <p className="text-xs text-muted-foreground">Your AI has identified {alerts.length} actions to reduce waste and improve ROAS. Review and approve below.</p>
+        <p className="text-xs text-muted-foreground">Your AI has identified actions to reduce waste and improve ROAS. Review and approve below.</p>
       </div>
     </div>
 
-    {/* AI Signals — THE primary section */}
-    <AISignalsStrip
-      alerts={alerts} isSample={false} pausedAlerts={pausedAlerts}
-      onMicroAction={onMicroAction}
-      onViewAllRecommendations={() => onSendMessage('Run account audit')}
-    />
+    {/* Money Flow — show the financial picture first */}
+    <MoneyFlowCard data={moneyFlowData['7days']} onViewFull={() => vibespace.onSendMessage('Check performance')} />
 
-    {/* Vibeboard — show the problematic metrics */}
-    <VibeboardSnapshot kpis={demoKPIs} isSample={false} onViewFull={() => onSendMessage('Check performance')} />
+    {/* Key Moments + Recent Decisions */}
+    <div className="flex gap-4">
+      <div className="flex-1 min-w-0">
+        <KeyMomentsPanel
+          moments={demoKeyMoments}
+          potentialSavings="$80/day"
+          onAction={onKeyMomentAction}
+          onViewAll={() => vibespace.onSendMessage('Run account audit')}
+        />
+      </div>
+      <div className="w-72 shrink-0">
+        <RecentDecisionsCard decisions={demoRecentDecisions} notificationCount={0} />
+      </div>
+    </div>
 
-    {/* Vibespace — for deeper investigation */}
-    <VibespaceWithActions {...vibespace} onSendMessage={onSendMessage}
-      placeholder="Ask: 'Why is my CPA increasing?' or 'Which ad sets should I pause?'" />
+    <VibespaceWithActions {...vibespace} placeholder="Ask: 'Why is my CPA increasing?' or 'Which ad sets should I pause?'" />
   </>
 );
 
 
 // ========== 5. POWER USER ==========
-// Focus: Multi-campaign overview, scaling opportunities, creative refresh, plus draft publish if present.
-const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAction, onPrimaryAction, onSendMessage, ...vibespace }: {
+const PowerUserLayout = ({ state, primaryAction, onPrimaryAction, onKeyMomentAction, ...vibespace }: {
   state: ReturnType<typeof useUserState>['state'];
-  alerts: ReturnType<typeof generateAlerts>;
   primaryAction: ReturnType<typeof computePrimaryAction> | null;
-  pausedAlerts: string[];
-  onMicroAction: (id: string, action: string, name: string) => void;
   onPrimaryAction: (action: string) => void;
-  onSendMessage: (msg: string) => void;
+  onKeyMomentAction: (id: string, action: string, name: string) => void;
 } & VibespaceProps) => {
   const draft = state.onboarding_answers
     ? generateCampaignDraft(state.onboarding_answers as Record<string, any>)
     : null;
 
-  // Power user sees a multi-campaign summary strip
   const campaigns = [
     { name: 'Spring Sale 2026', status: 'live' as const, spend: '$1,420/day', roas: '3.2x', health: 72 },
     { name: 'Product Launch — Beta', status: 'draft' as const, spend: '$0', roas: '—', health: 100 },
@@ -585,9 +555,9 @@ const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAc
       {/* Multi-campaign overview strip */}
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-purple-500" />
+          <Zap className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-medium text-foreground">Active Campaigns</h3>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20 font-medium">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
             {campaigns.filter(c => c.status === 'live').length} live
           </span>
         </div>
@@ -595,7 +565,7 @@ const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAc
           {campaigns.map((camp, i) => (
             <button
               key={camp.name}
-              onClick={() => onSendMessage(`Show details for ${camp.name}`)}
+              onClick={() => vibespace.onSendMessage(`Show details for ${camp.name}`)}
               className="rounded-xl border border-border/40 bg-card/80 p-3.5 text-left hover:border-border hover:shadow-sm transition-all active:scale-[0.98] animate-fade-in"
               style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}
             >
@@ -612,7 +582,6 @@ const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAc
                 <span>Spend: {camp.spend}</span>
                 <span>ROAS: {camp.roas}</span>
               </div>
-              {/* Health bar */}
               <div className="mt-2 flex items-center gap-1.5">
                 <div className="flex-1 h-1 rounded-full bg-muted/50 overflow-hidden">
                   <div
@@ -627,14 +596,25 @@ const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAc
         </div>
       </div>
 
-      {/* AI Signals — scaling + pruning recommendations */}
-      <AISignalsStrip
-        alerts={alerts} isSample={false} pausedAlerts={pausedAlerts}
-        onMicroAction={onMicroAction}
-        onViewAllRecommendations={() => onSendMessage('Run account audit')}
-      />
+      {/* Money Flow — 30 day overview */}
+      <MoneyFlowCard data={moneyFlowData['30days']} onViewFull={() => vibespace.onSendMessage('Check performance')} />
 
-      {/* Draft ready banner (compact, since power user has one) */}
+      {/* Key Moments + Recent Decisions */}
+      <div className="flex gap-4">
+        <div className="flex-1 min-w-0">
+          <KeyMomentsPanel
+            moments={demoKeyMoments}
+            potentialSavings="$102/day"
+            onAction={onKeyMomentAction}
+            onViewAll={() => vibespace.onSendMessage('Run account audit')}
+          />
+        </div>
+        <div className="w-72 shrink-0">
+          <RecentDecisionsCard decisions={demoRecentDecisions} notificationCount={demoRecentDecisions.length} />
+        </div>
+      </div>
+
+      {/* Draft ready banner */}
       {state.has_draft && draft && (
         <div className="rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
@@ -644,21 +624,13 @@ const PowerUserLayout = ({ state, alerts, primaryAction, pausedAlerts, onMicroAc
               <p className="text-[11px] text-muted-foreground">Draft ready — {draft.platforms.join(', ')} · ${draft.dailyBudget}/day</p>
             </div>
           </div>
-          <button
-            onClick={() => onPrimaryAction('publish-draft')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:opacity-90 transition-all active:scale-[0.97]"
-          >
+          <button onClick={() => onPrimaryAction('publish-draft')} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:opacity-90 transition-all active:scale-[0.97]">
             <Play className="w-3 h-3" /> Publish
           </button>
         </div>
       )}
 
-      {/* Vibeboard */}
-      <VibeboardSnapshot kpis={demoKPIs} isSample={false} onViewFull={() => onSendMessage('Check performance')} />
-
-      {/* Vibespace */}
-      <VibespaceWithActions {...vibespace} onSendMessage={onSendMessage}
-        placeholder="Ask: 'Scale my top ad by 20%' or 'Clone Spring Sale for TikTok'" />
+      <VibespaceWithActions {...vibespace} placeholder="Ask: 'Scale my top ad by 20%' or 'Clone Spring Sale for TikTok'" />
     </>
   );
 };
