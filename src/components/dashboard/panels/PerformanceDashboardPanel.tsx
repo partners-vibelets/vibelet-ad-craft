@@ -32,7 +32,7 @@ export const PerformanceDashboardPanel = ({
   onRefresh,
   onCloneCreative
 }: PerformanceDashboardPanelProps) => {
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { notifyNewRecommendations, requestBrowserPermission } = useNotifications();
   
   // Auto-select the latest campaign if none selected
