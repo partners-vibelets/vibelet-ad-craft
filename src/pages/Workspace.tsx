@@ -36,6 +36,13 @@ const Workspace = () => {
     executionPanelContent, handleExecutionAction,
   } = useWorkspace();
 
+  // Redirect to auth if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
