@@ -1229,14 +1229,15 @@ export function useWorkspace() {
 
   const handleAdvanceStrategyResponse = useCallback((threadId: string, aiResponse: any) => {
     if (aiResponse.mode === 'plan' && aiResponse.strategyPlan) {
-      // AI generated a structured plan — render it as strategy-architecture artifact
+      // Enrich the AI plan with creative briefs, budget plan, flags, and execution steps
+      const enrichedPlan = enrichStrategyPlan(aiResponse.strategyPlan);
       respondWithSim(threadId, {
         content: aiResponse.message || "Here's my recommended campaign architecture based on everything you've shared.",
         artifacts: [{
           type: 'strategy-architecture' as ArtifactType,
           titleSuffix: 'Campaign Architecture',
           dataOverrides: {
-            strategyPlan: aiResponse.strategyPlan,
+            strategyPlan: enrichedPlan,
           },
         }],
         actionChips: [
@@ -1246,7 +1247,6 @@ export function useWorkspace() {
         ],
       }, 300);
     } else {
-      // Discovery mode — show AI message with suggested chips
       const chips: ActionChip[] = (aiResponse.suggestedChips || []).map((chip: any) => ({
         label: chip.label,
         action: `advance-strategy-chip::${chip.value || chip.label}`,
