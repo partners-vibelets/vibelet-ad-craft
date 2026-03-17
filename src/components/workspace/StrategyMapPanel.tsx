@@ -325,7 +325,7 @@ const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: {
   );
 };
 
-// Creative brief card for Image ads
+// Creative brief card for Image ads — 2 column layout with preview + controls
 const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: {
   ad: any;
   frozenAds: Set<string>;
@@ -336,77 +336,114 @@ const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: {
   const isFrozen = frozenAds.has(adKey);
   const brief = ad.creativeBrief || {};
   const productImages = brief.productImages || [
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
-    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&h=200&fit=crop',
-    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=200&h=200&fit=crop',
-    'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=200&h=200&fit=crop',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=400&fit=crop',
   ];
   const [selectedImg, setSelectedImg] = useState<number>(brief.selectedImageIdx || 0);
 
   return (
     <div className={cn(
-      "space-y-4 transition-all",
+      "transition-all",
       isFrozen && "opacity-60 pointer-events-none"
     )}>
-      {/* Visual Direction */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5">
-          <Palette className="w-3 h-3" /> Visual Direction
-        </p>
-        <InlineEdit
-          value={brief.visualDirection || ad.visualDirection || 'Describe the visual style...'}
-          onSave={v => onUpdateField('visualDirection', v)}
-          className="text-xs leading-relaxed"
-          multiline
-        />
-      </div>
-
-      {/* Product Reference Images */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium flex items-center gap-1.5">
-          <ImageIcon className="w-3 h-3" /> Reference Image <span className="text-muted-foreground/50 font-normal">(scraped from product page)</span>
-        </p>
-        <div className="grid grid-cols-4 gap-2">
-          {productImages.map((img: string, i: number) => (
-            <button
-              key={i}
-              onClick={() => { setSelectedImg(i); onUpdateField('selectedImageIdx', i); }}
-              className={cn(
-                "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                selectedImg === i
-                  ? "border-primary shadow-md ring-2 ring-primary/20"
-                  : "border-border/30 hover:border-primary/40"
-              )}
-            >
-              <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
-              {selectedImg === i && (
-                <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                </div>
-              )}
-            </button>
-          ))}
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
+        {/* LEFT: Selected image preview + thumbnails */}
+        <div className="space-y-2">
+          {/* Main preview */}
+          <div className="aspect-square rounded-xl overflow-hidden border border-border/30 bg-muted/20">
+            <img
+              src={productImages[selectedImg]}
+              alt={`Product reference ${selectedImg + 1}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Thumbnail strip */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {productImages.map((img: string, i: number) => (
+              <button
+                key={i}
+                onClick={() => { setSelectedImg(i); onUpdateField('selectedImageIdx', i); }}
+                className={cn(
+                  "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                  selectedImg === i
+                    ? "border-primary ring-1 ring-primary/20"
+                    : "border-border/20 hover:border-primary/30 opacity-60 hover:opacity-100"
+                )}
+              >
+                <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                {selectedImg === i && (
+                  <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center">
+                    <Check className="w-2 h-2 text-primary-foreground" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] text-muted-foreground/50 text-center">Scraped from product page • Select reference for AI generation</p>
         </div>
-        <p className="text-[10px] text-muted-foreground/60 mt-1.5">Select the reference image for AI creative generation</p>
-      </div>
 
-      {/* Offer Hook */}
-      {(brief.offerHook || ad.offerHook) && (
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Offer Hook</p>
-          <InlineEdit
-            value={brief.offerHook || ad.offerHook || ''}
-            onSave={v => onUpdateField('offerHook', v)}
-            className="text-xs"
-          />
+        {/* RIGHT: Visual direction + style + upload */}
+        <div className="space-y-3">
+          {/* Visual Direction */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
+              <Palette className="w-3 h-3" /> Visual Direction
+            </p>
+            <InlineEdit
+              value={brief.visualDirection || ad.visualDirection || 'Describe the visual style...'}
+              onSave={v => onUpdateField('visualDirection', v)}
+              className="text-[11px] leading-relaxed"
+              multiline
+            />
+          </div>
+
+          {/* Aspect Ratio */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Output Format</p>
+            <div className="flex gap-1">
+              {[
+                { value: '1:1', label: 'Square', icon: <Square className="w-2.5 h-2.5" /> },
+                { value: '4:5', label: 'Portrait', icon: <Smartphone className="w-2.5 h-2.5" /> },
+                { value: '1.91:1', label: 'Landscape', icon: <Monitor className="w-2.5 h-2.5" /> },
+              ].map(f => (
+                <button key={f.value} className={cn(
+                  "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium border transition-all",
+                  (brief.outputFormat || '1:1') === f.value
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border/30 text-muted-foreground hover:border-primary/20"
+                )} onClick={() => onUpdateField('outputFormat', f.value)}>
+                  {f.icon}{f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Offer Hook */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Offer Hook</p>
+            <InlineEdit
+              value={brief.offerHook || ad.offerHook || 'e.g. 25% off Spring Sale'}
+              onSave={v => onUpdateField('offerHook', v)}
+              className="text-[11px]"
+            />
+          </div>
+
+          {/* Upload additional reference */}
+          <button className="w-full py-3 rounded-lg border-2 border-dashed border-border/30 hover:border-primary/30 flex flex-col items-center justify-center gap-1 transition-all bg-muted/10 hover:bg-muted/20 group">
+            <Upload className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
+            <span className="text-[9px] font-medium text-muted-foreground/60 group-hover:text-foreground/60 transition-colors">Upload Additional Reference</span>
+            <span className="text-[8px] text-muted-foreground/40">PNG, JPG • Max 10 MB</span>
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Freeze Button */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFreeze(adKey); }}
         className={cn(
-          "w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all border",
+          "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium transition-all border mt-4",
           isFrozen
             ? "bg-secondary/10 border-secondary/30 text-secondary"
             : "bg-muted/30 border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
