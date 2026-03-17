@@ -72,7 +72,7 @@ const InlineEdit = ({ value, onSave, className, multiline }: { value: string; on
   );
 };
 
-// Creative brief card for Video ads
+// Creative brief card for Video ads — matches reference layout
 const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: {
   ad: any;
   frozenAds: Set<string>;
@@ -84,135 +84,236 @@ const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: {
   const brief = ad.creativeBrief || {};
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(brief.avatarId || null);
   const [selectedUseCase, setSelectedUseCase] = useState<string | null>(brief.useCaseId || null);
-  const avatars = AVATARS.slice(0, 6);
-  const useCases = (VIDEO_USE_CASE_TEMPLATES || []).slice(0, 4);
+  const [avatarPage, setAvatarPage] = useState(0);
+  const [description, setDescription] = useState(brief.productDescription || '');
+  const avatars = AVATARS.slice(0, 9);
+  const useCases = (VIDEO_USE_CASE_TEMPLATES || []).slice(0, 6);
+  const avatarsPerPage = 3;
+  const totalAvatarPages = Math.ceil(avatars.length / avatarsPerPage);
+  const visibleAvatars = avatars.slice(avatarPage * avatarsPerPage, (avatarPage + 1) * avatarsPerPage);
+
+  const selectedTemplate = useCases.find((uc: any) => uc.id === selectedUseCase);
 
   return (
     <div className={cn(
-      "space-y-4 transition-all",
+      "transition-all",
       isFrozen && "opacity-60 pointer-events-none"
     )}>
-      {/* Visual Direction */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5">
-          <Eye className="w-3 h-3" /> Visual Direction
-        </p>
-        <InlineEdit
-          value={brief.visualDirection || ad.visualDirection || 'Describe the visual style...'}
-          onSave={v => onUpdateField('visualDirection', v)}
-          className="text-xs leading-relaxed"
-          multiline
-        />
-      </div>
-
-      {/* Use Case Template */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium">Use Case</p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {useCases.map((uc: any) => (
-            <button
-              key={uc.id}
-              onClick={() => { setSelectedUseCase(uc.id); onUpdateField('useCaseId', uc.id); }}
-              className={cn(
-                "px-2.5 py-2 rounded-lg border text-left transition-all text-[11px]",
-                selectedUseCase === uc.id
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border/40 hover:border-primary/30 text-muted-foreground hover:text-foreground"
+      {/* Main 2-column layout like reference */}
+      <div className="grid grid-cols-[1fr_1fr] gap-3">
+        {/* LEFT COLUMN: Template preview + Avatars + Parameters */}
+        <div className="space-y-3">
+          {/* Template Preview Card */}
+          <div className="rounded-xl overflow-hidden bg-muted/30 border border-border/30">
+            <div className="aspect-[4/3] relative overflow-hidden">
+              {selectedTemplate ? (
+                <img src={selectedTemplate.thumbnail} alt={selectedTemplate.label} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                  <Film className="w-8 h-8 text-muted-foreground/30" />
+                </div>
               )}
-            >
-              <span className="mr-1">{uc.icon || '🎬'}</span>
-              {uc.label}
-            </button>
-          ))}
-        </div>
-      </div>
+            </div>
+            <p className="text-[11px] font-medium text-foreground px-2.5 py-2">
+              {selectedTemplate?.label || 'Select a template'}
+            </p>
+          </div>
 
-      {/* Avatar Selection */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium flex items-center gap-1.5">
-          <User className="w-3 h-3" /> Avatar
-        </p>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {avatars.map(avatar => (
-            <button
-              key={avatar.id}
-              onClick={() => { setSelectedAvatar(avatar.id); onUpdateField('avatarId', avatar.id); }}
-              className={cn(
-                "shrink-0 w-14 rounded-lg border-2 p-1 transition-all",
-                selectedAvatar === avatar.id
-                  ? "border-primary bg-primary/5"
-                  : "border-border/30 hover:border-primary/30"
-              )}
-            >
-              <div className="aspect-square rounded-md bg-muted overflow-hidden mb-1">
-                <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
+          {/* Use Case Chips */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Use Case</p>
+            <div className="flex flex-wrap gap-1">
+              {useCases.map((uc: any) => (
+                <button
+                  key={uc.id}
+                  onClick={() => { setSelectedUseCase(uc.id); onUpdateField('useCaseId', uc.id); }}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[10px] font-medium border transition-all",
+                    selectedUseCase === uc.id
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border/40 text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  {uc.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Avatar Styles — paginated row */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+                <User className="w-3 h-3" /> Avatar Styles <span className="text-destructive">*</span>
+              </p>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <button
+                  onClick={() => setAvatarPage(p => Math.max(0, p - 1))}
+                  disabled={avatarPage === 0}
+                  className="p-0.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </button>
+                <span className="tabular-nums">{avatarPage + 1}/{totalAvatarPages}</span>
+                <button
+                  onClick={() => setAvatarPage(p => Math.min(totalAvatarPages - 1, p + 1))}
+                  disabled={avatarPage >= totalAvatarPages - 1}
+                  className="p-0.5 rounded hover:bg-muted/50 disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRightIcon className="w-3 h-3" />
+                </button>
               </div>
-              <p className="text-[9px] text-center truncate font-medium">{avatar.name}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+            </div>
+            <div className="flex gap-2">
+              {visibleAvatars.map(avatar => (
+                <button
+                  key={avatar.id}
+                  onClick={() => { setSelectedAvatar(avatar.id); onUpdateField('avatarId', avatar.id); }}
+                  className={cn(
+                    "shrink-0 flex-1 rounded-lg border-2 p-1 transition-all",
+                    selectedAvatar === avatar.id
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border/30 hover:border-primary/30"
+                  )}
+                >
+                  <div className="aspect-square rounded-md bg-muted overflow-hidden mb-1">
+                    <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
+                  </div>
+                  <p className={cn(
+                    "text-[9px] text-center truncate font-medium",
+                    selectedAvatar === avatar.id ? "text-primary" : "text-muted-foreground"
+                  )}>{avatar.name}</p>
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Script */}
-      <div>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5">
-          <FileText className="w-3 h-3" /> Script
-        </p>
-        <InlineEdit
-          value={brief.script || `${ad.primaryText || ''}\n\n${ad.headline || ''}`}
-          onSave={v => onUpdateField('script', v)}
-          className="text-xs leading-relaxed"
-          multiline
-        />
-      </div>
-
-      {/* Product Images */}
-      {brief.productImages && brief.productImages.length > 0 && (
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium flex items-center gap-1.5">
-            <ImageIcon className="w-3 h-3" /> Product Reference Images
-          </p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {brief.productImages.map((img: string, i: number) => (
-              <div key={i} className="shrink-0 w-16 h-16 rounded-lg bg-muted overflow-hidden border border-border/30">
-                <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+          {/* Parameters — pill selectors */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-2 font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> Parameters
+            </p>
+            <div className="space-y-2">
+              {/* Aspect */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 shrink-0 font-medium">Aspect</span>
+                <div className="flex gap-1">
+                  {[
+                    { value: '9:16', icon: <Smartphone className="w-2.5 h-2.5 mr-0.5" /> },
+                    { value: '16:9', icon: <Monitor className="w-2.5 h-2.5 mr-0.5" /> },
+                    { value: '1:1', icon: <Square className="w-2.5 h-2.5 mr-0.5" /> },
+                  ].map(r => (
+                    <button key={r.value} className={cn(
+                      "inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium border transition-all",
+                      (brief.aspectRatio || '16:9') === r.value
+                        ? "border-primary bg-primary/15 text-primary"
+                        : "border-border/30 text-muted-foreground hover:border-primary/20"
+                    )} onClick={() => onUpdateField('aspectRatio', r.value)}>
+                      {r.icon}{r.value}
+                    </button>
+                  ))}
+                </div>
               </div>
-            ))}
+              {/* Length */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 shrink-0 font-medium">Length</span>
+                <div className="flex gap-1">
+                  {['15s', '30s', '60s'].map(l => (
+                    <button key={l} className={cn(
+                      "px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",
+                      (brief.duration || '30s') === l
+                        ? "border-primary bg-primary/15 text-primary"
+                        : "border-border/30 text-muted-foreground hover:border-primary/20"
+                    )} onClick={() => onUpdateField('duration', l)}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              {/* Model */}
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground w-12 shrink-0 font-medium">Model</span>
+                <div className="flex gap-1">
+                  {['VEO', 'KLING', 'SORA'].map(m => (
+                    <button key={m} className={cn(
+                      "px-2.5 py-1 rounded-full text-[10px] font-medium border transition-all",
+                      (brief.model || 'VEO') === m
+                        ? "border-primary bg-primary/15 text-primary"
+                        : "border-border/30 text-muted-foreground hover:border-primary/20"
+                    )} onClick={() => onUpdateField('model', m)}>{m}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Aspect & Length */}
-      <div className="flex gap-4">
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Ratio</p>
-          <div className="flex gap-1">
-            {['9:16', '16:9', '1:1'].map(r => (
-              <button key={r} className={cn(
-                "px-2 py-1 rounded text-[10px] font-medium border transition-all",
-                (brief.aspectRatio || '9:16') === r ? "border-primary bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"
-              )} onClick={() => onUpdateField('aspectRatio', r)}>{r}</button>
-            ))}
+        {/* RIGHT COLUMN: Product Description + Script + Reference Image Upload */}
+        <div className="space-y-3">
+          {/* Product Description */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">
+              Product Description <span className="text-destructive">*</span>
+            </p>
+            <div className="relative">
+              <textarea
+                value={description}
+                onChange={e => {
+                  if (e.target.value.length <= 200) {
+                    setDescription(e.target.value);
+                    onUpdateField('productDescription', e.target.value);
+                  }
+                }}
+                placeholder="Enter product details..."
+                rows={4}
+                className="w-full bg-muted/30 border border-border/40 rounded-lg px-3 py-2 text-[11px] text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/50 transition-all"
+              />
+              <span className="absolute bottom-2 right-2.5 text-[9px] text-muted-foreground/50 tabular-nums">
+                {description.length}/200
+              </span>
+            </div>
           </div>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Length</p>
-          <div className="flex gap-1">
-            {['15s', '30s', '60s'].map(l => (
-              <button key={l} className={cn(
-                "px-2 py-1 rounded text-[10px] font-medium border transition-all",
-                (brief.duration || '15s') === l ? "border-primary bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"
-              )} onClick={() => onUpdateField('duration', l)}>{l}</button>
-            ))}
+
+          {/* Script */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
+              <FileText className="w-3 h-3" /> Script
+            </p>
+            <InlineEdit
+              value={brief.script || `${ad.primaryText || ''}\n\n${ad.headline || ''}`}
+              onSave={v => onUpdateField('script', v)}
+              className="text-[11px] leading-relaxed"
+              multiline
+            />
+          </div>
+
+          {/* Reference Image Upload */}
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium flex items-center gap-1">
+              <ImageIcon className="w-3 h-3" /> Reference Image <span className="text-destructive">*</span>
+            </p>
+            {brief.productImages && brief.productImages.length > 0 ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                {brief.productImages.slice(0, 4).map((img: string, i: number) => (
+                  <div key={i} className="aspect-square rounded-lg bg-muted overflow-hidden border border-border/30">
+                    <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <button className="w-full aspect-[4/3] rounded-lg border-2 border-dashed border-border/40 hover:border-primary/30 flex flex-col items-center justify-center gap-2 transition-all bg-muted/10 hover:bg-muted/20 group">
+                <Upload className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
+                <span className="text-[10px] font-medium text-muted-foreground/60 group-hover:text-foreground/60 transition-colors">Upload Product</span>
+                <span className="text-[9px] text-muted-foreground/40">PNG, JPG, JPEG, WEBP • Max 10 MB</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Freeze Button */}
+      {/* Freeze Button — full width below */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFreeze(adKey); }}
         className={cn(
-          "w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium transition-all border",
+          "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-medium transition-all border mt-4",
           isFrozen
             ? "bg-secondary/10 border-secondary/30 text-secondary"
             : "bg-muted/30 border-border/40 text-muted-foreground hover:border-primary/40 hover:text-foreground"
