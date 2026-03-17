@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import {
   Target, Layers, ChevronDown, ChevronRight, Check, X, Edit3,
   DollarSign, Sparkles, Image as ImageIcon, Film, Lock, Unlock,
-  User, FileText, Palette, Eye, CheckCircle2
+  User, FileText, Palette, Eye, CheckCircle2, Upload, Monitor, Smartphone, Square,
+  ChevronLeft, ChevronRightIcon
 } from 'lucide-react';
 import { Artifact } from '@/types/workspace';
 import { Badge } from '@/components/ui/badge';
