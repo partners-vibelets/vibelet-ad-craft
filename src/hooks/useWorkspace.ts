@@ -1130,7 +1130,109 @@ function createArtifactsFromSpec(specs: SimResponse['artifacts']): { artifacts: 
   return { artifacts, ids };
 }
 
+// ========== ENRICH STRATEGY PLAN ==========
+// Adds creative briefs, budget plan, flags, and execution steps to AI-generated plans
+
+const PRODUCT_IMAGES_FALLBACK = [
+  'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=200&h=200&fit=crop',
+  'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=200&h=200&fit=crop',
+];
+
+const VIDEO_VISUAL_DIRECTIONS = [
+  '0–3s: close-up of product in use, text overlay with headline. 3–10s: quick lifestyle cuts. 10–15s: product shot + logo + CTA.',
+  '0–3s: bold text overlay with hook. 3–10s: product detail cuts with price tags animating in. 10–15s: logo + sale CTA.',
+  '0–3s: wide shot lifestyle setting. 3–8s: close-up product angles. 8–15s: social proof overlay + CTA button.',
+];
+
+const IMAGE_VISUAL_DIRECTIONS = [
+  'Clean product flat lay on a warm cream background, spring light. Bold sale badge (top-right corner). Minimal, premium feel.',
+  'Side-by-side product shot in complementary colourways. Clean white/cream background. Minimal sale badge overlay.',
+  'Quote card design — customer review text styled over a soft product background. Star rating prominently displayed.',
+  'Overhead lifestyle shot — product in natural surroundings. Eco-forward, earthy tones.',
+  'Bold typographic static — dark background, large white text centred. Small product image bottom-right. Urgent, high-contrast.',
+  'Close-up flat lay showing material texture. Ingredient/material story, not lifestyle.',
+];
+
+function enrichStrategyPlan(plan: any): any {
+  const campaigns = plan.campaigns || [];
+  let adCounter = 0;
+
+  // Enrich each ad with creative brief data
+  const enrichedCampaigns = campaigns.map((campaign: any) => ({
+    ...campaign,
+    adSets: (campaign.adSets || []).map((adSet: any) => ({
+      ...adSet,
+      ads: (adSet.ads || []).map((ad: any) => {
+        adCounter++;
+        const isVideo = /video/i.test(ad.format);
+        const directionPool = isVideo ? VIDEO_VISUAL_DIRECTIONS : IMAGE_VISUAL_DIRECTIONS;
+        const direction = directionPool[(adCounter - 1) % directionPool.length];
+
+        return {
+          ...ad,
+          angle: ad.angle || (adCounter % 3 === 0 ? 'Social proof' : adCounter % 3 === 1 ? 'Product/offer' : 'Lifestyle'),
+          visualDirection: ad.visualDirection || direction,
+          offerHook: ad.offerHook || `${ad.headline || 'Great deal'}. Shop now.`,
+          creativeBrief: {
+            visualDirection: ad.visualDirection || direction,
+            offerHook: ad.offerHook || `${ad.headline || 'Great deal'}. Shop now.`,
+            productImages: PRODUCT_IMAGES_FALLBACK,
+            selectedImageIdx: 0,
+            ...(isVideo ? {
+              useCaseId: null,
+              avatarId: null,
+              script: `${ad.primaryText || ''}\n\n${ad.headline || ''}`,
+              aspectRatio: '9:16',
+              duration: '15s',
+            } : {}),
+          },
+        };
+      }),
+    })),
+  }));
+
+  // Build budget plan from campaign data
+  const totalDaily = plan.totalDailyBudget || 0;
+  const budgetPlan: any[] = [];
+  enrichedCampaigns.forEach((c: any) => {
+    (c.adSets || []).forEach((s: any) => {
+      budgetPlan.push({
+        entity: s.name,
+        budget: s.budget ? `$${s.budget}/day` : 'From CBO',
+        rationale: s.note || (s.budget > 50 ? 'Largest audience' : 'Tighter audience'),
+      });
+    });
+  });
+  budgetPlan.push({ entity: 'Total', budget: `$${totalDaily}/day`, isTotal: true });
+
+  // Build execution steps
+  const executionSteps = [
+    `Create campaign → returns campaign_id`,
+    `Create ${enrichedCampaigns.reduce((acc: number, c: any) => acc + (c.adSets?.length || 0), 0)} ad sets`,
+    `Generate ${adCounter} creative briefs → returns creative_ids`,
+    `Create ${adCounter} ads → link creatives to ad sets`,
+    `Dashboard review → manual activation when ready`,
+  ];
+
+  // Build flags
+  const flags = plan.guardrailNotes?.map((n: string) => `⚠️ ${n}`) || [];
+  if (plan.learningPhaseNotes) {
+    flags.push(`ℹ️ ${plan.learningPhaseNotes}`);
+  }
+
+  return {
+    ...plan,
+    campaigns: enrichedCampaigns,
+    budgetPlan,
+    executionSteps,
+    flags,
+  };
+}
+
 // ========== MAIN HOOK ==========
+
 
 export function useWorkspace() {
   const [isHomeMode, setIsHomeMode] = useState(true);
@@ -1229,14 +1331,15 @@ export function useWorkspace() {
 
   const handleAdvanceStrategyResponse = useCallback((threadId: string, aiResponse: any) => {
     if (aiResponse.mode === 'plan' && aiResponse.strategyPlan) {
-      // AI generated a structured plan — render it as strategy-architecture artifact
+      // Enrich the AI plan with creative briefs, budget plan, flags, and execution steps
+      const enrichedPlan = enrichStrategyPlan(aiResponse.strategyPlan);
       respondWithSim(threadId, {
         content: aiResponse.message || "Here's my recommended campaign architecture based on everything you've shared.",
         artifacts: [{
           type: 'strategy-architecture' as ArtifactType,
           titleSuffix: 'Campaign Architecture',
           dataOverrides: {
-            strategyPlan: aiResponse.strategyPlan,
+            strategyPlan: enrichedPlan,
           },
         }],
         actionChips: [
@@ -1246,7 +1349,6 @@ export function useWorkspace() {
         ],
       }, 300);
     } else {
-      // Discovery mode — show AI message with suggested chips
       const chips: ActionChip[] = (aiResponse.suggestedChips || []).map((chip: any) => ({
         label: chip.label,
         action: `advance-strategy-chip::${chip.value || chip.label}`,
