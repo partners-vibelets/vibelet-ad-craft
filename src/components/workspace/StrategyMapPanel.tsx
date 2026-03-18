@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { InlineEdit } from './strategy/InlineEdit';
 import { VideoCreativeBrief } from './strategy/VideoCreativeBrief';
 import { ImageCreativeBrief } from './strategy/ImageCreativeBrief';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
 
 // Meta CTA options for Sales objective
 const META_CTA_OPTIONS = [
