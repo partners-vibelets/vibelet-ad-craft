@@ -328,7 +328,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFreeze(adKey); }}
         className={cn(
-          "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-medium transition-all border mt-7",
+          "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-medium transition-all border mt-8",
           isFrozen
             ? "bg-secondary/10 border-secondary/30 text-secondary"
             : completedCount === totalFields
