@@ -281,9 +281,9 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
 
                           {/* Ad expanded — ad copy fields + creative brief */}
                           {isExpanded(ci, si, ai) && (
-                            <div className="ml-6 mr-2 mb-3 rounded-xl bg-muted/5 border border-border/20 animate-fade-in overflow-hidden">
-                              {/* Ad copy fields — spacious, left-aligned */}
-                              <div className="px-5 py-4 border-b border-border/15 space-y-4">
+                            <div className="px-3 pb-4 pt-3 animate-fade-in space-y-5">
+                              {/* Ad copy fields */}
+                              <div className="space-y-4">
                                 {/* Headline + CTA */}
                                 <div className="grid grid-cols-[1fr_160px] gap-4 items-start">
                                   {ad.headline && (
@@ -370,9 +370,12 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                                 )}
                               </div>
 
+                              {/* Divider */}
+                              <div className="border-t border-border/15" />
+
                               {/* Creative Brief */}
-                              <div className="px-5 py-5">
-                                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-4 flex items-center gap-1.5">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-5 flex items-center gap-1.5">
                                   <Sparkles className="w-3.5 h-3.5" /> Creative Brief
                                 </p>
 
