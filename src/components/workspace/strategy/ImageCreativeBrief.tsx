@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Lock, Unlock, Upload, Palette, Check, Square, Smartphone, Monitor,
-  ImageIcon, Eye, Wand2
+  ImageIcon, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InlineEdit } from './InlineEdit';
@@ -91,12 +91,12 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               </button>
             ))}
           </div>
-          <p className="text-[9px] text-muted-foreground/50 text-center">Scraped from product page • Click to select reference</p>
+          <p className="text-[9px] text-muted-foreground/50 text-center">Scraped from product page · Click to select reference</p>
         </div>
 
         {/* RIGHT: Style + direction + format */}
         <div className="space-y-3">
-          {/* Style Presets — quick select */}
+          {/* Style Presets */}
           <div>
             <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">
               Style Preset {selectedStyle && <Check className="w-2.5 h-2.5 text-secondary inline ml-0.5" />}
@@ -156,7 +156,7 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
           {/* Offer Hook */}
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Offer Hook</p>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Offer / Hook Text</p>
             <InlineEdit
               value={brief.offerHook || ad.offerHook || 'e.g. 25% off Spring Sale'}
               onSave={v => onUpdateField('offerHook', v)}
@@ -165,8 +165,8 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
           </div>
 
           {/* Upload additional */}
-          <button className="w-full py-2.5 rounded-lg border-2 border-dashed border-border/30 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/10 hover:bg-muted/20 group">
-            <Upload className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
+          <button className="w-full py-2 rounded-lg border-2 border-dashed border-border/30 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/10 hover:bg-muted/20 group">
+            <Upload className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
             <span className="text-[9px] font-medium text-muted-foreground/60 group-hover:text-foreground/60 transition-colors">Upload Additional Reference</span>
           </button>
         </div>
