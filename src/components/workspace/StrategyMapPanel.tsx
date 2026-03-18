@@ -281,7 +281,7 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
 
                           {/* Ad expanded — ad copy fields + creative brief */}
                           {isExpanded(ci, si, ai) && (
-                            <div className="ml-6 mr-2 mb-3 rounded-xl bg-muted/5 border border-border/20 animate-fade-in overflow-hidden">
+                            <div className="px-3 pb-4 pt-3 animate-fade-in">
                               {/* Ad copy fields — spacious, left-aligned */}
                               <div className="px-5 py-4 border-b border-border/15 space-y-4">
                                 {/* Headline + CTA */}
