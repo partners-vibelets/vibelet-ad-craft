@@ -69,16 +69,16 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
   return (
     <div className={cn("transition-all", isFrozen && "opacity-60 pointer-events-none")}>
       {/* Completion indicator */}
-      <div className="flex items-center gap-2.5 mb-6">
+      <div className="flex items-center gap-2.5 mb-7">
         <div className="flex gap-1">
           {completedFields.map((done, i) => (
-            <div key={i} className={cn("w-8 h-1.5 rounded-full transition-colors", done ? "bg-secondary" : "bg-muted/40")} />
+            <div key={i} className={cn("w-10 h-1.5 rounded-full transition-colors", done ? "bg-secondary" : "bg-muted/40")} />
           ))}
         </div>
         <span className="text-[10px] text-muted-foreground">{completedCount}/{totalFields} configured</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-8">
         {/* LEFT: Product images + upload */}
         <div className="space-y-4">
           {/* Main preview */}
@@ -135,7 +135,7 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
         </div>
 
         {/* RIGHT: Style + direction + format */}
-        <div className="space-y-6">
+        <div className="space-y-7">
           {/* Style Presets */}
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium">
@@ -223,7 +223,7 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFreeze(adKey); }}
         className={cn(
-          "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-medium transition-all border mt-7",
+          "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-medium transition-all border mt-8",
           isFrozen
             ? "bg-secondary/10 border-secondary/30 text-secondary"
             : completedCount === totalFields
