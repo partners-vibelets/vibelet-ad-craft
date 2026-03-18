@@ -143,9 +143,9 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       </div>
 
       {/* Main 2-column layout */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-8">
         {/* LEFT: Visual config */}
-        <div className="space-y-6">
+        <div className="space-y-7">
           {/* Avatar / Presenter */}
           <div>
             <div className="flex items-center justify-between mb-3">
