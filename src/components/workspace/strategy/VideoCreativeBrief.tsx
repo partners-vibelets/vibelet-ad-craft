@@ -264,7 +264,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
         </div>
 
         {/* RIGHT: Content & context */}
-        <div className="space-y-6">
+        <div className="space-y-7">
           {/* Product Description */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
