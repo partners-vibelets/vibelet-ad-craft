@@ -41,9 +41,8 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
     'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=400&fit=crop',
   ];
+  const defaultImageCount = defaultImages.length;
   const [productImages, setProductImages] = useState<string[]>(brief.productImages || defaultImages);
-  // Track which images are user-added (not defaults)
-  const [userAddedCount, setUserAddedCount] = useState(0);
 
   const avatars = AVATARS.slice(0, 9);
   const useCases = (VIDEO_USE_CASE_TEMPLATES || []).slice(0, 8);
@@ -87,27 +86,36 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    const newImages = [url, ...productImages];
+    const newImages = [...productImages, url];
     setProductImages(newImages);
-    setUserAddedCount(prev => prev + 1);
-    setSelectedRefImg(0);
+    setSelectedRefImg(newImages.length - 1);
     onUpdateField('productImages', newImages);
-    onUpdateField('selectedRefImgIdx', 0);
+    onUpdateField('selectedRefImgIdx', newImages.length - 1);
+    // Reset file input so same file can be re-uploaded
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleDeleteImage = (index: number) => {
+    if (productImages.length <= 1) return;
     const newImages = productImages.filter((_, i) => i !== index);
     setProductImages(newImages);
-    setUserAddedCount(prev => Math.max(0, prev - 1));
-    const newSelected = selectedRefImg >= newImages.length ? 0 : selectedRefImg > index ? selectedRefImg - 1 : selectedRefImg;
+    const newSelected = selectedRefImg >= newImages.length
+      ? newImages.length - 1
+      : selectedRefImg > index
+        ? selectedRefImg - 1
+        : selectedRefImg === index
+          ? Math.min(index, newImages.length - 1)
+          : selectedRefImg;
     setSelectedRefImg(newSelected);
     onUpdateField('productImages', newImages);
     onUpdateField('selectedRefImgIdx', newSelected);
   };
 
-  const isUserAdded = (index: number) => index < userAddedCount;
+  // User-added images are appended after default images
+  const isUserAdded = (index: number) => index >= defaultImageCount;
 
   const openPreview = (type: 'usecase' | 'avatar', data: any, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setPreviewContent({ type, data });
     setPreviewOpen(true);
@@ -143,11 +151,11 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
         </div>
         <div className="grid grid-cols-3 gap-3">
           {visibleUseCases.map((uc: any) => (
-            <button
+            <div
               key={uc.id}
               onClick={() => { setSelectedUseCase(uc.id); onUpdateField('useCaseId', uc.id); }}
               className={cn(
-                "rounded-xl border-2 overflow-hidden transition-all text-left relative group",
+                "rounded-xl border-2 overflow-hidden transition-all text-left relative group cursor-pointer",
                 selectedUseCase === uc.id
                   ? "border-primary shadow-md ring-1 ring-primary/20"
                   : "border-border/30 hover:border-primary/30"
@@ -156,23 +164,21 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               <div className="aspect-[4/3] bg-muted overflow-hidden relative">
                 <img src={uc.thumbnail} alt={uc.label} className="w-full h-full object-cover" />
                 {uc.recommended && (
-                  <span className="absolute top-1.5 left-1.5 text-[8px] bg-secondary/90 text-secondary-foreground px-2 py-0.5 rounded-full font-semibold uppercase">Best</span>
+                  <span className="absolute top-1.5 left-1.5 text-[8px] bg-secondary/90 text-secondary-foreground px-2 py-0.5 rounded-full font-semibold uppercase z-10">Best</span>
                 )}
-                {/* Preview eye icon */}
-                <div
+                {/* Preview eye — small corner button */}
+                <button
                   onClick={(e) => openPreview('usecase', uc, e)}
-                  className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center cursor-pointer"
+                  className="absolute bottom-1.5 right-1.5 w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 z-10 hover:bg-background shadow-sm border border-border/30"
                 >
-                  <div className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-                    <Eye className="w-3.5 h-3.5 text-foreground" />
-                  </div>
-                </div>
+                  <Eye className="w-3.5 h-3.5 text-foreground" />
+                </button>
               </div>
               <div className="px-3 py-2.5">
                 <p className={cn("text-[11px] font-semibold truncate", selectedUseCase === uc.id ? "text-primary" : "text-foreground")}>{uc.label}</p>
                 <p className="text-[9px] text-muted-foreground/60 line-clamp-1 mt-0.5">{uc.description}</p>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -199,11 +205,11 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
             </div>
             <div className="grid grid-cols-3 gap-3">
               {visibleAvatars.map(avatar => (
-                <button
+                <div
                   key={avatar.id}
                   onClick={() => { setSelectedAvatar(avatar.id); onUpdateField('avatarId', avatar.id); }}
                   className={cn(
-                    "rounded-xl border-2 p-2 transition-all relative group",
+                    "rounded-xl border-2 p-2 transition-all relative group cursor-pointer",
                     selectedAvatar === avatar.id
                       ? "border-primary bg-primary/5 shadow-md"
                       : "border-border/30 hover:border-primary/30"
@@ -211,18 +217,16 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                 >
                   <div className="aspect-square rounded-lg bg-muted overflow-hidden mb-2 relative">
                     <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
-                    {/* Preview eye icon */}
-                    <div
+                    {/* Preview eye — small corner button */}
+                    <button
                       onClick={(e) => openPreview('avatar', avatar, e)}
-                      className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center cursor-pointer"
+                      className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 z-10 hover:bg-background shadow-sm border border-border/30"
                     >
-                      <div className="w-7 h-7 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-                        <Eye className="w-3.5 h-3.5 text-foreground" />
-                      </div>
-                    </div>
+                      <Eye className="w-3 h-3 text-foreground" />
+                    </button>
                   </div>
                   <p className={cn("text-[10px] text-center truncate font-medium", selectedAvatar === avatar.id ? "text-primary" : "text-muted-foreground")}>{avatar.name}</p>
-                </button>
+                </div>
               ))}
             </div>
           </div>
@@ -239,27 +243,28 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                 alt={`Product reference ${selectedRefImg + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
                 <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
               </div>
               {/* Delete badge for user-added images */}
               {isUserAdded(selectedRefImg) && (
                 <button
-                  onClick={() => handleDeleteImage(selectedRefImg)}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteImage(selectedRefImg); }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-md"
+                  title="Remove image"
                 >
-                  <X className="w-3 h-3 text-destructive-foreground" />
+                  <X className="w-3.5 h-3.5 text-destructive-foreground" />
                 </button>
               )}
             </div>
             {/* Thumbnail strip */}
             <div className="grid grid-cols-4 gap-2">
               {productImages.map((img: string, i: number) => (
-                <button
+                <div
                   key={i}
                   onClick={() => { setSelectedRefImg(i); onUpdateField('selectedRefImgIdx', i); }}
                   className={cn(
-                    "relative aspect-square rounded-lg overflow-hidden border-2 transition-all group/thumb",
+                    "relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer group/thumb",
                     selectedRefImg === i
                       ? "border-primary ring-1 ring-primary/20"
                       : "border-border/20 hover:border-primary/30 opacity-50 hover:opacity-100"
@@ -275,12 +280,13 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                   {isUserAdded(i) && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteImage(i); }}
-                      className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                      className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-all z-10 shadow-sm"
+                      title="Remove image"
                     >
                       <X className="w-2.5 h-2.5 text-destructive-foreground" />
                     </button>
                   )}
-                </button>
+                </div>
               ))}
             </div>
             <p className="text-[9px] text-muted-foreground/40 mt-1.5">From product page · Click to select</p>
@@ -289,14 +295,14 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group"
+                className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group/upload"
               >
-                <Upload className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
-                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">Upload</span>
+                <Upload className="w-3 h-3 text-muted-foreground/40 group-hover/upload:text-primary/50 transition-colors" />
+                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover/upload:text-foreground/60 transition-colors">Upload</span>
               </button>
-              <button className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group">
-                <FolderOpen className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
-                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">From Library</span>
+              <button className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group/lib">
+                <FolderOpen className="w-3 h-3 text-muted-foreground/40 group-hover/lib:text-primary/50 transition-colors" />
+                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover/lib:text-foreground/60 transition-colors">From Library</span>
               </button>
             </div>
           </div>
@@ -361,7 +367,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
             />
           </div>
 
-          {/* Parameters — moved here under Script */}
+          {/* Parameters — under Script */}
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Parameters

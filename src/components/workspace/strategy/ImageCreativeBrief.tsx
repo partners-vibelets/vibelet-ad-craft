@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import {
   Lock, Unlock, Upload, Palette, Check, Square, Smartphone, Monitor,
-  Eye, Wand2, FolderOpen
+  Eye, Wand2, FolderOpen, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { InlineEdit } from './InlineEdit';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface ImageCreativeBriefProps {
   ad: any;
@@ -14,12 +15,12 @@ interface ImageCreativeBriefProps {
 }
 
 const STYLE_PRESETS = [
-  { id: 'lifestyle', label: 'Lifestyle', emoji: '🏡' },
-  { id: 'studio', label: 'Studio', emoji: '📸' },
-  { id: 'flat-lay', label: 'Flat Lay', emoji: '🎨' },
-  { id: 'in-use', label: 'In Use', emoji: '👟' },
-  { id: 'seasonal', label: 'Seasonal', emoji: '🌸' },
-  { id: 'minimal', label: 'Minimal', emoji: '⬜' },
+  { id: 'lifestyle', label: 'Lifestyle', emoji: '🏡', description: 'Natural, real-world settings that show the product in everyday life' },
+  { id: 'studio', label: 'Studio', emoji: '📸', description: 'Clean, professional studio shots with controlled lighting' },
+  { id: 'flat-lay', label: 'Flat Lay', emoji: '🎨', description: 'Overhead arrangement with complementary items and props' },
+  { id: 'in-use', label: 'In Use', emoji: '👟', description: 'Action shots showing the product being used by real people' },
+  { id: 'seasonal', label: 'Seasonal', emoji: '🌸', description: 'Themed visuals tied to seasons, holidays, or trending moments' },
+  { id: 'minimal', label: 'Minimal', emoji: '⬜', description: 'Ultra-clean compositions with maximum negative space' },
 ];
 
 export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateField }: ImageCreativeBriefProps) => {
@@ -32,11 +33,16 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
     'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
     'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=400&fit=crop',
   ];
+  const defaultImageCount = defaultImages.length;
   const [productImages, setProductImages] = useState<string[]>(brief.productImages || defaultImages);
   const [selectedImg, setSelectedImg] = useState<number>(brief.selectedImageIdx || 0);
   const [selectedStyle, setSelectedStyle] = useState<string | null>(brief.stylePreset || null);
   const [isGeneratingDirection, setIsGeneratingDirection] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Style preview lightbox
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewStyle, setPreviewStyle] = useState<typeof STYLE_PRESETS[0] | null>(null);
 
   const completedFields = [
     true, // product image always available
@@ -50,12 +56,31 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
-    const newImages = [url, ...productImages];
+    const newImages = [...productImages, url];
     setProductImages(newImages);
-    setSelectedImg(0);
+    setSelectedImg(newImages.length - 1);
     onUpdateField('productImages', newImages);
-    onUpdateField('selectedImageIdx', 0);
+    onUpdateField('selectedImageIdx', newImages.length - 1);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const handleDeleteImage = (index: number) => {
+    if (productImages.length <= 1) return;
+    const newImages = productImages.filter((_, i) => i !== index);
+    setProductImages(newImages);
+    const newSelected = selectedImg >= newImages.length
+      ? newImages.length - 1
+      : selectedImg > index
+        ? selectedImg - 1
+        : selectedImg === index
+          ? Math.min(index, newImages.length - 1)
+          : selectedImg;
+    setSelectedImg(newSelected);
+    onUpdateField('productImages', newImages);
+    onUpdateField('selectedImageIdx', newSelected);
+  };
+
+  const isUserAdded = (index: number) => index >= defaultImageCount;
 
   const handleGenerateDirection = () => {
     setIsGeneratingDirection(true);
@@ -64,6 +89,13 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       onUpdateField('visualDirection', generated);
       setIsGeneratingDirection(false);
     }, 1200);
+  };
+
+  const openStylePreview = (style: typeof STYLE_PRESETS[0], e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPreviewStyle(style);
+    setPreviewOpen(true);
   };
 
   return (
@@ -88,19 +120,29 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               alt={`Product reference ${selectedImg + 1}`}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center pointer-events-none">
               <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
             </div>
+            {/* Delete badge for user-added images */}
+            {isUserAdded(selectedImg) && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDeleteImage(selectedImg); }}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-md"
+                title="Remove image"
+              >
+                <X className="w-3.5 h-3.5 text-destructive-foreground" />
+              </button>
+            )}
           </div>
 
           {/* Thumbnail strip */}
           <div className="grid grid-cols-4 gap-2">
             {productImages.map((img: string, i: number) => (
-              <button
+              <div
                 key={i}
                 onClick={() => { setSelectedImg(i); onUpdateField('selectedImageIdx', i); }}
                 className={cn(
-                  "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
+                  "relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer group/thumb",
                   selectedImg === i
                     ? "border-primary ring-1 ring-primary/20"
                     : "border-border/20 hover:border-primary/30 opacity-50 hover:opacity-100"
@@ -112,7 +154,17 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                     <Check className="w-2.5 h-2.5 text-primary-foreground" />
                   </div>
                 )}
-              </button>
+                {/* Delete button for user-added thumbnails */}
+                {isUserAdded(i) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteImage(i); }}
+                    className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-destructive/90 hover:bg-destructive flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-all z-10 shadow-sm"
+                    title="Remove image"
+                  >
+                    <X className="w-2.5 h-2.5 text-destructive-foreground" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
           <p className="text-[9px] text-muted-foreground/40 text-center">Scraped from product page · Click to select reference</p>
@@ -122,14 +174,14 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group"
+              className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group/upload"
             >
-              <Upload className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
-              <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">Upload</span>
+              <Upload className="w-3 h-3 text-muted-foreground/40 group-hover/upload:text-primary/50 transition-colors" />
+              <span className="text-[10px] font-medium text-muted-foreground/50 group-hover/upload:text-foreground/60 transition-colors">Upload</span>
             </button>
-            <button className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group">
-              <FolderOpen className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
-              <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">From Library</span>
+            <button className="py-2.5 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group/lib">
+              <FolderOpen className="w-3 h-3 text-muted-foreground/40 group-hover/lib:text-primary/50 transition-colors" />
+              <span className="text-[10px] font-medium text-muted-foreground/50 group-hover/lib:text-foreground/60 transition-colors">From Library</span>
             </button>
           </div>
         </div>
@@ -143,11 +195,11 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
             </p>
             <div className="grid grid-cols-3 gap-2.5">
               {STYLE_PRESETS.map(s => (
-                <button
+                <div
                   key={s.id}
                   onClick={() => { setSelectedStyle(s.id); onUpdateField('stylePreset', s.id); }}
                   className={cn(
-                    "px-2 py-3 rounded-xl text-[11px] font-medium border transition-all text-center",
+                    "px-2 py-3 rounded-xl text-[11px] font-medium border transition-all text-center relative group cursor-pointer",
                     selectedStyle === s.id
                       ? "border-primary bg-primary/15 text-primary"
                       : "border-border/30 text-muted-foreground hover:border-primary/30"
@@ -155,7 +207,14 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                 >
                   <span className="block text-lg mb-1">{s.emoji}</span>
                   {s.label}
-                </button>
+                  {/* Preview eye — small corner button */}
+                  <button
+                    onClick={(e) => openStylePreview(s, e)}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 z-10 hover:bg-background shadow-sm border border-border/30"
+                  >
+                    <Eye className="w-2.5 h-2.5 text-foreground" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
@@ -233,6 +292,31 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       >
         {isFrozen ? <><Lock className="w-3.5 h-3.5" /> Creative Locked ✓</> : <><Unlock className="w-3.5 h-3.5" /> Lock Creative Strategy</>}
       </button>
+
+      {/* Style Preview Lightbox */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-sm w-[85vw] p-0 bg-background/95 backdrop-blur-sm border-border overflow-hidden">
+          <button
+            onClick={() => setPreviewOpen(false)}
+            className="absolute top-3 right-3 z-50 p-2 rounded-full bg-background/80 hover:bg-background border border-border shadow-md transition-colors"
+          >
+            <X className="w-4 h-4 text-foreground" />
+          </button>
+          {previewStyle && (
+            <div className="p-6 text-center space-y-3">
+              <span className="text-4xl block">{previewStyle.emoji}</span>
+              <p className="text-sm font-semibold text-foreground">{previewStyle.label}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{previewStyle.description}</p>
+              <button
+                onClick={() => { setSelectedStyle(previewStyle.id); onUpdateField('stylePreset', previewStyle.id); setPreviewOpen(false); }}
+                className="mt-3 w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+              >
+                {selectedStyle === previewStyle.id ? 'Selected ✓' : 'Select This Style'}
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
