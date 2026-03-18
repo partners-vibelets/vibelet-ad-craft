@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Film, User, Sparkles, Lock, Unlock, Upload, FileText, ImageIcon,
-  Smartphone, Square, ChevronLeft, ChevronRight, Check, Wand2, Monitor
+  Smartphone, Square, ChevronLeft, ChevronRight, Check, Wand2, Monitor,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AVATARS } from '@/data/avatars';
@@ -25,7 +26,17 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
   const [description, setDescription] = useState(brief.productDescription || '');
   const [script, setScript] = useState(brief.script || `${ad.primaryText || ''}\n\n${ad.headline || ''}`);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const [selectedRefImg, setSelectedRefImg] = useState<number>(brief.selectedRefImgIdx ?? 0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const defaultImages = [
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=400&fit=crop',
+  ];
+  const [productImages, setProductImages] = useState<string[]>(brief.productImages || defaultImages);
 
   const avatars = AVATARS.slice(0, 9);
   const useCases = (VIDEO_USE_CASE_TEMPLATES || []).slice(0, 8);
@@ -35,13 +46,6 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
   const totalUseCasePages = Math.ceil(useCases.length / useCasesPerPage);
   const visibleAvatars = avatars.slice(avatarPage * avatarsPerPage, (avatarPage + 1) * avatarsPerPage);
   const visibleUseCases = useCases.slice(useCasePage * useCasesPerPage, (useCasePage + 1) * useCasesPerPage);
-
-  const productImages = brief.productImages || [
-    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop',
-    'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=400&fit=crop',
-  ];
 
   const completedFields = [
     !!selectedUseCase,
@@ -62,10 +66,31 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
     }, 1500);
   };
 
+  const handleGenerateDesc = () => {
+    setIsGeneratingDesc(true);
+    setTimeout(() => {
+      const generated = `Premium quality ${ad.name || 'product'} designed for the modern consumer. Crafted with attention to detail, combining style and functionality for everyday use.`;
+      setDescription(generated);
+      onUpdateField('productDescription', generated);
+      setIsGeneratingDesc(false);
+    }, 1000);
+  };
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const newImages = [url, ...productImages];
+    setProductImages(newImages);
+    setSelectedRefImg(0);
+    onUpdateField('productImages', newImages);
+    onUpdateField('selectedRefImgIdx', 0);
+  };
+
   return (
     <div className={cn("transition-all", isFrozen && "opacity-60 pointer-events-none")}>
       {/* Completion indicator */}
-      <div className="flex items-center gap-2.5 mb-5">
+      <div className="flex items-center gap-2.5 mb-6">
         <div className="flex gap-1">
           {completedFields.map((done, i) => (
             <div key={i} className={cn("w-8 h-1.5 rounded-full transition-colors", done ? "bg-secondary" : "bg-muted/40")} />
@@ -75,9 +100,9 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       </div>
 
       {/* Video Style — visual carousel cards */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+      <div className="mb-7">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
             <Film className="w-3.5 h-3.5" /> Video Style {selectedUseCase && <Check className="w-3 h-3 text-secondary inline" />}
           </p>
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -90,7 +115,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-3">
           {visibleUseCases.map((uc: any) => (
             <button
               key={uc.id}
@@ -108,8 +133,8 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                   <span className="absolute top-1.5 left-1.5 text-[8px] bg-secondary/90 text-secondary-foreground px-2 py-0.5 rounded-full font-semibold uppercase">Best</span>
                 )}
               </div>
-              <div className="px-2.5 py-2">
-                <p className={cn("text-[10px] font-semibold truncate", selectedUseCase === uc.id ? "text-primary" : "text-foreground")}>{uc.label}</p>
+              <div className="px-3 py-2.5">
+                <p className={cn("text-[11px] font-semibold truncate", selectedUseCase === uc.id ? "text-primary" : "text-foreground")}>{uc.label}</p>
                 <p className="text-[9px] text-muted-foreground/60 line-clamp-1 mt-0.5">{uc.description}</p>
               </div>
             </button>
@@ -118,13 +143,13 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       </div>
 
       {/* Main 2-column layout */}
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-2 gap-6">
         {/* LEFT: Visual config */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Avatar / Presenter */}
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5" /> Presenter {selectedAvatar && <Check className="w-3 h-3 text-secondary inline" />}
               </p>
               <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -137,19 +162,19 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                 </button>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-3">
               {visibleAvatars.map(avatar => (
                 <button
                   key={avatar.id}
                   onClick={() => { setSelectedAvatar(avatar.id); onUpdateField('avatarId', avatar.id); }}
                   className={cn(
-                    "rounded-xl border-2 p-1.5 transition-all",
+                    "rounded-xl border-2 p-2 transition-all",
                     selectedAvatar === avatar.id
                       ? "border-primary bg-primary/5 shadow-md"
                       : "border-border/30 hover:border-primary/30"
                   )}
                 >
-                  <div className="aspect-square rounded-lg bg-muted overflow-hidden mb-1.5">
+                  <div className="aspect-square rounded-lg bg-muted overflow-hidden mb-2">
                     <img src={avatar.imageUrl} alt={avatar.name} className="w-full h-full object-cover" />
                   </div>
                   <p className={cn("text-[10px] text-center truncate font-medium", selectedAvatar === avatar.id ? "text-primary" : "text-muted-foreground")}>{avatar.name}</p>
@@ -160,15 +185,15 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
           {/* Parameters */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2.5 font-medium flex items-center gap-1.5">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Parameters
             </p>
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {[
                 { label: 'Aspect', field: 'aspectRatio', default: '9:16', options: [
-                  { value: '9:16', icon: <Smartphone className="w-3 h-3 mr-1" /> },
-                  { value: '16:9', icon: <Monitor className="w-3 h-3 mr-1" /> },
-                  { value: '1:1', icon: <Square className="w-3 h-3 mr-1" /> },
+                  { value: '9:16', icon: <Smartphone className="w-3.5 h-3.5 mr-1" /> },
+                  { value: '16:9', icon: <Monitor className="w-3.5 h-3.5 mr-1" /> },
+                  { value: '1:1', icon: <Square className="w-3.5 h-3.5 mr-1" /> },
                 ]},
                 { label: 'Length', field: 'duration', default: '30s', options: [
                   { value: '15s' }, { value: '30s' }, { value: '60s' },
@@ -176,10 +201,10 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               ].map(param => (
                 <div key={param.label} className="flex items-center gap-3">
                   <span className="text-[11px] text-muted-foreground w-14 shrink-0 font-medium">{param.label}</span>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     {param.options.map(o => (
                       <button key={o.value} className={cn(
-                        "inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all",
+                        "inline-flex items-center px-3.5 py-2 rounded-full text-[11px] font-medium border transition-all",
                         (brief[param.field] || param.default) === o.value
                           ? "border-primary bg-primary/15 text-primary"
                           : "border-border/30 text-muted-foreground hover:border-primary/20"
@@ -195,10 +220,10 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
           {/* Reference Image */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium flex items-center gap-1.5">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-2.5 font-medium flex items-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5" /> Reference Image
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2.5">
               {productImages.map((img: string, i: number) => (
                 <button
                   key={i}
@@ -220,16 +245,44 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               ))}
             </div>
             <p className="text-[9px] text-muted-foreground/40 mt-1.5">From product page · Click to select</p>
+            {/* Upload + Library */}
+            <div className="grid grid-cols-2 gap-2 mt-2.5">
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="py-2 rounded-lg border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group"
+              >
+                <Upload className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
+                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">Upload</span>
+              </button>
+              <button className="py-2 rounded-lg border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-1.5 transition-all bg-muted/5 hover:bg-muted/15 group">
+                <FolderOpen className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
+                <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">From Library</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* RIGHT: Content & context */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Product Description */}
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium">
-              Product Description {description.trim() && <Check className="w-3 h-3 text-secondary inline ml-1" />}
-            </p>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+                Product Description {description.trim() && <Check className="w-3 h-3 text-secondary inline ml-1" />}
+              </p>
+              <button
+                onClick={handleGenerateDesc}
+                disabled={isGeneratingDesc}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+              >
+                {isGeneratingDesc ? (
+                  <><div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" /> Generating...</>
+                ) : (
+                  <><Wand2 className="w-3 h-3" /> {description.trim() ? 'Regenerate' : 'Auto-generate'}</>
+                )}
+              </button>
+            </div>
             <div className="relative">
               <textarea
                 value={description}
@@ -244,8 +297,8 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
           {/* Script */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5" /> Script {script.trim() && <Check className="w-3 h-3 text-secondary inline" />}
               </p>
               <button
@@ -256,7 +309,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
                 {isGeneratingScript ? (
                   <><div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" /> Generating...</>
                 ) : (
-                  <><Wand2 className="w-3 h-3" /> Auto-generate</>
+                  <><Wand2 className="w-3 h-3" /> {script.trim() ? 'Regenerate' : 'Auto-generate'}</>
                 )}
               </button>
             </div>
@@ -268,12 +321,6 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               className="w-full bg-muted/20 border border-border/30 rounded-xl px-4 py-3 text-[12px] text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-none placeholder:text-muted-foreground/40 transition-all leading-relaxed"
             />
           </div>
-
-          {/* Upload additional reference */}
-          <button className="w-full py-3 rounded-xl border-2 border-dashed border-border/25 hover:border-primary/30 flex items-center justify-center gap-2 transition-all bg-muted/5 hover:bg-muted/15 group">
-            <Upload className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-primary/50 transition-colors" />
-            <span className="text-[10px] font-medium text-muted-foreground/50 group-hover:text-foreground/60 transition-colors">Upload Additional Reference</span>
-          </button>
         </div>
       </div>
 
@@ -281,7 +328,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFreeze(adKey); }}
         className={cn(
-          "w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-medium transition-all border mt-6",
+          "w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-xs font-medium transition-all border mt-7",
           isFrozen
             ? "bg-secondary/10 border-secondary/30 text-secondary"
             : completedCount === totalFields
