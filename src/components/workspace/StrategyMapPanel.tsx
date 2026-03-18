@@ -370,9 +370,12 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                                 )}
                               </div>
 
+                              {/* Divider */}
+                              <div className="border-t border-border/15" />
+
                               {/* Creative Brief */}
-                              <div className="px-5 py-5">
-                                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-4 flex items-center gap-1.5">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-5 flex items-center gap-1.5">
                                   <Sparkles className="w-3.5 h-3.5" /> Creative Brief
                                 </p>
 
