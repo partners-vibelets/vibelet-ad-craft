@@ -135,7 +135,7 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
         </div>
 
         {/* RIGHT: Style + direction + format */}
-        <div className="space-y-7">
+        <div className="divide-y divide-border/15 [&>*]:py-6 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
           {/* Style Presets */}
           <div>
             <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-3 font-medium">

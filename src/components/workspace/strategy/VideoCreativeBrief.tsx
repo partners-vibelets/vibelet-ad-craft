@@ -145,7 +145,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       {/* Main 2-column layout */}
       <div className="grid grid-cols-2 gap-8">
         {/* LEFT: Visual config */}
-        <div className="space-y-7">
+        <div className="divide-y divide-border/15 [&>*]:py-6 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
           {/* Avatar / Presenter */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -264,7 +264,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
         </div>
 
         {/* RIGHT: Content & context */}
-        <div className="space-y-7">
+        <div className="divide-y divide-border/15 [&>*]:py-6 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
           {/* Product Description */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
