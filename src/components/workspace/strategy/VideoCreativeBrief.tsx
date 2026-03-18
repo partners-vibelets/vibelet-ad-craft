@@ -100,7 +100,7 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
       </div>
 
       {/* Video Style — visual carousel cards */}
-      <div className="mb-7">
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-3">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1.5">
             <Film className="w-3.5 h-3.5" /> Video Style {selectedUseCase && <Check className="w-3 h-3 text-secondary inline" />}
