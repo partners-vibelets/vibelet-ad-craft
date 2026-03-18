@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   Target, Layers, ChevronDown, ChevronRight, Check,
-  DollarSign, Sparkles, Lock, CheckCircle2,
+  DollarSign, Sparkles, Lock, CheckCircle2, X,
 } from 'lucide-react';
 import { Artifact } from '@/types/workspace';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,13 @@ import { Button } from '@/components/ui/button';
 import { InlineEdit } from './strategy/InlineEdit';
 import { VideoCreativeBrief } from './strategy/VideoCreativeBrief';
 import { ImageCreativeBrief } from './strategy/ImageCreativeBrief';
+
+// Meta CTA options for Sales objective
+const META_CTA_OPTIONS = [
+  'Shop Now', 'Learn More', 'Sign Up', 'Buy Now', 'Add to Cart',
+  'Get Offer', 'Order Now', 'Subscribe', 'Download', 'Get Quote',
+  'Contact Us', 'Book Now', 'Apply Now', 'Send Message',
+];
 
 interface StrategyMapPanelProps {
   artifact: Artifact;
@@ -22,6 +29,7 @@ type NodePath = { campaignIdx: number; adSetIdx?: number; adIdx?: number } | nul
 export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelProps) => {
   const [expandedNode, setExpandedNode] = useState<NodePath>(null);
   const [frozenAds, setFrozenAds] = useState<Set<string>>(new Set());
+  const [removedAds, setRemovedAds] = useState<Set<string>>(new Set());
 
   const d = artifact.data;
   const plan = d.strategyPlan || d;
@@ -32,7 +40,11 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
   const totalMonthly = plan.totalMonthlyBudget || 0;
 
   let totalAds = 0;
-  campaigns.forEach((c: any) => (c.adSets || []).forEach((s: any) => { totalAds += (s.ads || []).length; }));
+  campaigns.forEach((c: any) => (c.adSets || []).forEach((s: any) => {
+    (s.ads || []).forEach((ad: any) => {
+      if (!removedAds.has(`${c.name}-${s.name}-${ad.name}`)) totalAds++;
+    });
+  }));
   const frozenCount = frozenAds.size;
 
   const isExpanded = useCallback((ci: number, si?: number, ai?: number) => {
@@ -50,6 +62,20 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
       const next = new Set(prev);
       if (next.has(adKey)) next.delete(adKey);
       else next.add(adKey);
+      return next;
+    });
+  }, []);
+
+  const removeAd = useCallback((adKey: string) => {
+    setRemovedAds(prev => {
+      const next = new Set(prev);
+      next.add(adKey);
+      return next;
+    });
+    // Also remove from frozen if it was frozen
+    setFrozenAds(prev => {
+      const next = new Set(prev);
+      next.delete(adKey);
       return next;
     });
   }, []);
@@ -215,62 +241,123 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
 
                     {/* Ads */}
                     {(adSet.ads || []).map((ad: any, ai: number) => {
+                      const adCompositeKey = `${campaign.name}-${adSet.name}-${ad.name}`;
+                      if (removedAds.has(adCompositeKey)) return null;
                       const isFrozen = frozenAds.has(ad.name);
                       const isVideo = isVideoFormat(ad.format);
                       return (
                         <div key={ai} className="ml-6 border-l border-border/20">
-                          <button
-                            onClick={() => toggleNode(ci, si, ai)}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-3 py-1.5 transition-all text-left",
-                              "hover:bg-muted/15 rounded-r-lg",
-                              isExpanded(ci, si, ai) && "bg-primary/5"
-                            )}
-                          >
-                            <span className="text-[10px] shrink-0">
-                              {isVideo ? '🎬' : isCarouselFormat(ad.format) ? '🔄' : '🖼️'}
-                            </span>
-                            <span className="text-[11px] text-foreground flex-1 truncate">{ad.name}</span>
+                          {/* Ad row with inline remove */}
+                          <div className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 transition-all rounded-r-lg group",
+                            "hover:bg-muted/15",
+                            isExpanded(ci, si, ai) && "bg-primary/5"
+                          )}>
+                            <button
+                              onClick={() => toggleNode(ci, si, ai)}
+                              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                            >
+                              <span className="text-[10px] shrink-0">
+                                {isVideo ? '🎬' : isCarouselFormat(ad.format) ? '🔄' : '🖼️'}
+                              </span>
+                              <span className="text-[11px] text-foreground flex-1 truncate">{ad.name}</span>
+                            </button>
                             <div className="flex items-center gap-1.5 shrink-0">
                               {isFrozen && <CheckCircle2 className="w-3 h-3 text-secondary" />}
-                              <Badge variant="outline" className="text-[8px] h-3.5 px-1.5 shrink-0">{ad.format}</Badge>
+                              <Badge variant="outline" className="text-[8px] h-3.5 px-1.5">{ad.format}</Badge>
+                              {/* Remove button — always visible on hover */}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeAd(adCompositeKey); }}
+                                className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
+                                title="Remove this creative from ad"
+                              >
+                                <X className="w-3 h-3 text-destructive/60 hover:text-destructive" />
+                              </button>
                             </div>
-                          </button>
+                          </div>
 
-                          {/* Ad expanded — compact copy header + prominent creative brief */}
+                          {/* Ad expanded — ad copy fields + creative brief */}
                           {isExpanded(ci, si, ai) && (
                             <div className="ml-6 mr-2 mb-2 rounded-lg bg-muted/10 border border-border/20 animate-fade-in overflow-hidden">
-                              {/* Compact ad copy summary — collapsible header */}
-                              <div className="px-3 py-2.5 border-b border-border/20 bg-muted/5">
-                                <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                              {/* Ad copy fields — readable, properly laid out */}
+                              <div className="px-3 py-3 border-b border-border/20 bg-muted/5 space-y-2.5">
+                                {/* Row 1: Headline + CTA side by side */}
+                                <div className="grid grid-cols-[1fr_auto] gap-3">
                                   {ad.headline && (
-                                    <div className="min-w-0">
-                                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60 font-medium">Headline</span>
-                                      <InlineEdit value={ad.headline} onSave={v => onUpdateNode(ci, 'headline', v, si, ai)} className="text-[11px] font-medium" />
+                                    <div>
+                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Headline</label>
+                                      <InlineEdit
+                                        value={ad.headline}
+                                        onSave={v => onUpdateNode(ci, 'headline', v, si, ai)}
+                                        className="text-[12px] font-medium"
+                                      />
+                                      <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 40 chars</span>
                                     </div>
                                   )}
                                   {ad.cta && (
-                                    <div className="shrink-0">
-                                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60 font-medium">CTA</span>
-                                      <InlineEdit value={ad.cta} onSave={v => onUpdateNode(ci, 'cta', v, si, ai)} className="text-[11px]" />
-                                    </div>
-                                  )}
-                                  {ad.angle && (
-                                    <div className="shrink-0">
-                                      <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60 block">Angle</span>
-                                      <Badge variant="outline" className="text-[9px] h-4 mt-0.5">{ad.angle}</Badge>
+                                    <div className="min-w-[120px]">
+                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Call to Action</label>
+                                      <select
+                                        value={ad.cta}
+                                        onChange={e => onUpdateNode(ci, 'cta', e.target.value, si, ai)}
+                                        className="w-full text-[11px] font-medium bg-muted/30 border border-border/40 rounded-md px-2 py-1.5 text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all cursor-pointer appearance-none"
+                                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', paddingRight: '24px' }}
+                                      >
+                                        {META_CTA_OPTIONS.map(cta => (
+                                          <option key={cta} value={cta}>{cta}</option>
+                                        ))}
+                                      </select>
                                     </div>
                                   )}
                                 </div>
+
+                                {/* Row 2: Primary Text — full width */}
                                 {ad.primaryText && (
-                                  <div className="mt-1.5">
-                                    <span className="text-[8px] uppercase tracking-wider text-muted-foreground/60 font-medium">Primary Text</span>
-                                    <InlineEdit value={ad.primaryText} onSave={v => onUpdateNode(ci, 'primaryText', v, si, ai)} className="text-[11px]" multiline />
+                                  <div>
+                                    <label className="text-[10px] text-muted-foreground font-medium block mb-1">Primary Text</label>
+                                    <InlineEdit
+                                      value={ad.primaryText}
+                                      onSave={v => onUpdateNode(ci, 'primaryText', v, si, ai)}
+                                      className="text-[12px] leading-relaxed"
+                                      multiline
+                                    />
+                                    <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 125 chars for best performance</span>
                                   </div>
                                 )}
+
+                                {/* Row 3: Angle + Description side by side */}
+                                <div className="grid grid-cols-2 gap-3">
+                                  {ad.angle && (
+                                    <div>
+                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Angle</label>
+                                      <Badge variant="outline" className="text-[10px] h-5">{ad.angle}</Badge>
+                                    </div>
+                                  )}
+                                  {ad.description && (
+                                    <div>
+                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Description</label>
+                                      <InlineEdit
+                                        value={ad.description}
+                                        onSave={v => onUpdateNode(ci, 'description', v, si, ai)}
+                                        className="text-[11px]"
+                                      />
+                                      <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 30 chars</span>
+                                    </div>
+                                  )}
+                                  {ad.websiteUrl && (
+                                    <div>
+                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Destination URL</label>
+                                      <InlineEdit
+                                        value={ad.websiteUrl}
+                                        onSave={v => onUpdateNode(ci, 'websiteUrl', v, si, ai)}
+                                        className="text-[11px] text-primary/80"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Creative Brief — the main event */}
+                              {/* Creative Brief */}
                               <div className="px-3 py-3">
                                 <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-3 flex items-center gap-1.5">
                                   <Sparkles className="w-3 h-3" /> Creative Brief
