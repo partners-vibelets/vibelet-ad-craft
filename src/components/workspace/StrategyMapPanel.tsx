@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/button';
 import { InlineEdit } from './strategy/InlineEdit';
 import { VideoCreativeBrief } from './strategy/VideoCreativeBrief';
 import { ImageCreativeBrief } from './strategy/ImageCreativeBrief';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
 
 // Meta CTA options for Sales objective
 const META_CTA_OPTIONS = [
@@ -278,89 +281,99 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
 
                           {/* Ad expanded — ad copy fields + creative brief */}
                           {isExpanded(ci, si, ai) && (
-                            <div className="ml-6 mr-2 mb-2 rounded-lg bg-muted/10 border border-border/20 animate-fade-in overflow-hidden">
-                              {/* Ad copy fields — readable, properly laid out */}
-                              <div className="px-3 py-3 border-b border-border/20 bg-muted/5 space-y-2.5">
-                                {/* Row 1: Headline + CTA side by side */}
-                                <div className="grid grid-cols-[1fr_auto] gap-3">
+                            <div className="ml-6 mr-2 mb-3 rounded-xl bg-muted/5 border border-border/20 animate-fade-in overflow-hidden">
+                              {/* Ad copy fields — spacious, left-aligned */}
+                              <div className="px-5 py-4 border-b border-border/15 space-y-4">
+                                {/* Headline + CTA */}
+                                <div className="grid grid-cols-[1fr_160px] gap-4 items-start">
                                   {ad.headline && (
                                     <div>
-                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Headline</label>
+                                      <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Headline</label>
                                       <InlineEdit
                                         value={ad.headline}
                                         onSave={v => onUpdateNode(ci, 'headline', v, si, ai)}
-                                        className="text-[12px] font-medium"
+                                        className="text-[13px] font-medium"
                                       />
-                                      <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 40 chars</span>
+                                      <span className="text-[9px] text-muted-foreground/40 mt-1 block">Max 40 chars</span>
                                     </div>
                                   )}
                                   {ad.cta && (
-                                    <div className="min-w-[120px]">
-                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Call to Action</label>
-                                      <select
-                                        value={ad.cta}
-                                        onChange={e => onUpdateNode(ci, 'cta', e.target.value, si, ai)}
-                                        className="w-full text-[11px] font-medium bg-muted/30 border border-border/40 rounded-md px-2 py-1.5 text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all cursor-pointer appearance-none"
-                                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', paddingRight: '24px' }}
-                                      >
-                                        {META_CTA_OPTIONS.map(cta => (
-                                          <option key={cta} value={cta}>{cta}</option>
-                                        ))}
-                                      </select>
+                                    <div>
+                                      <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Call to Action</label>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <button className="w-full flex items-center justify-between text-[12px] font-medium bg-muted/30 border border-border/40 rounded-lg px-3 py-2 text-foreground hover:border-primary/40 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all cursor-pointer">
+                                            <span>{ad.cta}</span>
+                                            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0 ml-2" />
+                                          </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-[180px] max-h-[280px] overflow-y-auto">
+                                          {META_CTA_OPTIONS.map(cta => (
+                                            <DropdownMenuItem
+                                              key={cta}
+                                              onClick={() => onUpdateNode(ci, 'cta', cta, si, ai)}
+                                              className={cn("text-[12px] cursor-pointer", ad.cta === cta && "bg-primary/10 text-primary font-medium")}
+                                            >
+                                              {ad.cta === cta && <Check className="w-3 h-3 mr-2 shrink-0" />}
+                                              {cta}
+                                            </DropdownMenuItem>
+                                          ))}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
                                   )}
                                 </div>
 
-                                {/* Row 2: Primary Text — full width */}
+                                {/* Primary Text */}
                                 {ad.primaryText && (
                                   <div>
-                                    <label className="text-[10px] text-muted-foreground font-medium block mb-1">Primary Text</label>
+                                    <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Primary Text</label>
                                     <InlineEdit
                                       value={ad.primaryText}
                                       onSave={v => onUpdateNode(ci, 'primaryText', v, si, ai)}
-                                      className="text-[12px] leading-relaxed"
+                                      className="text-[13px] leading-relaxed"
                                       multiline
                                     />
-                                    <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 125 chars for best performance</span>
+                                    <span className="text-[9px] text-muted-foreground/40 mt-1 block">Max 125 chars for best performance</span>
                                   </div>
                                 )}
 
-                                {/* Row 3: Angle + Description side by side */}
-                                <div className="grid grid-cols-2 gap-3">
+                                {/* Angle + Description */}
+                                <div className="grid grid-cols-2 gap-4">
                                   {ad.angle && (
                                     <div>
-                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Angle</label>
-                                      <Badge variant="outline" className="text-[10px] h-5">{ad.angle}</Badge>
+                                      <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Angle</label>
+                                      <Badge variant="outline" className="text-[10px] h-6 px-3">{ad.angle}</Badge>
                                     </div>
                                   )}
                                   {ad.description && (
                                     <div>
-                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Description</label>
+                                      <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Description</label>
                                       <InlineEdit
                                         value={ad.description}
                                         onSave={v => onUpdateNode(ci, 'description', v, si, ai)}
-                                        className="text-[11px]"
+                                        className="text-[12px]"
                                       />
-                                      <span className="text-[8px] text-muted-foreground/50 mt-0.5 block">Max 30 chars</span>
-                                    </div>
-                                  )}
-                                  {ad.websiteUrl && (
-                                    <div>
-                                      <label className="text-[10px] text-muted-foreground font-medium block mb-1">Destination URL</label>
-                                      <InlineEdit
-                                        value={ad.websiteUrl}
-                                        onSave={v => onUpdateNode(ci, 'websiteUrl', v, si, ai)}
-                                        className="text-[11px] text-primary/80"
-                                      />
+                                      <span className="text-[9px] text-muted-foreground/40 mt-1 block">Max 30 chars</span>
                                     </div>
                                   )}
                                 </div>
+                                {ad.websiteUrl && (
+                                  <div>
+                                    <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Destination URL</label>
+                                    <InlineEdit
+                                      value={ad.websiteUrl}
+                                      onSave={v => onUpdateNode(ci, 'websiteUrl', v, si, ai)}
+                                      className="text-[12px] text-primary/80"
+                                    />
+                                  </div>
+                                )}
                               </div>
 
                               {/* Creative Brief */}
-                              <div className="px-3 py-3">
-                                <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-3 flex items-center gap-1.5">
-                                  <Sparkles className="w-3 h-3" /> Creative Brief
+                              <div className="px-5 py-5">
+                                <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-4 flex items-center gap-1.5">
+                                  <Sparkles className="w-3.5 h-3.5" /> Creative Brief
                                 </p>
 
                                 {isVideo ? (
