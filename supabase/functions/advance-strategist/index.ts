@@ -25,6 +25,8 @@ DISCOVERY RULES:
 2. Never ask what the user already told you. Parse their messages carefully.
 3. Start with the most impactful question: "What's your product/service and who are you selling to?"
 4. Always suggest quick-response options (as suggestedChips) to minimize typing.
+5. Ask if the budget is daily or lifetime. If lifetime, ask for start and end dates.
+6. Every ad MUST include a destinationUrl (the landing page URL for the ad).
 5. After gathering enough context (usually 2-4 exchanges), generate the plan.
 
 META BEST PRACTICES YOU MUST FOLLOW:
