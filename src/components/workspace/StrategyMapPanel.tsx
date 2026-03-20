@@ -505,16 +505,21 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                                     </div>
                                   )}
                                 </div>
-                                {ad.websiteUrl && (
-                                  <div>
-                                    <label className="text-[11px] text-muted-foreground font-medium block mb-1.5">Destination URL</label>
-                                    <InlineEdit
-                                      value={ad.websiteUrl}
-                                      onSave={v => onUpdateNode(ci, 'websiteUrl', v, si, ai)}
-                                      className="text-[12px] text-primary/80"
-                                    />
-                                  </div>
-                                )}
+                                {/* Destination URL — always visible */}
+                                <div>
+                                  <label className="text-[11px] text-muted-foreground font-medium mb-1.5 flex items-center gap-1.5">
+                                    <Link2 className="w-3 h-3" />
+                                    Landing Page URL
+                                  </label>
+                                  <input
+                                    type="url"
+                                    value={ad.destinationUrl || ad.websiteUrl || ''}
+                                    onChange={e => onUpdateNode(ci, 'destinationUrl', e.target.value, si, ai)}
+                                    placeholder="https://yoursite.com/landing-page"
+                                    className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-[12px] text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/40 transition-all"
+                                  />
+                                  <span className="text-[9px] text-muted-foreground/40 mt-1 block">Where users land after clicking the ad</span>
+                                </div>
                               </div>
 
                               {/* Divider */}
