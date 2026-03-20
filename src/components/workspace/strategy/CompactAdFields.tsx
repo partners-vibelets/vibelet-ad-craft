@@ -35,6 +35,7 @@ interface CompactAdFieldsProps {
   primaryText: string;
   cta: string;
   description?: string;
+  destinationUrl?: string;
   onUpdate: (field: string, value: string) => void;
 }
 
