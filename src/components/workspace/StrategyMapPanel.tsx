@@ -458,13 +458,26 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
         </div>
       </ScrollArea>
 
+      {/* Hidden batch file input */}
+      <input
+        ref={batchFileInputRef}
+        type="file"
+        multiple
+        accept="image/*,video/*"
+        className="hidden"
+        onChange={handleBatchUpload}
+      />
+
       {/* Batch operations bar — shown when 2+ unlocked ads */}
       {unlockedCount >= 2 && (
         <div className="border-t border-border/20 bg-background/80 backdrop-blur-md px-4 py-2.5 shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground/60 shrink-0">Batch:</span>
             <div className="flex items-center gap-1.5 flex-1">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/20 hover:bg-muted/40 border border-border/20 hover:border-primary/30 text-[10px] font-medium text-foreground/70 hover:text-foreground transition-all">
+              <button
+                onClick={() => batchFileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/20 hover:bg-muted/40 border border-border/20 hover:border-primary/30 text-[10px] font-medium text-foreground/70 hover:text-foreground transition-all"
+              >
                 <Upload className="w-3 h-3" />
                 Upload All
               </button>
