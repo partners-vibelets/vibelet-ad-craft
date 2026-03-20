@@ -101,6 +101,26 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
     return 'empty';
   };
 
+  // Batch Upload All — auto-map files to unlocked ads in order
+  const handleBatchUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const unlocked = allAds.filter(a => !frozenAds.has(a.ad.name));
+    files.forEach((file, i) => {
+      if (i >= unlocked.length) return;
+      const { ci, si, ai } = unlocked[i];
+      const url = URL.createObjectURL(file);
+      const creative = {
+        url,
+        type: file.type.startsWith('video') ? 'video' as const : 'image' as const,
+        fileName: file.name,
+      };
+      onUpdateNode(ci, 'attachedCreative', creative, si, ai);
+      onUpdateNode(ci, 'creativeSource', 'upload', si, ai);
+    });
+    if (batchFileInputRef.current) batchFileInputRef.current.value = '';
+  }, [allAds, frozenAds, onUpdateNode]);
+
   return (
     <div className="h-full flex flex-col bg-background">
       {/* Panel header */}
