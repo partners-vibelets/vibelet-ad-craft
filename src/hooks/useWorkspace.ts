@@ -1172,6 +1172,7 @@ function enrichStrategyPlan(plan: any): any {
 
         return {
           ...ad,
+          destinationUrl: ad.destinationUrl || ad.websiteUrl || '',
           angle: ad.angle || (adCounter % 3 === 0 ? 'Social proof' : adCounter % 3 === 1 ? 'Product/offer' : 'Lifestyle'),
           visualDirection: ad.visualDirection || direction,
           offerHook: ad.offerHook || `${ad.headline || 'Great deal'}. Shop now.`,
