@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Search, Check, Film, ImageIcon } from 'lucide-react';
+import { X, Search, Check, Film, ImageIcon, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
@@ -20,11 +20,13 @@ interface CreativeLibraryPickerProps {
   onOpenChange: (open: boolean) => void;
   filterType?: 'image' | 'video' | 'all';
   onSelect: (asset: { url: string; type: 'image' | 'video'; name: string }) => void;
+  productImages?: string[];
 }
 
-export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', onSelect }: CreativeLibraryPickerProps) => {
+export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', onSelect, productImages }: CreativeLibraryPickerProps) => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedProductImage, setSelectedProductImage] = useState<string | null>(null);
 
   const filtered = LIBRARY_ASSETS.filter(a => {
     if (filterType !== 'all' && a.type !== filterType) return false;
@@ -33,6 +35,14 @@ export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', 
   });
 
   const handleConfirm = () => {
+    if (selectedProductImage) {
+      onSelect({ url: selectedProductImage, type: 'image', name: 'Product Image' });
+      onOpenChange(false);
+      setSelected(null);
+      setSelectedProductImage(null);
+      setSearch('');
+      return;
+    }
     const asset = LIBRARY_ASSETS.find(a => a.id === selected);
     if (asset) {
       onSelect({ url: asset.url, type: asset.type, name: asset.name });
@@ -41,6 +51,8 @@ export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', 
       setSearch('');
     }
   };
+
+  const hasSelection = !!selected || !!selectedProductImage;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,12 +82,48 @@ export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', 
             />
           </div>
 
+          {/* Product images section */}
+          {productImages && productImages.length > 0 && !search && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-primary/60" />
+                <span className="text-[10px] font-medium text-muted-foreground">From your product page</span>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {productImages.map((url, i) => (
+                  <button
+                    key={`product-${i}`}
+                    onClick={() => { setSelectedProductImage(url); setSelected(null); }}
+                    className={cn(
+                      "shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all relative",
+                      selectedProductImage === url
+                        ? "border-primary ring-1 ring-primary/20 shadow-md"
+                        : "border-border/30 hover:border-primary/30"
+                    )}
+                  >
+                    <img src={url} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                    {selectedProductImage === url && (
+                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-border/15 pt-2">
+                <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wider font-medium">Library</span>
+              </div>
+            </div>
+          )}
+
           {/* Grid */}
-          <div className="grid grid-cols-3 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-3 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
             {filtered.map(asset => (
               <button
                 key={asset.id}
-                onClick={() => setSelected(asset.id)}
+                onClick={() => { setSelected(asset.id); setSelectedProductImage(null); }}
                 className={cn(
                   "rounded-xl border-2 overflow-hidden transition-all text-left relative group",
                   selected === asset.id
@@ -116,15 +164,15 @@ export const CreativeLibraryPicker = ({ open, onOpenChange, filterType = 'all', 
           {/* Confirm */}
           <button
             onClick={handleConfirm}
-            disabled={!selected}
+            disabled={!hasSelection}
             className={cn(
               "w-full py-2.5 rounded-xl text-xs font-medium transition-all",
-              selected
+              hasSelection
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-muted/30 text-muted-foreground cursor-not-allowed"
             )}
           >
-            {selected ? 'Use This Creative' : 'Select an asset'}
+            {hasSelection ? 'Use This Creative' : 'Select an asset'}
           </button>
         </div>
       </DialogContent>
