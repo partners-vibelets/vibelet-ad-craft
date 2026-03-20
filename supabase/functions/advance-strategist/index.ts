@@ -63,39 +63,43 @@ When you have enough info to generate a plan, respond with:
   "mode": "plan",
   "message": "Here's my recommended campaign architecture based on everything you've shared.",
   "strategyPlan": {
-    "planType": "simple" | "complex",
-    "campaigns": [
-      {
-        "name": "Campaign Name",
-        "objective": "Sales | Awareness | Traffic | Leads | Engagement",
-        "budgetType": "CBO | ABO | Advantage+",
-        "dailyBudget": 50,
-        "adSets": [
-          {
-            "name": "Ad Set Name",
-            "targeting": "Description of targeting",
-            "budget": 50,
-            "placements": "Advantage+ Placements | Manual",
-            "ads": [
-              {
-                "name": "Ad Name",
-                "format": "Image | Video | Carousel | Collection",
-                "primaryText": "Ad copy",
-                "headline": "Headline",
-                "cta": "Shop Now | Learn More | Sign Up | etc."
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    "totalDailyBudget": 100,
-    "totalMonthlyBudget": 3000,
-    "rationale": "2-3 sentence explanation of why this architecture",
-    "confidenceScore": 85,
-    "guardrailNotes": ["Any warnings or compliance notes"],
-    "learningPhaseNotes": "What to expect in the first 7 days"
-  }
+     "planType": "simple" | "complex",
+     "budgetSchedule": "daily" | "lifetime",
+     "startDate": "YYYY-MM-DD (required if lifetime)",
+     "endDate": "YYYY-MM-DD (required if lifetime)",
+     "campaigns": [
+       {
+         "name": "Campaign Name",
+         "objective": "Sales | Awareness | Traffic | Leads | Engagement",
+         "budgetType": "CBO | ABO | Advantage+",
+         "dailyBudget": 50,
+         "adSets": [
+           {
+             "name": "Ad Set Name",
+             "targeting": "Description of targeting",
+             "budget": 50,
+             "placements": "Advantage+ Placements | Manual",
+             "ads": [
+               {
+                 "name": "Ad Name",
+                 "format": "Image | Video | Carousel | Collection",
+                 "primaryText": "Ad copy",
+                 "headline": "Headline",
+                 "cta": "Shop Now | Learn More | Sign Up | etc.",
+                 "destinationUrl": "https://example.com/landing-page"
+               }
+             ]
+           }
+         ]
+       }
+     ],
+     "totalDailyBudget": 100,
+     "totalMonthlyBudget": 3000,
+     "rationale": "2-3 sentence explanation of why this architecture",
+     "confidenceScore": 85,
+     "guardrailNotes": ["Any warnings or compliance notes"],
+     "learningPhaseNotes": "What to expect in the first 7 days"
+   }
 }
 
 Remember: Be decisive. You're the expert. Don't hedge unnecessarily. Give clear recommendations with confidence scores.`;
