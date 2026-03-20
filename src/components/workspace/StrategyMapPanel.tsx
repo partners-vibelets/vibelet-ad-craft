@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { InlineEdit } from './strategy/InlineEdit';
-import { VideoCreativeBrief } from './strategy/VideoCreativeBrief';
-import { ImageCreativeBrief } from './strategy/ImageCreativeBrief';
+import { CreativeSourceTabs } from './strategy/CreativeSourceTabs';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
