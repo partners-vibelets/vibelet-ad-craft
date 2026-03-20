@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Film, User, Sparkles, Lock, Unlock, Upload, FileText, ImageIcon,
   Smartphone, Square, ChevronLeft, ChevronRight, Check, Wand2, Monitor,
@@ -113,6 +113,43 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
   // User-added images are appended after default images
   const isUserAdded = (index: number) => index >= defaultImageCount;
+
+  // Drag-and-drop reordering
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((index: number) => {
+    dragIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((index: number) => {
+    const from = dragIndexRef.current;
+    if (from === null || from === index) { setDragOverIndex(null); return; }
+    const reordered = [...productImages];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(index, 0, moved);
+    setProductImages(reordered);
+    // Update selected index to follow the selected image
+    let newSelected = selectedRefImg;
+    if (selectedRefImg === from) newSelected = index;
+    else if (from < selectedRefImg && index >= selectedRefImg) newSelected = selectedRefImg - 1;
+    else if (from > selectedRefImg && index <= selectedRefImg) newSelected = selectedRefImg + 1;
+    setSelectedRefImg(newSelected);
+    onUpdateField('productImages', reordered);
+    onUpdateField('selectedRefImgIdx', newSelected);
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, [productImages, selectedRefImg, onUpdateField]);
+
+  const handleDragEnd = useCallback(() => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, []);
 
   const openPreview = (type: 'usecase' | 'avatar', data: any, e: React.MouseEvent) => {
     e.preventDefault();
@@ -262,21 +299,26 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
               {productImages.map((img: string, i: number) => (
                 <div
                   key={i}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => { setSelectedRefImg(i); onUpdateField('selectedRefImgIdx', i); }}
                   className={cn(
-                    "relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer group/thumb",
+                    "relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-grab active:cursor-grabbing group/thumb",
                     selectedRefImg === i
                       ? "border-primary ring-1 ring-primary/20"
-                      : "border-border/20 hover:border-primary/30 opacity-50 hover:opacity-100"
+                      : "border-border/20 hover:border-primary/30 opacity-50 hover:opacity-100",
+                    dragOverIndex === i && "border-primary/60 scale-105 shadow-lg"
                   )}
                 >
-                  <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`Product ${i + 1}`} className="w-full h-full object-cover pointer-events-none" />
                   {selectedRefImg === i && (
                     <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
                       <Check className="w-2.5 h-2.5 text-primary-foreground" />
                     </div>
                   )}
-                  {/* Delete button for user-added thumbnails */}
                   {isUserAdded(i) && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteImage(i); }}
