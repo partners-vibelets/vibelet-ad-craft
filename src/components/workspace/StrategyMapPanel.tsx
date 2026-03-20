@@ -9,13 +9,12 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { InlineEdit } from './strategy/InlineEdit';
-import { VideoCreativeBrief } from './strategy/VideoCreativeBrief';
-import { ImageCreativeBrief } from './strategy/ImageCreativeBrief';
+import { CreativeSourceTabs } from './strategy/CreativeSourceTabs';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 
-// Meta CTA options for Sales objective
+// Meta CTA options for inline ad copy editing
 const META_CTA_OPTIONS = [
   'Shop Now', 'Learn More', 'Sign Up', 'Buy Now', 'Add to Cart',
   'Get Offer', 'Order Now', 'Subscribe', 'Download', 'Get Quote',
@@ -373,27 +372,20 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                               {/* Divider */}
                               <div className="border-t border-border/15" />
 
-                              {/* Creative Brief */}
+                              {/* Creative Brief — Upload-first with tabs */}
                               <div>
                                 <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-5 flex items-center gap-1.5">
-                                  <Sparkles className="w-3.5 h-3.5" /> Creative Brief
+                                  <Sparkles className="w-3.5 h-3.5" /> Creative
                                 </p>
 
-                                {isVideo ? (
-                                  <VideoCreativeBrief
-                                    ad={ad}
-                                    frozenAds={frozenAds}
-                                    onToggleFreeze={toggleFreeze}
-                                    onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
-                                  />
-                                ) : (
-                                  <ImageCreativeBrief
-                                    ad={ad}
-                                    frozenAds={frozenAds}
-                                    onToggleFreeze={toggleFreeze}
-                                    onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
-                                  />
-                                )}
+                                <CreativeSourceTabs
+                                  ad={ad}
+                                  isVideo={isVideo}
+                                  frozenAds={frozenAds}
+                                  onToggleFreeze={toggleFreeze}
+                                  onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
+                                  onUpdateAdCopy={(field, value) => onUpdateNode(ci, field, value, si, ai)}
+                                />
                               </div>
                             </div>
                           )}
