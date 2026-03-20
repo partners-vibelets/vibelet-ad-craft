@@ -183,7 +183,7 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                 <span className="text-[11px] font-medium text-foreground/70 shrink-0 tabular-nums">${campaign.dailyBudget}/day</span>
               </button>
 
-              {/* Campaign detail card */}
+               {/* Campaign detail card */}
               {isExpanded(ci) && (
                 <div className="px-4 py-3 space-y-3 animate-fade-in bg-muted/5">
                   <div className="grid grid-cols-2 gap-3">
@@ -196,7 +196,7 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                       <InlineEdit value={campaign.objective} onSave={v => onUpdateNode(ci, 'objective', v)} className="text-[12px]" />
                     </div>
                     <div>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5 font-medium">Daily Budget</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5 font-medium">{scheduleType === 'lifetime' ? 'Lifetime Budget' : 'Daily Budget'}</p>
                       <InlineEdit value={`$${campaign.dailyBudget}`} onSave={v => onUpdateNode(ci, 'dailyBudget', parseInt(v.replace('$', '')))} className="text-[12px] font-medium" />
                     </div>
                     <div>
@@ -204,6 +204,90 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                       <InlineEdit value={campaign.budgetType || 'CBO'} onSave={v => onUpdateNode(ci, 'budgetType', v)} className="text-[12px]" />
                     </div>
                   </div>
+
+                  {/* Budget Schedule: Daily / Lifetime toggle */}
+                  <div className="space-y-2">
+                    <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium">Budget Schedule</p>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setScheduleType('daily')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[11px] font-medium transition-all border",
+                          scheduleType === 'daily'
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-muted/20 border-border/30 text-muted-foreground hover:bg-muted/40"
+                        )}
+                      >
+                        Daily
+                      </button>
+                      <button
+                        onClick={() => setScheduleType('lifetime')}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[11px] font-medium transition-all border",
+                          scheduleType === 'lifetime'
+                            ? "bg-primary/10 border-primary/30 text-primary"
+                            : "bg-muted/20 border-border/30 text-muted-foreground hover:bg-muted/40"
+                        )}
+                      >
+                        Lifetime
+                      </button>
+                    </div>
+
+                    {/* Date range for lifetime budget */}
+                    {scheduleType === 'lifetime' && (
+                      <div className="grid grid-cols-2 gap-3 animate-fade-in">
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1 font-medium">Start Date</p>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className={cn(
+                                "w-full flex items-center gap-2 text-[11px] font-medium bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-left transition-all hover:border-primary/40",
+                                !startDate && "text-muted-foreground/50"
+                              )}>
+                                <CalendarDays className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+                                {startDate ? format(startDate, 'MMM d, yyyy') : 'Select start'}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={startDate}
+                                onSelect={setStartDate}
+                                disabled={(date) => date < new Date()}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div>
+                          <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1 font-medium">End Date</p>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className={cn(
+                                "w-full flex items-center gap-2 text-[11px] font-medium bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-left transition-all hover:border-primary/40",
+                                !endDate && "text-muted-foreground/50"
+                              )}>
+                                <CalendarDays className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
+                                {endDate ? format(endDate, 'MMM d, yyyy') : 'Select end'}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={endDate}
+                                onSelect={setEndDate}
+                                disabled={(date) => date < (startDate || new Date())}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {campaign.bidStrategy && (
                     <div>
                       <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-0.5 font-medium">Bid Strategy</p>
