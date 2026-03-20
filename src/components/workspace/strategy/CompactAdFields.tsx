@@ -73,9 +73,22 @@ const AIFieldButton = ({ field, hasValue, onGenerate }: { field: string; hasValu
   );
 };
 
-export const CompactAdFields = ({ headline, primaryText, cta, description, onUpdate }: CompactAdFieldsProps) => {
+export const CompactAdFields = ({ headline, primaryText, cta, description, destinationUrl, onUpdate }: CompactAdFieldsProps) => {
   return (
     <div className="space-y-3">
+      {/* Destination URL */}
+      {destinationUrl !== undefined && (
+        <div>
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium block mb-1">Landing Page URL</label>
+          <input
+            type="url"
+            value={destinationUrl}
+            onChange={e => onUpdate('destinationUrl', e.target.value)}
+            placeholder="https://yoursite.com/landing-page"
+            className="w-full bg-muted/20 border border-border/30 rounded-lg px-3 py-2 text-[12px] text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 placeholder:text-muted-foreground/40 transition-all"
+          />
+        </div>
+      )}
       {/* Headline */}
       <div>
         <div className="flex items-center justify-between mb-1">
