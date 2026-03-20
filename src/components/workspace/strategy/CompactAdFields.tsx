@@ -1,14 +1,34 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Sparkles, RefreshCw } from 'lucide-react';
 
 const META_CTA_OPTIONS = [
   'Shop Now', 'Learn More', 'Sign Up', 'Buy Now', 'Add to Cart',
   'Get Offer', 'Order Now', 'Subscribe', 'Download', 'Get Quote',
   'Contact Us', 'Book Now', 'Apply Now', 'Send Message',
 ];
+
+// Mock AI suggestions for demo
+const AI_SUGGESTIONS: Record<string, string[]> = {
+  headline: [
+    'Spring Into Savings — 30% Off',
+    'Your Feet Will Thank You',
+    'Walk on Clouds, Pay Less',
+  ],
+  primaryText: [
+    'Meet the shoe that 50,000+ runners swear by. Made from sustainable materials, designed for all-day comfort. Spring sale ends Sunday.',
+    'Tired of sore feet? Our eco-friendly sneakers are engineered for cloud-like comfort — now 30% off for a limited time.',
+    'Join the movement. Sustainable shoes that perform as good as they feel. Shop the Spring Sale before it\'s gone.',
+  ],
+  description: [
+    'Free shipping over $50',
+    'Sustainable comfort, on sale',
+    'Limited time · 30% off',
+  ],
+};
 
 interface CompactAdFieldsProps {
   headline: string;
@@ -18,12 +38,49 @@ interface CompactAdFieldsProps {
   onUpdate: (field: string, value: string) => void;
 }
 
+const AIFieldButton = ({ field, hasValue, onGenerate }: { field: string; hasValue: boolean; onGenerate: (value: string) => void }) => {
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const generate = () => {
+    setIsGenerating(true);
+    const suggestions = AI_SUGGESTIONS[field] || ['Generated content'];
+    const randomPick = suggestions[Math.floor(Math.random() * suggestions.length)];
+    setTimeout(() => {
+      onGenerate(randomPick);
+      setIsGenerating(false);
+    }, 600);
+  };
+
+  return (
+    <button
+      onClick={generate}
+      disabled={isGenerating}
+      className={cn(
+        "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-medium transition-all",
+        "text-primary/60 hover:text-primary hover:bg-primary/8",
+        isGenerating && "animate-pulse pointer-events-none"
+      )}
+      title={hasValue ? 'Regenerate with AI' : 'Auto-generate with AI'}
+    >
+      {isGenerating ? (
+        <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+      ) : (
+        <Sparkles className="w-2.5 h-2.5" />
+      )}
+      {hasValue ? 'Regenerate' : 'Generate'}
+    </button>
+  );
+};
+
 export const CompactAdFields = ({ headline, primaryText, cta, description, onUpdate }: CompactAdFieldsProps) => {
   return (
     <div className="space-y-3">
       {/* Headline */}
       <div>
-        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium block mb-1">Headline</label>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Headline</label>
+          <AIFieldButton field="headline" hasValue={!!headline} onGenerate={(v) => onUpdate('headline', v)} />
+        </div>
         <div className="relative">
           <input
             type="text"
@@ -39,7 +96,10 @@ export const CompactAdFields = ({ headline, primaryText, cta, description, onUpd
       {/* Primary Text + CTA row */}
       <div className="grid grid-cols-[1fr_140px] gap-3">
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium block mb-1">Primary Text</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Primary Text</label>
+            <AIFieldButton field="primaryText" hasValue={!!primaryText} onGenerate={(v) => onUpdate('primaryText', v)} />
+          </div>
           <div className="relative">
             <textarea
               value={primaryText}
@@ -79,7 +139,10 @@ export const CompactAdFields = ({ headline, primaryText, cta, description, onUpd
       {/* Description (optional) */}
       {description !== undefined && (
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium block mb-1">Description</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Description</label>
+            <AIFieldButton field="description" hasValue={!!description} onGenerate={(v) => onUpdate('description', v)} />
+          </div>
           <div className="relative">
             <input
               type="text"
