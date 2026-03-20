@@ -1,98 +1,77 @@
 
 
-# Redesign Creative Briefs: Upload-First, AI-Second
+# Modernize Creative Source UX: AI-Native, Not SaaS
 
-## Problem Statement
-Two core user pain points:
-1. **AI generation takes too long** — video/image generation can take minutes, blocking the workflow
-2. **Creative briefs are cognitively heavy** — too many fields, selectors, and options overwhelm users, especially when there could be 10+ ads each with briefs
+## Overview
 
-## Design Philosophy
-Flip the mental model: **"Bring your own creative"** is the primary, fastest path. AI generation becomes a secondary power-user option. This dramatically reduces friction because uploading a file takes seconds vs. minutes for AI generation.
+Four interconnected improvements to make the creative brief flow feel like a modern AI tool rather than a traditional SaaS form builder.
 
-## Proposed UX Architecture
+## Changes
 
-### 1. Replace Current Briefs with a "Creative Source" Selector
-Each ad node gets a simple 3-tab selector at the top:
+### 1. Batch Operations Bar (Bottom of Strategy Tree)
 
-```text
-┌─────────────────────────────────────────────────┐
-│  📎 Upload    │  📚 Library    │  ✨ AI Generate │
-│  (primary)    │  (secondary)   │  (tertiary)     │
-└─────────────────────────────────────────────────┘
-```
+Add a floating action bar above the existing bottom bar when there are 2+ ads. Three actions:
 
-- **Upload** (default, highlighted): Drag-drop zone or file picker. Accepts images and videos. Shows the creative brief summary (headline, CTA, text) as a compact editable card below the uploaded asset.
-- **Library**: Grid of previously uploaded/generated assets from the Vibelets creative library. One-click select.
-- **AI Generate**: The current full creative brief (video style, avatar, script, etc.) tucked behind this tab — only shown when the user explicitly opts in.
+- **Upload All** — opens a multi-file uploader dialog; files auto-map to unlocked ads in order
+- **Use Same Creative** — apply one creative (upload or library pick) to all unlocked ads at once
+- **AI Generate All** — queue all unlocked ads for AI generation with a single click
 
-### 2. Simplified Ad Card (Collapsed State)
-Currently ads expand into large, complex briefs. Instead:
+This bar appears contextually only when there are unlocked ads remaining. Visually: a subtle glass-morphism strip with icon buttons and labels, sitting between the tree scroll area and the existing progress/approve bar.
 
-```text
-┌──────────────────────────────────────────────┐
-│ 🎬 Video - Problem/Solution     [x remove]  │
-│ ┌────┐  Headline: Spring Sale...   [edit]    │
-│ │thumb│  CTA: Shop Now ▾                     │
-│ │    │  Status: ⬚ No creative attached       │
-│ └────┘  [📎 Upload] [📚 Library] [✨ AI]     │
-└──────────────────────────────────────────────┘
-```
+**File**: `src/components/workspace/StrategyMapPanel.tsx` — add batch bar section before the existing bottom bar.
 
-- Thumbnail preview appears once a creative is attached
-- Core ad copy fields (headline, primary text, CTA dropdown) are always visible in compact form
-- The 3 source buttons are inline — no need to expand the full brief just to attach a file
+### 2. Modern AI-Native UX Overhaul for CreativeSourceTabs
 
-### 3. Upload Path (Primary)
-When user clicks "Upload":
-- File picker opens (accepts image/video based on ad type)
-- Uploaded file shows as a preview thumbnail with a play button for video
-- Below it: compact editable fields for **Headline** (40 chars), **Primary Text** (125 chars), **CTA** (dropdown), **Description** (30 chars)
-- A "Lock" button to confirm
-- Total interaction: ~15 seconds
+The current 3-tab selector looks like a traditional form. Redesign to feel conversational and AI-native:
 
-### 4. Library Path (Secondary)
-When user clicks "Library":
-- Modal/drawer with grid of existing assets filtered by type (video/image)
-- Search + filter by date, campaign, tags
-- One-click select attaches the asset
-- Same compact fields appear below
+- **Replace boxy tabs** with pill-shaped segmented control using a sliding highlight indicator (like iOS/modern AI tools)
+- **Upload zone**: Replace the generic dashed-border box with a more visual, gradient-accent drop zone with animated icon and contextual micro-copy. When creative is attached, show it as a card with glassmorphism overlay rather than a plain bordered box
+- **Library tab**: Instead of a blank placeholder, show a mini-grid preview of 3-4 recent assets inline (no modal needed for quick picks), with "See all" to open the full picker
+- **AI Generate tab**: Add a subtle AI sparkle animation on the tab icon; the warning becomes a softer inline chip rather than an alert box
+- **Lock button**: Transform from a flat button into a smooth state transition — when ready, it pulses subtly; when locked, it transforms into a confirmed state badge
+- **Product images context**: Show scraped product images as a collapsible "AI found these from your product page" strip at the top of Upload and Library tabs, so users understand they already have reference images available
 
-### 5. AI Generate Path (Tertiary)
-When user clicks "AI Generate":
-- The current detailed brief expands (video style, avatar, script, reference images, etc.)
-- But with a clear warning: "AI generation may take 1-3 minutes per creative"
-- Progress indicator and ability to continue configuring other ads while one generates
-- This is essentially the current VideoCreativeBrief/ImageCreativeBrief but accessed only on demand
+**Files**: `src/components/workspace/strategy/CreativeSourceTabs.tsx`, `src/components/workspace/strategy/CompactAdFields.tsx`
 
-### 6. Batch Operations
-For 10+ ads, add a batch action bar:
-- "Upload All" — opens a multi-file uploader that auto-maps files to ads by order
-- "Use Same Creative" — apply one uploaded creative to multiple selected ads
-- "AI Generate All" — queue all remaining ads for AI generation (with progress tracker)
+### 3. Collapsed Ad Card — Thumbnail Preview + Status Badge
 
-## Technical Implementation
+Currently the collapsed ad row only shows text (name, format badge, checkmark). Enhance:
 
-### Files to modify:
-1. **`src/components/workspace/strategy/VideoCreativeBrief.tsx`** — Wrap current content inside the "AI Generate" tab; add Upload and Library tabs above
-2. **`src/components/workspace/strategy/ImageCreativeBrief.tsx`** — Same treatment
-3. **`src/components/workspace/StrategyMapPanel.tsx`** — Update collapsed ad cards to show inline source buttons and thumbnail preview; add batch action bar
-4. **New: `src/components/workspace/strategy/CreativeSourceTabs.tsx`** — Shared tab component with Upload, Library, AI Generate modes
-5. **New: `src/components/workspace/strategy/CompactAdFields.tsx`** — Reusable compact ad copy editor (headline, text, CTA, description) used across all 3 source modes
-6. **New: `src/components/workspace/strategy/CreativeLibraryPicker.tsx`** — Modal/drawer for selecting from existing library assets
+- Add a **24x24px thumbnail** of the attached creative (or a subtle placeholder icon if none) left-aligned next to the ad name
+- Add a **status badge** replacing the current simple checkmark:
+  - No creative: dim "Not set" chip
+  - Creative attached but not locked: "Ready" chip in amber
+  - Locked: green checkmark chip (existing but restyled)
+- The remove (X) button stays as hover-reveal
 
-### State changes:
-- Each ad gets a `creativeSource: 'upload' | 'library' | 'ai-generate'` field
-- Each ad gets `attachedCreative: { url, type, fileName }` for uploaded/library assets
-- The "Lock" button only requires: creative attached + ad copy fields filled (regardless of source)
-- Completion indicator updates: for Upload/Library path, only 2-3 fields needed vs. 4-6 for AI path
+**File**: `src/components/workspace/StrategyMapPanel.tsx` — modify the ad row rendering (lines ~251-278).
 
-### Key UX micro-behaviors:
-- Default tab is "Upload" — the fastest path is always front and center
-- When switching tabs, previously entered data is preserved
-- Upload zone accepts drag-and-drop with visual feedback
-- Video uploads show a thumbnail frame, not the full video
-- CTA dropdown pre-populated with Meta-aligned options (already exists in codebase)
-- Character counters on text fields (already exists)
-- "Lock" button remains at bottom, same behavior as current
+### 4. Scraped Product Images in Upload/Library Context
+
+The product images scraped from the product URL currently only appear in the AI Generate briefs. Surface them in Upload and Library tabs:
+
+- **Upload tab**: Below the upload zone, show a "From your product page" section with a horizontal scrollable strip of scraped images. Clicking one auto-attaches it as the creative (same as uploading). This gives users a zero-effort path: "We already have your product images, just pick one."
+- **Library tab**: Add a "Product Images" section above the general library grid in the `CreativeLibraryPicker` modal, separated by a subtle divider with label "Scraped from [product URL]"
+- Pass `productImages` from the ad's brief data down through `CreativeSourceTabs` props
+
+**Files**: 
+- `src/components/workspace/strategy/CreativeSourceTabs.tsx` — add props for `productImages`, render strip in upload/library tabs
+- `src/components/workspace/strategy/CreativeLibraryPicker.tsx` — add optional `productImages` prop, render them as a top section
+
+## Technical Details
+
+### New Props
+- `CreativeSourceTabs` gets `productImages?: string[]` prop passed from StrategyMapPanel
+- `CreativeLibraryPicker` gets `productImages?: string[]` prop for the scraped images section
+
+### State Flow
+- Batch operations in StrategyMapPanel iterate over all campaigns/adSets/ads, skip frozen ones, and apply the action
+- Thumbnail in collapsed row reads from ad's `attachedCreative` field (already in state)
+- Scraped images come from `ad.productImages` or the brief's `productImages` array (already in mock data)
+
+### Styling Approach
+- Use `backdrop-blur-sm`, gradient borders, and subtle animations for the AI-native feel
+- Pill segmented control uses `transform: translateX()` for the sliding indicator
+- Batch bar uses `bg-background/80 backdrop-blur-md` glass effect
+- Status badges use the existing Badge component with custom color variants
 
