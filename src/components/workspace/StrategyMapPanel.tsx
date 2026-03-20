@@ -372,27 +372,20 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                               {/* Divider */}
                               <div className="border-t border-border/15" />
 
-                              {/* Creative Brief */}
+                              {/* Creative Brief — Upload-first with tabs */}
                               <div>
                                 <p className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-5 flex items-center gap-1.5">
-                                  <Sparkles className="w-3.5 h-3.5" /> Creative Brief
+                                  <Sparkles className="w-3.5 h-3.5" /> Creative
                                 </p>
 
-                                {isVideo ? (
-                                  <VideoCreativeBrief
-                                    ad={ad}
-                                    frozenAds={frozenAds}
-                                    onToggleFreeze={toggleFreeze}
-                                    onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
-                                  />
-                                ) : (
-                                  <ImageCreativeBrief
-                                    ad={ad}
-                                    frozenAds={frozenAds}
-                                    onToggleFreeze={toggleFreeze}
-                                    onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
-                                  />
-                                )}
+                                <CreativeSourceTabs
+                                  ad={ad}
+                                  isVideo={isVideo}
+                                  frozenAds={frozenAds}
+                                  onToggleFreeze={toggleFreeze}
+                                  onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
+                                  onUpdateAdCopy={(field, value) => onUpdateNode(ci, field, value, si, ai)}
+                                />
                               </div>
                             </div>
                           )}
