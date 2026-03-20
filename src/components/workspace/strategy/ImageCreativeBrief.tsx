@@ -82,6 +82,42 @@ export const ImageCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
 
   const isUserAdded = (index: number) => index >= defaultImageCount;
 
+  // Drag-and-drop reordering
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((index: number) => {
+    dragIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((index: number) => {
+    const from = dragIndexRef.current;
+    if (from === null || from === index) { setDragOverIndex(null); return; }
+    const reordered = [...productImages];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(index, 0, moved);
+    setProductImages(reordered);
+    let newSelected = selectedImg;
+    if (selectedImg === from) newSelected = index;
+    else if (from < selectedImg && index >= selectedImg) newSelected = selectedImg - 1;
+    else if (from > selectedImg && index <= selectedImg) newSelected = selectedImg + 1;
+    setSelectedImg(newSelected);
+    onUpdateField('productImages', reordered);
+    onUpdateField('selectedImageIdx', newSelected);
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, [productImages, selectedImg, onUpdateField]);
+
+  const handleDragEnd = useCallback(() => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, []);
+
   const handleGenerateDirection = () => {
     setIsGeneratingDirection(true);
     setTimeout(() => {
