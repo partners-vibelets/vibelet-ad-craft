@@ -2,13 +2,16 @@ import { useState, useCallback, useRef } from 'react';
 import {
   Target, Layers, ChevronDown, ChevronRight, Check,
   DollarSign, Sparkles, Lock, CheckCircle2, X,
-  Upload, FolderOpen, Wand2,
+  Upload, FolderOpen, Wand2, CalendarDays, Link2,
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { Artifact } from '@/types/workspace';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InlineEdit } from './strategy/InlineEdit';
 import { CreativeSourceTabs } from './strategy/CreativeSourceTabs';
 import {
