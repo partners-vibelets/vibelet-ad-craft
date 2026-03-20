@@ -45,6 +45,10 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
   const confidence = plan.confidenceScore || 0;
   const totalDaily = plan.totalDailyBudget || 0;
   const totalMonthly = plan.totalMonthlyBudget || 0;
+  const budgetSchedule = plan.budgetSchedule || 'daily';
+  const [scheduleType, setScheduleType] = useState<'daily' | 'lifetime'>(budgetSchedule);
+  const [startDate, setStartDate] = useState<Date | undefined>(plan.startDate ? new Date(plan.startDate) : undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(plan.endDate ? new Date(plan.endDate) : undefined);
 
   // Collect all ads for batch ops
   const allAds: { key: string; ad: any; ci: number; si: number; ai: number }[] = [];
