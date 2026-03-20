@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Target, Layers, ChevronDown, ChevronRight, Check,
   DollarSign, Sparkles, Lock, CheckCircle2, X,
