@@ -33,6 +33,7 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
   const [expandedNode, setExpandedNode] = useState<NodePath>(null);
   const [frozenAds, setFrozenAds] = useState<Set<string>>(new Set());
   const [removedAds, setRemovedAds] = useState<Set<string>>(new Set());
+  const batchFileInputRef = useRef<HTMLInputElement>(null);
 
   const d = artifact.data;
   const plan = d.strategyPlan || d;
