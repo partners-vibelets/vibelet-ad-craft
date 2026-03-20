@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Film, User, Sparkles, Lock, Unlock, Upload, FileText, ImageIcon,
   Smartphone, Square, ChevronLeft, ChevronRight, Check, Wand2, Monitor,
