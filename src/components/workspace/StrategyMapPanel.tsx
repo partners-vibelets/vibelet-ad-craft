@@ -156,8 +156,16 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-sm font-semibold text-foreground">${totalDaily}/day</p>
-            <p className="text-[10px] text-muted-foreground">${totalMonthly.toLocaleString()}/mo</p>
+            <p className="text-sm font-semibold text-foreground">
+              ${totalDaily}{scheduleType === 'daily' ? '/day' : ' total'}
+            </p>
+            {scheduleType === 'daily' ? (
+              <p className="text-[10px] text-muted-foreground">${totalMonthly.toLocaleString()}/mo</p>
+            ) : startDate && endDate ? (
+              <p className="text-[10px] text-muted-foreground">{format(startDate, 'MMM d')} – {format(endDate, 'MMM d')}</p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground/50">Set dates ↓</p>
+            )}
           </div>
         </div>
       </div>
