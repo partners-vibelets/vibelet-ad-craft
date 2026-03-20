@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Lock, Unlock, Upload, Palette, Check, Square, Smartphone, Monitor,
   Eye, Wand2, FolderOpen, X
