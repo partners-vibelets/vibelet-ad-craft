@@ -14,7 +14,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 
-// Meta CTA options for Sales objective
+// Meta CTA options for inline ad copy editing
 const META_CTA_OPTIONS = [
   'Shop Now', 'Learn More', 'Sign Up', 'Buy Now', 'Add to Cart',
   'Get Offer', 'Order Now', 'Subscribe', 'Download', 'Get Quote',
