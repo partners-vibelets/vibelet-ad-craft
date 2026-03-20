@@ -114,6 +114,43 @@ export const VideoCreativeBrief = ({ ad, frozenAds, onToggleFreeze, onUpdateFiel
   // User-added images are appended after default images
   const isUserAdded = (index: number) => index >= defaultImageCount;
 
+  // Drag-and-drop reordering
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((index: number) => {
+    dragIndexRef.current = index;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((index: number) => {
+    const from = dragIndexRef.current;
+    if (from === null || from === index) { setDragOverIndex(null); return; }
+    const reordered = [...productImages];
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(index, 0, moved);
+    setProductImages(reordered);
+    // Update selected index to follow the selected image
+    let newSelected = selectedRefImg;
+    if (selectedRefImg === from) newSelected = index;
+    else if (from < selectedRefImg && index >= selectedRefImg) newSelected = selectedRefImg - 1;
+    else if (from > selectedRefImg && index <= selectedRefImg) newSelected = selectedRefImg + 1;
+    setSelectedRefImg(newSelected);
+    onUpdateField('productImages', reordered);
+    onUpdateField('selectedRefImgIdx', newSelected);
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, [productImages, selectedRefImg, onUpdateField]);
+
+  const handleDragEnd = useCallback(() => {
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  }, []);
+
   const openPreview = (type: 'usecase' | 'avatar', data: any, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
