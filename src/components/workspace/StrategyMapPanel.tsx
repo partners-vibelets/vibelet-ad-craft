@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   Target, Layers, ChevronDown, ChevronRight, Check,
   DollarSign, Sparkles, Lock, CheckCircle2, X,
+  Upload, FolderOpen, Wand2,
 } from 'lucide-react';
 import { Artifact } from '@/types/workspace';
 import { Badge } from '@/components/ui/badge';
@@ -41,13 +42,20 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
   const totalDaily = plan.totalDailyBudget || 0;
   const totalMonthly = plan.totalMonthlyBudget || 0;
 
+  // Collect all ads for batch ops
+  const allAds: { key: string; ad: any; ci: number; si: number; ai: number }[] = [];
   let totalAds = 0;
-  campaigns.forEach((c: any) => (c.adSets || []).forEach((s: any) => {
-    (s.ads || []).forEach((ad: any) => {
-      if (!removedAds.has(`${c.name}-${s.name}-${ad.name}`)) totalAds++;
+  campaigns.forEach((c: any, ci: number) => (c.adSets || []).forEach((s: any, si: number) => {
+    (s.ads || []).forEach((ad: any, ai: number) => {
+      const key = `${c.name}-${s.name}-${ad.name}`;
+      if (!removedAds.has(key)) {
+        totalAds++;
+        allAds.push({ key, ad, ci, si, ai });
+      }
     });
   }));
   const frozenCount = frozenAds.size;
+  const unlockedCount = totalAds - frozenCount;
 
   const isExpanded = useCallback((ci: number, si?: number, ai?: number) => {
     if (!expandedNode) return false;
@@ -74,7 +82,6 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
       next.add(adKey);
       return next;
     });
-    // Also remove from frozen if it was frozen
     setFrozenAds(prev => {
       const next = new Set(prev);
       next.delete(adKey);
@@ -84,6 +91,14 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
 
   const isVideoFormat = (format: string) => /video/i.test(format);
   const isCarouselFormat = (format: string) => /carousel/i.test(format);
+
+  // Get creative status for an ad
+  const getAdStatus = (ad: any) => {
+    const adKey = ad.name;
+    if (frozenAds.has(adKey)) return 'locked';
+    if (ad.attachedCreative) return 'ready';
+    return 'empty';
+  };
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -247,9 +262,10 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                       if (removedAds.has(adCompositeKey)) return null;
                       const isFrozen = frozenAds.has(ad.name);
                       const isVideo = isVideoFormat(ad.format);
+                      const status = getAdStatus(ad);
                       return (
                         <div key={ai} className="ml-6 border-l border-border/20">
-                          {/* Ad row with inline remove */}
+                          {/* Ad row with thumbnail + status badge */}
                           <div className={cn(
                             "flex items-center gap-2 px-3 py-1.5 transition-all rounded-r-lg group",
                             "hover:bg-muted/15",
@@ -259,15 +275,35 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                               onClick={() => toggleNode(ci, si, ai)}
                               className="flex items-center gap-2 flex-1 min-w-0 text-left"
                             >
-                              <span className="text-[10px] shrink-0">
-                                {isVideo ? '🎬' : isCarouselFormat(ad.format) ? '🔄' : '🖼️'}
-                              </span>
+                              {/* Thumbnail or placeholder */}
+                              {ad.attachedCreative ? (
+                                <div className="w-6 h-6 rounded-md overflow-hidden shrink-0 border border-border/30">
+                                  <img src={ad.attachedCreative.url} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <span className="text-[10px] shrink-0 w-6 text-center">
+                                  {isVideo ? '🎬' : isCarouselFormat(ad.format) ? '🔄' : '🖼️'}
+                                </span>
+                              )}
                               <span className="text-[11px] text-foreground flex-1 truncate">{ad.name}</span>
                             </button>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {isFrozen && <CheckCircle2 className="w-3 h-3 text-secondary" />}
+                              {/* Status badge */}
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[8px] h-4 px-1.5 border",
+                                  status === 'locked' && "bg-secondary/10 border-secondary/30 text-secondary",
+                                  status === 'ready' && "bg-amber-500/10 border-amber-500/30 text-amber-600",
+                                  status === 'empty' && "bg-muted/20 border-border/30 text-muted-foreground/50"
+                                )}
+                              >
+                                {status === 'locked' && <><Lock className="w-2.5 h-2.5 mr-0.5" />Locked</>}
+                                {status === 'ready' && 'Ready'}
+                                {status === 'empty' && 'Not set'}
+                              </Badge>
                               <Badge variant="outline" className="text-[8px] h-3.5 px-1.5">{ad.format}</Badge>
-                              {/* Remove button — always visible on hover */}
+                              {/* Remove button */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); removeAd(adCompositeKey); }}
                                 className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all"
@@ -385,6 +421,7 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
                                   onToggleFreeze={toggleFreeze}
                                   onUpdateField={(field, value) => onUpdateNode(ci, `creativeBrief.${field}`, value, si, ai)}
                                   onUpdateAdCopy={(field, value) => onUpdateNode(ci, field, value, si, ai)}
+                                  productImages={ad.productImages || ad.brief?.productImages}
                                 />
                               </div>
                             </div>
@@ -399,6 +436,30 @@ export const StrategyMapPanel = ({ artifact, onUpdateNode }: StrategyMapPanelPro
           ))}
         </div>
       </ScrollArea>
+
+      {/* Batch operations bar — shown when 2+ unlocked ads */}
+      {unlockedCount >= 2 && (
+        <div className="border-t border-border/20 bg-background/80 backdrop-blur-md px-4 py-2.5 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground/60 shrink-0">Batch:</span>
+            <div className="flex items-center gap-1.5 flex-1">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/20 hover:bg-muted/40 border border-border/20 hover:border-primary/30 text-[10px] font-medium text-foreground/70 hover:text-foreground transition-all">
+                <Upload className="w-3 h-3" />
+                Upload All
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/20 hover:bg-muted/40 border border-border/20 hover:border-primary/30 text-[10px] font-medium text-foreground/70 hover:text-foreground transition-all">
+                <FolderOpen className="w-3 h-3" />
+                Use Same
+              </button>
+              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/8 hover:bg-primary/15 border border-primary/20 hover:border-primary/30 text-[10px] font-medium text-primary/80 hover:text-primary transition-all">
+                <Wand2 className="w-3 h-3" />
+                AI Generate All
+              </button>
+            </div>
+            <span className="text-[9px] text-muted-foreground/40 tabular-nums shrink-0">{unlockedCount} unlocked</span>
+          </div>
+        </div>
+      )}
 
       {/* Bottom bar */}
       <div className="border-t border-border/30 bg-card/80 backdrop-blur-sm px-4 py-3 shrink-0 space-y-2.5">
