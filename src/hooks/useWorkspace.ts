@@ -2892,6 +2892,96 @@ export function useWorkspace() {
   }, [activeStrategyArtifact, updateArtifactData]);
 
 
+  // Create a welcome thread with AI-personalized greeting based on onboarding answers
+  const createWelcomeThread = useCallback(async (onboardingAnswers: Record<string, any>, userName?: string) => {
+    const id = `thread-welcome-${Date.now()}`;
+    const newThread: Thread = {
+      id, title: 'Welcome', workspaceId: 'ws-1',
+      messages: [], artifacts: [], rules: [], createdAt: new Date(), updatedAt: new Date(),
+      isActive: true, status: 'active', pinnedArtifactIds: [],
+    };
+    setThreads(prev => ({ ...prev, [id]: newThread }));
+    setActiveThreadId(id);
+    setIsHomeMode(false);
+    setIsTyping(true);
+
+    // Build a rich context prompt from onboarding answers
+    const roleMap: Record<string, string> = { founder: 'a founder/brand owner', performance_marketer: 'a performance marketer', automation_engineer: 'a vibe coder / automation-first user', agency: 'an agency / consultant' };
+    const objectiveMap: Record<string, string> = { sales: 'driving sales & revenue', leads: 'generating leads & signups', awareness: 'building brand awareness & reach', experimentation: 'testing new products & ideas' };
+    const role = roleMap[onboardingAnswers.role] || 'a marketer';
+    const objective = objectiveMap[onboardingAnswers.top_objective] || 'growing their business';
+    const budget = onboardingAnswers.monthly_budget_range || 'unspecified';
+    const autonomy = onboardingAnswers.ai_autonomy || 'assistive';
+    const firstName = userName?.split(' ')[0] || 'there';
+
+    const contextPrompt = `The user just signed up and completed onboarding. Here's what we know:
+- Name: ${firstName}
+- Role: ${role}
+- Primary objective: ${objective}
+- Monthly ad budget: ${budget}
+- AI autonomy preference: ${autonomy}
+- They have 50 free credits to get started
+- They have NOT connected a Facebook Ad account yet
+
+Write a warm, confident, personalized welcome message (150-200 words). Requirements:
+1. Greet them by name and acknowledge their role & objective specifically
+2. Mention their 50 free credits as a gift to explore
+3. Briefly list 3-4 key things you can do for them (tailored to their objective)
+4. End with a clear, motivating recommendation to connect their Facebook Ad account as the logical first step — frame it as unlocking the full power of AI-driven recommendations, not as a chore
+5. Use 1-2 relevant emoji, **bold** for emphasis, keep it conversational and trust-building
+6. Do NOT use bullet lists for the capabilities — weave them naturally into the message`;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          messages: [{ role: 'user', content: contextPrompt }],
+          threadContext: { title: 'Welcome', status: 'active', messageCount: 0 },
+        },
+      });
+
+      const greeting = (data?.reply && !error)
+        ? data.reply
+        : `Hey ${firstName}! 👋 Welcome to Vibelets — I'm excited to have you here.\n\nAs ${role} focused on ${objective}, you're in the right place. You've got **50 free credits** to explore everything — from generating scroll-stopping ad creatives to building full campaign strategies with AI-powered targeting.\n\nI can help you craft high-converting ads, analyze your product pages for the best angles, set up smart automation rules, and continuously optimize your campaigns based on real performance data.\n\nTo unlock the full potential, I'd recommend we **connect your Facebook Ad account** first. This lets me analyze your existing data, spot opportunities, and generate recommendations that are actually tailored to your business — not generic templates.\n\nReady to get started? 🚀`;
+
+      const welcomeMsg: ThreadMessage = {
+        id: `msg-welcome-${Date.now()}`,
+        role: 'assistant',
+        content: greeting,
+        timestamp: new Date(),
+      };
+      appendMessage(id, welcomeMsg);
+      setIsTyping(false);
+
+      // After a brief pause, show action chips
+      setTimeout(() => {
+        const chipMsg: ThreadMessage = {
+          id: `msg-chips-${Date.now()}`,
+          role: 'assistant',
+          content: "Pick your first move:",
+          timestamp: new Date(),
+          actionChips: [
+            { label: '🔗 Connect Facebook Account', action: 'connect-facebook' },
+            { label: '🚀 Plan a campaign', action: 'prompt', icon: '' },
+            { label: '🎨 Generate ad creatives', action: 'prompt', icon: '' },
+            { label: '📊 Run account audit', action: 'prompt', icon: '' },
+          ],
+        };
+        appendMessage(id, chipMsg);
+      }, 800);
+    } catch (e) {
+      console.error('Welcome greeting error:', e);
+      const fallbackMsg: ThreadMessage = {
+        id: `msg-welcome-${Date.now()}`,
+        role: 'assistant',
+        content: `Hey ${firstName}! 👋 Welcome to Vibelets!\n\nYou've got **50 free credits** to explore. As ${role} focused on ${objective}, I can help you create stunning ads, build smart campaigns, and optimize performance — all powered by AI.\n\nLet's start by **connecting your Facebook Ad account** so I can give you personalized, data-driven recommendations. 🚀`,
+        timestamp: new Date(),
+      };
+      appendMessage(id, fallbackMsg);
+      setIsTyping(false);
+    }
+  }, [appendMessage, setIsTyping]);
+
+
   return {
     activeThread, activeThreadId, isTyping, sidebarCollapsed, focusedArtifactId,
     selectThread, createThread, sendMessage, handleActionChip, handleArtifactAction,
@@ -2899,5 +2989,6 @@ export function useWorkspace() {
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
     executionPanelContent, setExecutionPanelContent, handleExecutionAction,
+    createWelcomeThread,
   };
 }

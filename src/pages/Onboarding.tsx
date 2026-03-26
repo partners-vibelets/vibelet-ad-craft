@@ -48,7 +48,7 @@ const Onboarding = () => {
       await new Promise(resolve => setTimeout(resolve, 600));
     }
     completeOnboarding();
-    navigate('/dashboard');
+    navigate('/workspace?from=onboarding');
   };
 
   return (
