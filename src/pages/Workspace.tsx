@@ -96,6 +96,12 @@ const Workspace = () => {
           update(stateOverride as Partial<UserState>);
           setShowDemoSelector(false);
           setOnboardingComplete(true);
+          // For "New User (No Facebook)" persona, trigger the welcome thread
+          if (stateOverride.connected_facebook === false && !stateOverride.has_published_campaign && !stateOverride.has_draft) {
+            const saved = localStorage.getItem('vibelets-onboarding-data');
+            const answers = saved ? JSON.parse(saved) : stateOverride.onboarding_answers || {};
+            setTimeout(() => createWelcomeThread(answers, user?.name || 'Alex'), 300);
+          }
         }}
         onSkip={() => {
           setShowDemoSelector(false);
