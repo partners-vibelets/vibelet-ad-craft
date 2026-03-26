@@ -2957,8 +2957,14 @@ Write a warm, confident, personalized welcome message (150-200 words). Requireme
         const chipMsg: ThreadMessage = {
           id: `msg-chips-${Date.now()}`,
           role: 'assistant',
-          content: "Here's what we can do right now:",
+          content: "Pick your first move:",
           timestamp: new Date(),
+          actionChips: [
+            { label: '🔗 Connect Facebook Account', action: 'connect-facebook' },
+            { label: '🚀 Plan a campaign', action: 'prompt', icon: '' },
+            { label: '🎨 Generate ad creatives', action: 'prompt', icon: '' },
+            { label: '📊 Run account audit', action: 'prompt', icon: '' },
+          ],
         };
         appendMessage(id, chipMsg);
       }, 800);
