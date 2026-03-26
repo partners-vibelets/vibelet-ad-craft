@@ -18,10 +18,13 @@ import { Button } from '@/components/ui/button';
 
 const Workspace = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [showDemoSelector, setShowDemoSelector] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const fromOnboarding = searchParams.get('from') === 'onboarding';
+  const [onboardingComplete, setOnboardingComplete] = useState(fromOnboarding);
+  const [showDemoSelector, setShowDemoSelector] = useState(!fromOnboarding);
   const { update } = useUserState();
+  const [welcomeTriggered, setWelcomeTriggered] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingData | null>(() => {
     const saved = localStorage.getItem('vibelets-onboarding-data');
     return saved ? JSON.parse(saved) : null;
@@ -33,7 +36,7 @@ const Workspace = () => {
     toggleArtifactCollapse, updateArtifactData, focusArtifact, setSidebarCollapsed,
     openSignalsDashboard, archiveThread, summarizeThread, pinArtifact, allThreads,
     isHomeMode, enterWorkspaceFromHome, activeStrategyArtifact, updateStrategyNode,
-    executionPanelContent, handleExecutionAction,
+    executionPanelContent, handleExecutionAction, createWelcomeThread,
   } = useWorkspace();
 
   // Redirect to auth if not authenticated
@@ -42,6 +45,27 @@ const Workspace = () => {
       navigate('/auth');
     }
   }, [authLoading, isAuthenticated, navigate]);
+
+  // Auto-trigger welcome thread for users coming from onboarding
+  useEffect(() => {
+    if (fromOnboarding && !welcomeTriggered && isAuthenticated) {
+      setWelcomeTriggered(true);
+      // Set new-user state (no Facebook connected)
+      update({
+        connected_facebook: false,
+        has_published_campaign: false,
+        has_draft: false,
+        paused_alerts: [],
+        apps: { slack_connected: false },
+      });
+      // Clean up the query param
+      setSearchParams({}, { replace: true });
+      // Load onboarding data and trigger welcome
+      const saved = localStorage.getItem('vibelets-onboarding-data');
+      const answers = saved ? JSON.parse(saved) : {};
+      createWelcomeThread(answers, user?.name);
+    }
+  }, [fromOnboarding, welcomeTriggered, isAuthenticated, user, createWelcomeThread, update, setSearchParams]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
