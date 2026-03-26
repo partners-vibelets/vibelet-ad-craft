@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: provider === 'google' ? 'alex@gmail.com' : 'alex@facebook.com',
       avatar: undefined,
       provider,
-      credits: 5,
+      credits: 50,
       dailyCredits: 5,
       rolloverCap: 30,
       plan: 'Free Forever',
