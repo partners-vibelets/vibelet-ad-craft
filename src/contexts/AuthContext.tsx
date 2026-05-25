@@ -27,12 +27,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'vibelets-auth-user';
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as User) : null;
+    } catch {
+      return null;
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const saveUser = (userData: User) => {
     setUser(userData);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+    } catch {}
   };
 
   const login = async (provider: 'google' | 'facebook') => {
@@ -58,6 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
   };
 
   const completeOnboarding = () => {
